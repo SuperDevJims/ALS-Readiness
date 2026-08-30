@@ -14,7 +14,7 @@ class StrandTestAttempt(BaseEntity, table=True):
 
     total_score: int
 
-    taken_at: datetime = Field(
+    taken_at: datetime | None = Field(
         default=None,
         sa_column_kwargs={
             "server_default": func.now(),

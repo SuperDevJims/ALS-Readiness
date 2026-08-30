@@ -22,7 +22,7 @@ class StrandTest(BaseEntity, table=True):
     )
 
 
-class StrandTestItems(BaseEntity, table=True):
+class StrandTestItem(BaseEntity, table=True):
     __tablename__ = "strand_test_items"
 
     test_id: int = Field(foreign_key="strand_tests.id")

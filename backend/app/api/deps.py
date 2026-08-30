@@ -12,6 +12,11 @@ from app.models.user import User
 from app.repositories.facilitator import FacilitatorRepository
 from app.repositories.learner import LearnerRepository
 from app.repositories.refresh_token import RefreshTokenRepository
+from app.repositories.strand_test_attempt import StrandTestAttemptRepository
+from app.repositories.strand_test_attempt_answers import (
+    StrandTestAttemptAnswerRepository,
+)
+from app.repositories.strand_test_item_option import StrandTestItemOptionRepository
 from app.repositories.user import UserRepository
 from app.repositories.user_profile import UserProfileRepository
 from app.services.admin import AdminService
@@ -19,6 +24,7 @@ from app.services.auth import AuthService
 from app.services.facilitator import FacilitatorService
 from app.services.learner import LearnerService
 from app.services.refresh_token import RefreshTokenService
+from app.services.strand_test_attempt import StrandTestAttemptService
 from app.services.user import UserService
 from app.services.user_profile import UserProfileService
 
@@ -161,7 +167,7 @@ async def get_current_user(
         user_id = int(payload.get("sub"))
     except (KeyError, TypeError, ValueError):
         raise InvalidAccessTokenError()
-    
+
     return await user_service.get_active_by_id(user_id)
 
 
@@ -169,11 +175,83 @@ CurrentUserDep = Annotated[User, Depends(get_current_user)]
 
 
 async def require_admin(current_user: CurrentUserDep) -> User:
-    user_role = UserRole(current_user.role)
-    if user_role != UserRole.ADMIN:
+    if current_user.role != UserRole.ADMIN:
         raise UnauthorizedError()
 
     return current_user
 
 
 RequireAdminDep = Annotated[User, Depends(require_admin)]
+
+
+async def get_current_learner(current_user: CurrentUserDep) -> User:
+    if current_user.role != UserRole.LEARNER:
+        raise UnauthorizedError()
+
+    return current_user
+
+
+CurrentLearnernDep = Annotated[User, Depends(get_current_learner)]
+
+
+async def get_current_facilitator(current_user: CurrentUserDep) -> User:
+    if current_user.role != UserRole.FACILITATOR:
+        raise UnauthorizedError()
+
+    return current_user
+
+
+CurrentFacilitatorDep = Annotated[User, Depends(get_current_facilitator)]
+
+
+# ============== Strand Test Attempts ==============
+
+
+def get_strand_test_item_option_repository(
+    session: SessionDep,
+) -> StrandTestItemOptionRepository:
+    return StrandTestItemOptionRepository(session)
+
+
+StrandTestItemOptionRepositoryDep = Annotated[
+    StrandTestItemOptionRepository, Depends(get_strand_test_item_option_repository)
+]
+
+
+def get_strand_attempt_answer_repository(
+    session: SessionDep,
+) -> StrandTestAttemptAnswerRepository:
+    return StrandTestAttemptAnswerRepository(session)
+
+
+StrandAttemptAnswerRepositoryDep = Annotated[
+    StrandTestAttemptAnswerRepository, Depends(get_strand_attempt_answer_repository)
+]
+
+
+def get_strand_attempt_repository(session: SessionDep) -> StrandTestAttemptRepository:
+    return StrandTestAttemptRepository(session)
+
+
+StrandAttemptRepositoryDep = Annotated[
+    StrandTestAttemptRepository, Depends(get_strand_attempt_repository)
+]
+
+
+def get_strand_attempt_service(
+    attempt_repository: StrandAttemptRepositoryDep,
+    attempt_answer_repository: StrandAttemptAnswerRepositoryDep,
+    learner_repository: LearnerRepositoryDep,
+    test_option_repository: StrandTestItemOptionRepositoryDep,
+) -> StrandTestAttemptService:
+    return StrandTestAttemptService(
+        attempt_repository=attempt_repository,
+        attempt_answer_repository=attempt_answer_repository,
+        learner_repository=learner_repository,
+        test_option_repository=test_option_repository,
+    )
+
+
+StrandAttemptServiceDep = Annotated[
+    StrandTestAttemptService, Depends(get_strand_attempt_service)
+]
