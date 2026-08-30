@@ -5,6 +5,8 @@
 import asyncio
 import sys
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
@@ -15,17 +17,21 @@ from app.schemas.user import UserCreate
 from app.services.user import UserService
 
 
-async def create_admin():
+async def create_admin(session: AsyncSession) -> None:
+    repo = UserRepository(session)
+    service = UserService(repo)
+
+    user, temp_password = await service.create(
+        UserCreate(role=UserRole.ADMIN)
+    )
+
+    print(f"Admin created - id_no: {user.id_no}, temp_password: {temp_password}")
+
+
+async def main() -> None:
     async with AsyncSessionLocal() as session, session.begin():
-        repo = UserRepository(session)
-        service = UserService(repo)
-
-        user, temp_password = await service.create(
-            UserCreate(role=UserRole.ADMIN)
-        )
-
-        print(f"Admin created - id_no: {user.id_no}, temp_password: {temp_password}")
+        await create_admin(session)
 
 
 if __name__ == "__main__":
-    asyncio.run(create_admin())
+    asyncio.run(main())

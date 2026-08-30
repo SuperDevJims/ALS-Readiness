@@ -1,16 +1,8 @@
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.models.facilitator import Facilitator
 
+from .base import BaseRepository
 
-class FacilitatorRepository:
-    def __init__(self, session: AsyncSession):
-        self._session = session
 
-    async def create(self, facilitator: Facilitator) -> Facilitator:
-        self._session.add(facilitator)
+class FacilitatorRepository(BaseRepository[Facilitator]):
 
-        await self._session.flush()
-        await self._session.refresh(facilitator)
-
-        return facilitator
+    model = Facilitator

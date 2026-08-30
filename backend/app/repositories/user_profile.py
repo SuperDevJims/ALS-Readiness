@@ -1,20 +1,12 @@
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.models.user_profile import UserProfile
 from app.schemas.user_profile import UserProfileUpdate
 
+from .base import BaseRepository
 
-class UserProfileRepository:
-    def __init__(self, session: AsyncSession):
-        self._session = session
 
-    async def create(self, user_profile: UserProfile) -> UserProfile:
-        self._session.add(user_profile)
+class UserProfileRepository(BaseRepository[UserProfile]):
 
-        await self._session.flush()
-        await self._session.refresh(user_profile)
-
-        return user_profile
+    model = UserProfile
 
     async def update(
         self,

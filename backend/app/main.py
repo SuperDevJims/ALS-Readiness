@@ -14,7 +14,7 @@ app = FastAPI()
 app.include_router(api_router)
 
 
-# ================ Global Exception Handling ================
+# ========== General/Framework Exception Handling ==========
 
 # Logger for printing errors in server terminal
 logger = logging.getLogger(__name__)
@@ -78,7 +78,7 @@ async def validation_exception_handler(
     )
 
 
-# ============ Custom Category Exception Handlers ============
+# ========== Custom Category Exception Handlers ==========
 
 @app.exception_handler(NotFoundError)
 async def handle_not_found(_: Request, exc: NotFoundError):

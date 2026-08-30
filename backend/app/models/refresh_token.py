@@ -4,11 +4,12 @@ from uuid import UUID
 from sqlalchemy import func
 from sqlmodel import Field, SQLModel
 
+from .base import BaseEntity
 
-class RefreshToken(SQLModel, table=True):
+
+class RefreshToken(BaseEntity, table=True):
     __tablename__ = "refresh_tokens"
 
-    id: int | None = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="users.id", index=True)
 
     token_hash: str = Field(max_length=255)

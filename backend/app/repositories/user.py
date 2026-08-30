@@ -1,25 +1,15 @@
 from typing import Any
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
 
+from .base import BaseRepository
 
-class UserRepository:
-    def __init__(self, session: AsyncSession):
-        self._session = session
 
-    async def create(self, user: User) -> User:
-        self._session.add(user)
-
-        await self._session.flush()
-        await self._session.refresh(user)
-
-        return user
-
-    async def get_by_id(self, id: int) -> User | None:
-        return await self._session.get(User, id)
+class UserRepository(BaseRepository[User]):
+    
+    model = User
 
     async def get_by_email(self, email: str) -> User | None:
         statement = select(User).where(User.email == email)

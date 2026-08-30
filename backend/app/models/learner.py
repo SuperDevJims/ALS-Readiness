@@ -1,8 +1,9 @@
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field
+
+from .base import BaseEntity
 
 
-class Learner(SQLModel, table=True):
+class Learner(BaseEntity, table=True):
     __tablename__ = "learners"
 
-    id: int | None = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="users.id", unique=True)

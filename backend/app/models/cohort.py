@@ -2,15 +2,15 @@ from datetime import date, datetime
 
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy import Index, UniqueConstraint, func, text
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field
 
 from app.enums.cohort import *
 
+from .base import BaseEntity
 
-class Cohort(SQLModel, table=True):
+
+class Cohort(BaseEntity, table=True):
     __tablename__ = "cohorts"
-
-    id: int | None = Field(default=None, primary_key=True)
 
     created_by: int = Field(foreign_key="users.id")
 
@@ -48,10 +48,8 @@ class Cohort(SQLModel, table=True):
     )
 
 
-class CohortMembers(SQLModel, table=True):
+class CohortMembers(BaseEntity, table=True):
     __tablename__ = "cohort_members"
-
-    id: int | None = Field(default=None, primary_key=True)
 
     cohort_id: int = Field(foreign_key="cohorts.id")
     learner_id: int = Field(foreign_key="learners.id")
@@ -82,10 +80,8 @@ class CohortMembers(SQLModel, table=True):
     )
 
 
-class CohortFacilitators(SQLModel, table=True):
+class CohortFacilitators(BaseEntity, table=True):
     __tablename__ = "cohort_facilitators"
-
-    id: int | None = Field(default=None, primary_key=True)
 
     cohort_id: int = Field(foreign_key="cohorts.id")
     facilitator_id: int = Field(foreign_key="facilitators.id")
