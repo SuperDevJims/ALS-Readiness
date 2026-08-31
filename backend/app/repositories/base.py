@@ -3,6 +3,8 @@ from sqlmodel import SQLModel
 
 
 class BaseRepository[ModelT: SQLModel]:
+    """Serves as the base parent that provides common methods and initialization to repositories."""
+
     def __init__(self, session: AsyncSession):
         self._session = session
 

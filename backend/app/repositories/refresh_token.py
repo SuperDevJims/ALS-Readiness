@@ -9,7 +9,6 @@ from .base import BaseRepository
 
 
 class RefreshTokenRepository(BaseRepository[RefreshToken]):
-
     model = RefreshToken
 
     async def get_by_jti(self, jti: UUID) -> RefreshToken | None:
@@ -23,6 +22,6 @@ class RefreshTokenRepository(BaseRepository[RefreshToken]):
         refresh_token = await self.get_by_jti(jti)
 
         refresh_token.is_revoked = True
-        refresh_token.revoked_at = revoked_at 
+        refresh_token.revoked_at = revoked_at
 
         await self._session.flush()

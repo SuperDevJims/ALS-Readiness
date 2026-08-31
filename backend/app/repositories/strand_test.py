@@ -8,19 +8,20 @@ from .base import BaseRepository
 
 
 class StrandTestRepository(BaseRepository[StrandTest]):
-
     model = StrandTest
 
-    def get_with_attempt_status(learner_id: int):
+    async def get_with_attempt(self, learner_id: int):
+        """Get strand tests with their learning strand and the learner's attempt."""
+
         statement = (
             select(StrandTest, LearningStrand, StrandTestAttempt)
-            .join(
-                LearningStrand,
-                LearningStrand.id == StrandTest.strand_id
-            )
+            .join(LearningStrand, LearningStrand.id == StrandTest.strand_id)
             .outerjoin(
                 StrandTestAttempt,
                 (StrandTestAttempt.test_id == StrandTest.id)
-                & (StrandTestAttempt.learner_id == learner_id)
+                & (StrandTestAttempt.learner_id == learner_id),
             )
         )
+
+        result = await self._session.execute(statement)
+        print(result.all())

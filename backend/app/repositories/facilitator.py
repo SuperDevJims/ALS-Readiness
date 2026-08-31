@@ -4,5 +4,4 @@ from .base import BaseRepository
 
 
 class FacilitatorRepository(BaseRepository[Facilitator]):
-
     model = Facilitator
