@@ -12,6 +12,7 @@ from app.models.user import User
 from app.repositories.facilitator import FacilitatorRepository
 from app.repositories.learner import LearnerRepository
 from app.repositories.refresh_token import RefreshTokenRepository
+from app.repositories.strand_test import StrandTestRepository
 from app.repositories.strand_test_attempt import StrandTestAttemptRepository
 from app.repositories.strand_test_attempt_answers import (
     StrandTestAttemptAnswerRepository,
@@ -24,6 +25,7 @@ from app.services.auth import AuthService
 from app.services.facilitator import FacilitatorService
 from app.services.learner import LearnerService
 from app.services.refresh_token import RefreshTokenService
+from app.services.strand_test import StrandTestService
 from app.services.strand_test_attempt import StrandTestAttemptService
 from app.services.user import UserService
 from app.services.user_profile import UserProfileService
@@ -205,6 +207,25 @@ CurrentFacilitatorDep = Annotated[User, Depends(get_current_facilitator)]
 
 
 # ============== Strand Test Attempts ==============
+
+
+def get_strand_test_repository(session: SessionDep) -> StrandTestRepository:
+    return StrandTestRepository(session)
+
+
+StrandTestRepositoryDep = Annotated[
+    StrandTestRepository, Depends(get_strand_test_repository)
+]
+
+
+def get_strand_test_service(
+    test_repository: StrandTestRepositoryDep,
+    learner_repository: LearnerRepositoryDep,
+) -> StrandTestService:
+    return StrandTestService(test_repository=test_repository, learner_repository=learner_repository)
+
+
+StrandTestServiceDep = Annotated[StrandTestService, Depends(get_strand_test_service)]
 
 
 def get_strand_test_item_option_repository(

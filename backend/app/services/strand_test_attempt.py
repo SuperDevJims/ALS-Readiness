@@ -27,7 +27,7 @@ class StrandTestAttemptService:
         user_id: int,
         test_id: int,
         attempt_create: StrandAttemptCreate,
-    ) -> StrandTestAttemptRepository:
+    ) -> StrandAttemptResponse:
         learner = await self._learner_repository.get_by_user_id(user_id)
      
         test_options = await self._test_option_repository.get_by_test(test_id)
@@ -69,4 +69,6 @@ class StrandTestAttemptService:
                     option_id=answer.option_id,
                     is_correct=option.is_correct
                 )
-            )        
+            )
+
+        return StrandAttemptResponse(attempt_id=attempt.id, status="completed")        

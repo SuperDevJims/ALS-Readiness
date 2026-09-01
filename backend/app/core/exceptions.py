@@ -81,3 +81,11 @@ class InactiveUserError(UnauthenticatedError):
 
     message = "User account is inactive."
     code = "INACTIVE_USER"
+
+
+# ================ Strand Test Error ================
+
+class StrandTestNotFound(NotFoundError):
+
+    message = "Strand test not found."
+    code = "STRAND_TEST_NOT_FOUND"

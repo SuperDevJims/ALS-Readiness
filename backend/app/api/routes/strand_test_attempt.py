@@ -1,5 +1,5 @@
 from app.schemas.strand_test_attempt import StrandAttemptCreate, StrandAttemptResponse
-from fastapi import APIRouter
+from fastapi import APIRouter, status
 
 from ..deps import CurrentLearnernDep, StrandAttemptServiceDep
 
@@ -9,7 +9,11 @@ router = APIRouter(
 )
 
 
-@router.post("", response_model=None)
+@router.post(
+    "",
+    response_model=StrandAttemptResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def create_attempt(
     test_id: int,
     attempt_create: StrandAttemptCreate,
