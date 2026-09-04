@@ -16,5 +16,5 @@ class BaseRepository[ModelT: SQLModel]:
 
         return data
 
-    async def get_by_id(self, id: int) -> ModelT | None:
-        return await self._session.get(self.model, id)
+    async def get_by_id(self, entity_id: int) -> ModelT | None:
+        return await self._session.get(self.model, entity_id)

@@ -85,7 +85,27 @@ class InactiveUserError(UnauthenticatedError):
 
 # ================ Strand Test Error ================
 
-class StrandTestNotFound(NotFoundError):
+class StrandTestNotFoundError(NotFoundError):
+    """Raised when a strand test is not found."""
 
     message = "Strand test not found."
     code = "STRAND_TEST_NOT_FOUND"
+
+
+# ================ LRI Test Error ================
+
+
+class LRITestNotFoundError(NotFoundError):
+    """Raised when a LRI test is not found."""
+
+    message = "LRI Test not found."
+    code = "LRI_TEST_NOT_FOUND"
+
+
+# ================ Learner Error ================
+
+class LearnerNotFoundError(NotFoundError):
+    """Raised when learner is not found."""
+
+    message = "Learner not found."
+    code = "LEARNER_NOT_FOUND"

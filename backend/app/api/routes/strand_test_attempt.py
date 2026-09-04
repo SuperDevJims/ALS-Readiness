@@ -14,7 +14,7 @@ router = APIRouter(
     response_model=StrandAttemptResponse,
     status_code=status.HTTP_201_CREATED,
 )
-async def create_attempt(
+async def create_strand_test_attempt(
     test_id: int,
     attempt_create: StrandAttemptCreate,
     current_user: CurrentLearnernDep,

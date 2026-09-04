@@ -1,6 +1,14 @@
 from fastapi import APIRouter
 
-from .routes import admin, auth, strand_test, strand_test_attempt, users
+from .routes import (
+    admin,
+    auth,
+    lri_test,
+    lri_test_attempt,
+    strand_test,
+    strand_test_attempt,
+    users,
+)
 
 router = APIRouter(prefix="/api")
 
@@ -9,3 +17,5 @@ router.include_router(users.router)
 router.include_router(admin.router)
 router.include_router(strand_test_attempt.router)
 router.include_router(strand_test.router)
+router.include_router(lri_test_attempt.router)
+router.include_router(lri_test.router)

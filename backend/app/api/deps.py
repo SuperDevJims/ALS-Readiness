@@ -11,6 +11,8 @@ from app.enums.user import UserRole
 from app.models.user import User
 from app.repositories.facilitator import FacilitatorRepository
 from app.repositories.learner import LearnerRepository
+from app.repositories.lri_test_attempt import LRITestAttemptRepository
+from app.repositories.lri_test_attempt_answer import LRITestAttemptAnswerRepository
 from app.repositories.refresh_token import RefreshTokenRepository
 from app.repositories.strand_test import StrandTestRepository
 from app.repositories.strand_test_attempt import StrandTestAttemptRepository
@@ -24,11 +26,14 @@ from app.services.admin import AdminService
 from app.services.auth import AuthService
 from app.services.facilitator import FacilitatorService
 from app.services.learner import LearnerService
+from app.services.lri_test_attempt import LRITestAttemptService
 from app.services.refresh_token import RefreshTokenService
 from app.services.strand_test import StrandTestService
 from app.services.strand_test_attempt import StrandTestAttemptService
 from app.services.user import UserService
 from app.services.user_profile import UserProfileService
+from app.repositories.lri_test import LRITestRepository
+from app.services.lri_test import LRITestService
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
 
@@ -220,9 +225,12 @@ StrandTestRepositoryDep = Annotated[
 
 def get_strand_test_service(
     test_repository: StrandTestRepositoryDep,
-    learner_repository: LearnerRepositoryDep,
+    learner_service: LearnerServiceDep,
 ) -> StrandTestService:
-    return StrandTestService(test_repository=test_repository, learner_repository=learner_repository)
+    return StrandTestService(
+        test_repository=test_repository,
+        learner_service=learner_service,
+    )
 
 
 StrandTestServiceDep = Annotated[StrandTestService, Depends(get_strand_test_service)]
@@ -262,17 +270,72 @@ StrandAttemptRepositoryDep = Annotated[
 def get_strand_attempt_service(
     attempt_repository: StrandAttemptRepositoryDep,
     attempt_answer_repository: StrandAttemptAnswerRepositoryDep,
-    learner_repository: LearnerRepositoryDep,
+    learner_service: LearnerServiceDep,
     test_option_repository: StrandTestItemOptionRepositoryDep,
 ) -> StrandTestAttemptService:
     return StrandTestAttemptService(
         attempt_repository=attempt_repository,
         attempt_answer_repository=attempt_answer_repository,
-        learner_repository=learner_repository,
+        learner_service=learner_service,
         test_option_repository=test_option_repository,
     )
 
 
 StrandAttemptServiceDep = Annotated[
     StrandTestAttemptService, Depends(get_strand_attempt_service)
+]
+
+
+# ================ LRI Test ==============
+
+def get_lri_test_repository(session: SessionDep) -> LRITestRepository:
+    return LRITestRepository(session)
+
+
+LRITestRepositoryDep = Annotated[LRITestRepository, Depends(get_lri_test_repository)]
+
+
+def get_lri_test_service(test_repository: LRITestRepositoryDep, learner_service: LearnerServiceDep) -> LRITestService:
+    return LRITestService(test_repository=test_repository, learner_service=learner_service)
+
+
+LRITestServiceDep = Annotated[LRITestService, Depends(get_lri_test_service)]
+
+
+def get_lri_test_attempt_repository(session: SessionDep) -> LRITestAttemptRepository:
+    return LRITestAttemptRepository(session)
+
+
+LRITestAttemptRepositoryDep = Annotated[
+    LRITestAttemptRepository, Depends(get_lri_test_attempt_repository)
+]
+
+
+def get_lri_test_attempt_answer_repository(
+    session: SessionDep,
+) -> LRITestAttemptAnswerRepository:
+    return LRITestAttemptAnswerRepository(session)
+
+
+LRITestAttemptAnswerRepositoryDep = Annotated[
+    LRITestAttemptAnswerRepository, Depends(get_lri_test_attempt_answer_repository)
+]
+
+
+def get_lri_test_attempt_service(
+    attempt_repository: LRITestAttemptRepositoryDep,
+    answer_repository: LRITestAttemptAnswerRepositoryDep,
+    learner_service: LearnerServiceDep,
+    test_service: LRITestServiceDep,
+) -> LRITestAttemptService:
+    return LRITestAttemptService(
+        attempt_repository=attempt_repository,
+        answer_repository=answer_repository,
+        learner_service=learner_service,
+        test_service=test_service,
+    )
+
+
+LRITestAttemptServiceDep = Annotated[
+    LRITestAttemptService, Depends(get_lri_test_attempt_service)
 ]

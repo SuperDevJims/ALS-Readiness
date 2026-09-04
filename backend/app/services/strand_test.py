@@ -1,7 +1,6 @@
-from app.core.exceptions import StrandTestNotFound
+from app.core.exceptions import StrandTestNotFoundError
 from app.enums.attempt import AttemptStatus
 from app.enums.strand_test import StrandTestType
-from app.repositories.learner import LearnerRepository
 from app.repositories.strand_test import StrandTestRepository
 from app.schemas.strand_test import (
     StrandTestItemOptionResponse,
@@ -11,21 +10,22 @@ from app.schemas.strand_test import (
     StrandTestWithAttemptStatusResponse,
     StrandTestWithItemsResponse,
 )
+from app.services.learner import LearnerService
 
 
 class StrandTestService:
     def __init__(
         self,
         test_repository: StrandTestRepository,
-        learner_repository: LearnerRepository,
+        learner_service: LearnerService,
     ):
         self._test_repository = test_repository
-        self._learner_repository = learner_repository
+        self._learner_service = learner_service
 
     async def get_by_type_with_attempt_status(
         self, user_id: int, test_type: StrandTestType
     ) -> StrandTestWithAttemptStatusResponse:
-        learner = await self._learner_repository.get_by_user_id(user_id)
+        learner = await self._learner_service.get_by_user_id(user_id)
 
         # Contains [(StrandTest, LearningStrand, StrandTestAttempt)...]
         tests_consolidated = await self._test_repository.get_by_type_with_attempt(
@@ -73,7 +73,7 @@ class StrandTestService:
             )  # Returns [(StrandTest, StrandTestItem, StrandTestOption), ...]
 
             if not consolidated_data:
-                raise StrandTestNotFound()
+                raise StrandTestNotFoundError()
             
             #  Initialized a temporary dictionary for items with options. This facilitates pydantic model intialization
             items_with_options_dict = {}
@@ -122,7 +122,7 @@ class StrandTestService:
             test = await self._test_repository.get_by_id(test_id)
 
             if test is None:
-                raise StrandTestNotFound()
+                raise StrandTestNotFoundError()
 
             return StrandTestResponse.model_validate({
                 "test_id": test.id,
