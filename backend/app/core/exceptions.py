@@ -92,6 +92,13 @@ class StrandTestNotFoundError(NotFoundError):
     code = "STRAND_TEST_NOT_FOUND"
 
 
+class StrandTestItemOptionNotFoundError(NotFoundError):
+    """Raised when a strand test item option is not found."""
+    
+    message = "Strand test item option not found."
+    code = "STRAND_TEST_ITEM_OPTION_NOT_FOUND"
+
+
 # ================ LRI Test Error ================
 
 

@@ -36,7 +36,7 @@ LRI_TEST_DATA = {
 }
 
 
-async def create_lri_test(session: AsyncSession) -> None:
+async def create_lri_test(session: AsyncSession) -> LRITest:
     test_repo = LRITestRepository(session)
     item_repo = LRITestItemRepository(session)
 
@@ -47,17 +47,17 @@ async def create_lri_test(session: AsyncSession) -> None:
         )
     )
 
-    print(f"Test created - id: {test.id}")
-
     for question_text in LRI_TEST_DATA["items"]:
-        item = await item_repo.create(
+        _ = await item_repo.create(
             LRITestItem(
                 test_id=test.id,
                 question_text=question_text,
             )
         )
 
-        print(f"  Item created - id: {item.id}")
+    print(f"LRI test created - id: {test.id}")
+
+    return test
 
 
 async def main() -> None:

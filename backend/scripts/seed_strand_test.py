@@ -154,11 +154,13 @@ STRAND_TEST_DATA = {
 }
 
 
-async def create_strand_tests(session: AsyncSession) -> None:
+async def create_strand_tests(session: AsyncSession) -> list[StrandTest]:
     strand_repo = LearningStrandRepository(session)
     test_repo = StrandTestRepository(session)
     item_repo = StrandTestItemRepository(session)
     option_repo = StrandTestItemOptionRepository(session)
+
+    tests = [] 
 
     for code, test_types in STRAND_TEST_DATA.items():
         strand = await strand_repo.get_by_code(code)
@@ -174,6 +176,8 @@ async def create_strand_tests(session: AsyncSession) -> None:
                     type=test_type,
                 )
             )
+
+            tests.append(test)
             print(f"Test created - code: {code}, type: {test_type}, id: {test.id}")
 
             for question_text, options in test_data["items"]:
@@ -183,20 +187,17 @@ async def create_strand_tests(session: AsyncSession) -> None:
                         question_text=question_text,
                     )
                 )
-                print(f"  Item created - id: {item.id}")
 
                 for option_text, is_correct in options:
-                    option = await option_repo.create(
+                    _ = await option_repo.create(
                         StrandTestItemOption(
                             item_id=item.id,
                             option_text=option_text,
                             is_correct=is_correct,
                         )
                     )
-                    print(
-                        f"    Option created - id: {option.id}, "
-                        f"is_correct: {option.is_correct}"
-                    )
+
+    return tests
 
 
 async def main() -> None:

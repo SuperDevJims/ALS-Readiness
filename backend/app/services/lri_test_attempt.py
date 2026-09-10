@@ -48,8 +48,6 @@ class LRITestAttemptService:
             )
         )
 
-        print("Attempt:", attempt)
-
         for answer in answers:
             answer = await self._answer_repository.create(
                 LRITestAttemptAnswer(
@@ -58,8 +56,6 @@ class LRITestAttemptService:
                     answer_value=answer.answer_value,
                 )
             )
-
-            print("Answer:", answer)
 
         return LRITestAttemptResponse(
             attempt_id=attempt.id,

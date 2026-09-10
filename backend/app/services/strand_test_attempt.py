@@ -1,3 +1,4 @@
+from app.core.exceptions import StrandTestItemOptionNotFoundError
 from app.models.strand_test_attempt import StrandTestAttempt, StrandTestAttemptAnswer
 from app.repositories.strand_test_attempt import StrandTestAttemptRepository
 from app.repositories.strand_test_attempt_answers import (
@@ -37,13 +38,15 @@ class StrandTestAttemptService:
             for opt in test_options
         }
 
-        # Iterate through answer to calculate total score
         answers = attempt_create.answers
 
         total_score = 0
 
         for answer in answers:
             option = test_options_by_id.get(answer.option_id)
+
+            if option is None:
+                raise StrandTestItemOptionNotFoundError()
 
             if option.is_correct:
                 total_score += 1

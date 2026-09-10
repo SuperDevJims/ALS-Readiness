@@ -13,17 +13,27 @@ if sys.platform == "win32":
 from app.db.session import AsyncSessionLocal
 from app.enums.user import UserRole
 from app.models.user import User
+from app.repositories.user import UserRepository
+from app.schemas.user import UserCreate
+from app.services.user import UserService
 
-from .seed_user import create_user
 
+async def create_user(role: UserRole, session: AsyncSession) -> User:
+    repo = UserRepository(session)
+    service = UserService(repo)
 
-async def create_admin(session: AsyncSession) -> User:
-    return await create_user(UserRole.ADMIN, session)
+    user, temp_password = await service.create(
+        UserCreate(role=role)
+    )
+
+    print(f"{role.value.capitalize()} created - id_no: {user.id_no}, temp_password: {temp_password}")
+
+    return user
 
 
 async def main() -> None:
     async with AsyncSessionLocal() as session, session.begin():
-        await create_admin(session)
+        await create_user(session)
 
 
 if __name__ == "__main__":
