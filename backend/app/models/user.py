@@ -1,26 +1,18 @@
-from datetime import datetime
-
 from sqlalchemy import Enum as SQLEnum
-from sqlalchemy import func
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field
 
 from app.enums.user import UserRole
 
+from .base import BaseEntity, TimestampMixin
 
-class User(SQLModel, table=True):
+
+class User(BaseEntity, TimestampMixin, table=True):
     __tablename__ = "users"
 
-    id: int | None = Field(default=None, primary_key=True)
-
-    email: str = Field(
-        max_length=254,
-        unique=True,
-        index=True,
-    )
-
+    id_no: str | None = Field(max_length=20, unique=True, index=True)
     password_hash: str = Field(max_length=255)
 
-    role: UserRole = Field(
+    role: UserRole | None = Field(
         default=UserRole.LEARNER,
         sa_type=SQLEnum(
             UserRole,
@@ -30,15 +22,3 @@ class User(SQLModel, table=True):
     )
 
     is_active: bool = Field(default=True)
-
-    created_at: datetime = Field(
-        default=None, sa_column_kwargs={"server_default": func.now()}
-    )
-
-    updated_at: datetime = Field(
-        default=None,
-        sa_column_kwargs={
-            "server_default": func.now(),
-            "onupdate": func.now(),
-        },
-    )

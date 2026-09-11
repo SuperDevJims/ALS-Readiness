@@ -2,22 +2,14 @@ from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.refresh_token import RefreshToken
 
+from .base import BaseRepository
 
-class RefreshTokenRepository:
-    def __init__(self, session: AsyncSession):
-        self._session = session
 
-    async def create(self, refresh_token: RefreshToken) -> RefreshToken:
-        self._session.add(refresh_token)
-
-        await self._session.flush()
-        await self._session.refresh(refresh_token)
-
-        return refresh_token
+class RefreshTokenRepository(BaseRepository[RefreshToken]):
+    model = RefreshToken
 
     async def get_by_jti(self, jti: UUID) -> RefreshToken | None:
         statement = select(RefreshToken).where(RefreshToken.jti == jti)
@@ -30,6 +22,6 @@ class RefreshTokenRepository:
         refresh_token = await self.get_by_jti(jti)
 
         refresh_token.is_revoked = True
-        refresh_token.revoked_at = revoked_at 
+        refresh_token.revoked_at = revoked_at
 
         await self._session.flush()
