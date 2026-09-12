@@ -106,7 +106,7 @@ class AdminService:
         return user
 
     async def activate_user(self, user_id: int) -> User:
-        stored = await self._user_service.get_active_by_id(user_id)
+        stored = await self._user_service.get_by_id(user_id)
 
-        user = await self._user_service.deactivate(stored)
+        user = await self._user_service.activate(stored)
         return user

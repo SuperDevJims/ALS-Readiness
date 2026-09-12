@@ -7,7 +7,13 @@ from fastapi.responses import JSONResponse
 from pydantic import ValidationError as PydanticValidationError
 
 from .api.router import router as api_router
-from .core.exceptions import NotFoundError, UnauthenticatedError, UnauthorizedError
+from .core.exceptions import (
+    AlreadyExistsError,
+    DomainValidationError,
+    NotFoundError,
+    UnauthenticatedError,
+    UnauthorizedError,
+)
 from .schemas.error import ErrorResponse
 
 app = FastAPI()
@@ -102,6 +108,24 @@ async def handle_unauthenticated(_: Request, exc: UnauthenticatedError):
 async def handle_unauthorized(_: Request, exc: UnauthorizedError):
     return error_response(
         status_code=status.HTTP_403_FORBIDDEN,
+        error_code=exc.code,
+        message=exc.message,
+    )
+
+
+@app.exception_handler(AlreadyExistsError)
+async def handle_already_exists(_: Request, exc: AlreadyExistsError):
+    return error_response(
+        status_code=status.HTTP_409_CONFLICT,
+        error_code=exc.code,
+        message=exc.message,
+    )
+
+
+@app.exception_handler(DomainValidationError)
+async def handle_domain_validation(_: Request, exc: DomainValidationError):
+    return error_response(
+        status_code=status.HTTP_400_BAD_REQUEST,
         error_code=exc.code,
         message=exc.message,
     )
