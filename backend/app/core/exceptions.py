@@ -116,3 +116,28 @@ class LearnerNotFoundError(NotFoundError):
 
     message = "Learner not found."
     code = "LEARNER_NOT_FOUND"
+
+
+# ================ User Profile Error ================
+
+class UserProfileNotFoundError(NotFoundError):
+    """Raised when a user profile is not found."""
+
+    message = "User profile not found."
+    code = "USER_PROFILE_NOT_FOUND"
+
+
+# ================ Password Error ================
+
+class IncorrectCurrentPasswordError(DomainValidationError):
+    """Raised when a self-service password change supplies the wrong current password."""
+
+    message = "Current password is incorrect."
+    code = "INCORRECT_CURRENT_PASSWORD"
+
+
+class PasswordReuseError(DomainValidationError):
+    """Raised when the new password is the same as the current password."""
+
+    message = "New password must be different from the current password."
+    code = "PASSWORD_REUSE"

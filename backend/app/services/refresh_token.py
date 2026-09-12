@@ -66,6 +66,12 @@ class RefreshTokenService:
         if stored is None:
             raise InvalidRefreshTokenError()
 
+        # Reject if the token has been revoked (e.g. via logout) or has expired
+        if stored.is_revoked or self._as_naive_utc(stored.expires_at) < self._as_naive_utc(
+            datetime.now(timezone.utc)
+        ):
+            raise InvalidRefreshTokenError()
+
         # Verify if token matches db
         if not verify_refresh_token(token, stored.token_hash):
             raise InvalidRefreshTokenError()
@@ -91,3 +97,21 @@ class RefreshTokenService:
     async def revoke(self, jti: UUID):
         revoked_at = datetime.now(timezone.utc)
         await self._refresh_token_repository.revoke(jti, revoked_at)
+
+    async def revoke_all_for_user(self, user_id: int) -> None:
+        revoked_at = datetime.now(timezone.utc)
+        await self._refresh_token_repository.revoke_all_for_user(user_id, revoked_at)
+
+    @staticmethod
+    def _as_naive_utc(value: datetime) -> datetime:
+        """Normalize to a naive UTC datetime for comparison.
+
+        `expires_at` is stored in a timezone-naive DB column, but is built
+        from a timezone-aware `datetime.now(timezone.utc)` in `issue()`.
+        Comparing an aware and a naive datetime directly raises TypeError,
+        so both sides of any comparison must go through this first.
+        """
+        if value.tzinfo is not None:
+            return value.astimezone(timezone.utc).replace(tzinfo=None)
+
+        return value
