@@ -1,6 +1,8 @@
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from .constants import ACCESS_TOKEN_EXPIRE_MINUTES
+
 
 class Settings(BaseSettings):
 
@@ -14,6 +16,9 @@ class Settings(BaseSettings):
     """ JWT Config """
     access_token_secret_key: str = Field(alias="ACCESS_TOKEN_SECRET_KEY")
     refresh_token_secret_key: str = Field(alias="REFRESH_TOKEN_SECRET_KEY")
+    access_token_expire_minutes: int = Field(
+        default=ACCESS_TOKEN_EXPIRE_MINUTES, alias="ACCESS_TOKEN_EXPIRE_MINUTES"
+    )
 
     model_config = SettingsConfigDict(
         env_file=".env",

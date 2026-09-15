@@ -5,7 +5,6 @@ import jwt
 from jwt import InvalidTokenError
 
 from app.core.config import settings
-from app.core.constants import ACCESS_TOKEN_EXPIRE_MINUTES
 from app.enums.token import TokenType
 
 from .constants import SIGNING_ALGORITHM
@@ -64,7 +63,7 @@ def decode_refresh_token(token: str) -> dict[str, Any]:
 
 def issue_access_token(user_id: int) -> str:
     now = datetime.now(timezone.utc)
-    expires_at = now + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    expires_at = now + timedelta(minutes=settings.access_token_expire_minutes)
 
     payload = {
         "sub": str(user_id),
