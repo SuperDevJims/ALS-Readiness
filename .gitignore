@@ -49,5 +49,11 @@ coverage/
 # Misc
 *.log
 
+<<<<<<< Updated upstream
 audit-report/
 context/
+=======
+/context
+
+/audit-report
+>>>>>>> Stashed changes
