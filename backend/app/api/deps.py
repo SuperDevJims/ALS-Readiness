@@ -139,7 +139,7 @@ def get_facilitator_service(
     return FacilitatorService(facilitator_repository)
 
 
-FacilitatorServiceDep = Annotated[FacilitatorService, Depends(get_learner_service)]
+FacilitatorServiceDep = Annotated[FacilitatorService, Depends(get_facilitator_service)]
 
 
 def get_admin_service(
