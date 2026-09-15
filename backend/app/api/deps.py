@@ -147,12 +147,14 @@ def get_admin_service(
     profile_service: ProfileServiceDep,
     learner_service: LearnerServiceDep,
     facilitator_service: FacilitatorServiceDep,
+    refresh_token_service: RefreshTokenServiceDep,
 ) -> AdminService:
     return AdminService(
         user_service=user_service,
         profile_service=profile_service,
         learner_service=learner_service,
         facilitator_service=facilitator_service,
+        refresh_token_service=refresh_token_service,
     )
 
 

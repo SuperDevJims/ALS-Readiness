@@ -12,6 +12,7 @@ from app.schemas.user_profile import UserProfileCreate, UserProfileResponse
 
 from .facilitator import FacilitatorService
 from .learner import LearnerService
+from .refresh_token import RefreshTokenService
 from .user import UserService
 from .user_profile import UserProfileService
 
@@ -23,11 +24,13 @@ class AdminService:
         profile_service: UserProfileService,
         learner_service: LearnerService,
         facilitator_service: FacilitatorService,
+        refresh_token_service: RefreshTokenService,
     ):
         self._user_service = user_service
         self._profile_service = profile_service
         self._learner_service = learner_service
         self._facilitator_service = facilitator_service
+        self._refresh_token_service = refresh_token_service
 
     async def create_learner(self, learner_create: AdminLearnerCreate) -> AdminUserCreateResponse:
         # Create user and get a system generated password
@@ -97,6 +100,8 @@ class AdminService:
         stored = await self._user_service.get_active_by_id(user_id)
 
         user = await self._user_service.update_password(stored, user_update)
+        await self._refresh_token_service.revoke_all_for_user(user_id)
+
         return user
 
     async def deactivate_user(self, user_id: int) -> User:
