@@ -98,6 +98,10 @@ class RefreshTokenService:
         revoked_at = datetime.now(timezone.utc)
         await self._refresh_token_repository.revoke(jti, revoked_at)
 
+    async def revoke_all_for_user(self, user_id: int) -> None:
+        revoked_at = datetime.now(timezone.utc)
+        await self._refresh_token_repository.revoke_all_for_user(user_id, revoked_at)
+
     @staticmethod
     def _as_naive_utc(value: datetime) -> datetime:
         """Normalize to a naive UTC datetime for comparison.

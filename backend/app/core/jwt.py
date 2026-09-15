@@ -46,11 +46,16 @@ def decode_token(
 
 
 def decode_access_token(token: str) -> dict[str, Any]:
-    return decode_token(
+    payload = decode_token(
         token,
         ACCESS_TOKEN_SECRET_KEY,
         InvalidAccessTokenError,
     )
+
+    if payload.get("type") != TokenType.ACCESS.value:
+        raise InvalidAccessTokenError()
+
+    return payload
 
 
 def decode_refresh_token(token: str) -> dict[str, Any]:
