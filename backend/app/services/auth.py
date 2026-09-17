@@ -1,18 +1,24 @@
+import logging
 from uuid import UUID
 
 from app.core.constants import DUMMY_PASSWORD_HASH
 from app.core.exceptions import (
     InactiveUserError,
+    IncorrectCurrentPasswordError,
     InvalidCredentialsError,
     InvalidRefreshTokenError,
+    PasswordReuseError,
     UserNotFoundError,
 )
 from app.core.jwt import issue_access_token
 from app.core.security import verify_password
 from app.models.user import User
 from app.schemas.auth import AuthTokens, LoginRequest
+from app.schemas.user import PasswordChangeRequest, UserPasswordUpdate
 from app.services.refresh_token import RefreshTokenService
 from app.services.user import UserService
+
+logger = logging.getLogger(__name__)
 
 
 class AuthService:
@@ -52,12 +58,35 @@ class AuthService:
     async def logout(self, refresh_token: str) -> None:
         if not refresh_token:
             return
-        
+
         try:
             _, payload = await self._refresh_token_service.validate(refresh_token)
             await self._refresh_token_service.revoke(UUID(payload["jti"]))
         except InvalidRefreshTokenError:
             pass
+
+    async def change_password(
+        self,
+        current_user: User,
+        password_change: PasswordChangeRequest,
+    ) -> User:
+        if not verify_password(password_change.current_password, current_user.password_hash):
+            logger.warning(
+                "failed password change attempt for user_id=%s", current_user.id
+            )
+            raise IncorrectCurrentPasswordError()
+
+        if verify_password(password_change.new_password, current_user.password_hash):
+            raise PasswordReuseError()
+
+        user = await self._user_service.update_password(
+            current_user, UserPasswordUpdate(password=password_change.new_password)
+        )
+        await self._refresh_token_service.revoke_all_for_user(current_user.id)
+
+        logger.info("password changed for user_id=%s", current_user.id)
+
+        return user
 
     # ============ Private Methods ============
 
