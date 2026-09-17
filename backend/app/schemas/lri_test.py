@@ -2,7 +2,6 @@ from pydantic import BaseModel
 
 from app.enums.attempt import AttemptStatus
 
-
 class LRITestResponse(BaseModel):
     test_id: int
     title: str
