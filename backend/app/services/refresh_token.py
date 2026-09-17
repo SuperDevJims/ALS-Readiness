@@ -102,6 +102,26 @@ class RefreshTokenService:
         revoked_at = datetime.now(timezone.utc)
         await self._refresh_token_repository.revoke_all_for_user(user_id, revoked_at)
 
+    async def revoke_all_for_user_except(self, user_id: int, except_jti: UUID) -> None:
+        revoked_at = datetime.now(timezone.utc)
+        await self._refresh_token_repository.revoke_all_for_user_except(
+            user_id, except_jti, revoked_at
+        )
+
+    @staticmethod
+    def get_jti(token: str) -> UUID | None:
+        """Extract the jti from a refresh token, the same way validate() does.
+
+        Returns None instead of raising if the token can't be decoded, so
+        callers that only want "identify this session, or give up safely"
+        (e.g. self-service password change) don't need their own try/except.
+        """
+        try:
+            payload = decode_refresh_token(token)
+            return UUID(payload["jti"])
+        except (InvalidRefreshTokenError, KeyError, ValueError):
+            return None
+
     @staticmethod
     def _as_naive_utc(value: datetime) -> datetime:
         """Normalize to a naive UTC datetime for comparison.

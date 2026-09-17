@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 
 from app.schemas.user import PasswordChangeRequest, UserMeResponse, UserResponse
 from app.schemas.user_profile import UserProfileResponse, UserProfileUpdate
@@ -65,9 +65,13 @@ async def update_me(
 
 @router.patch("/me/password", response_model=UserResponse)
 async def change_my_password(
+    request: Request,
     current_user: CurrentUserDep,
     password_change: PasswordChangeRequest,
     auth_service: AuthServiceDep,
 ):
-    user = await auth_service.change_password(current_user, password_change)
+    current_refresh_token = request.cookies.get("refresh_token")
+    user = await auth_service.change_password(
+        current_user, password_change, current_refresh_token
+    )
     return UserResponse.model_validate(user)
