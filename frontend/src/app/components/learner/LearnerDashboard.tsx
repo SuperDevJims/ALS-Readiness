@@ -1,20 +1,11 @@
 import { useState } from "react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadialBarChart, RadialBar, PolarAngleAxis } from "recharts";
-import { ClipboardList, BookOpen, TrendingUp, Play, Clock, CheckCircle, AlertCircle, ChevronRight, Star, Flame, Activity, Trophy, Brain, Target, ArrowRight } from "lucide-react";
+import { ClipboardList, BookOpen, TrendingUp, Play, Clock, CheckCircle, AlertCircle, ChevronRight, Star, Flame, Trophy, Target, ArrowRight } from "lucide-react";
 import { AppLayout } from "../shared/AppLayout";
-
-const subjectScores = [
-  { subject:"English",  score:78 }, { subject:"Math",    score:62 },
-  { subject:"Science",  score:85 }, { subject:"Filipino", score:71 }, { subject:"AP", score:69 },
-];
-const readinessRadial = [{ name:"R", value:74, fill:"#3535C5" }];
 
 /* Pipeline steps */
 const pipelineSteps = [
-  { id:"pre-test",  label:"Pre-test",          icon:ClipboardList, page:"diagnostic-test",     status:"done",        desc:"Diagnostic completed"     },
-  { id:"eeg",       label:"EEG Profiling",     icon:Brain,         page:"eeg-profiling",        status:"done",        desc:"NeuroSky session done"     },
-  { id:"readiness", label:"Readiness Index",   icon:Activity,      page:"readiness-profiling",  status:"done",        desc:"74% readiness"             },
-  { id:"content",   label:"Learning Content",  icon:BookOpen,      page:"stimulus-content",     status:"in-progress", desc:"2/6 items completed"       },
+  { id:"pre-test",  label:"Pre-test",          icon:ClipboardList, page:"diagnostic-test",     status:"in-progress", desc:"Participant intake required" },
+  { id:"content",   label:"Learning Content",  icon:BookOpen,      page:"stimulus-content",     status:"pending",     desc:"Available after baseline"  },
   { id:"post-test", label:"Post-test",         icon:Target,        page:"post-test",            status:"pending",     desc:"Not started yet"           },
   { id:"progress",  label:"View Progress",     icon:TrendingUp,    page:"my-progress",          status:"pending",     desc:"Awaiting post-test"        },
 ];
@@ -108,8 +99,7 @@ export function LearnerDashboard({ navigate, user, onLogout }) {
         {/* Stats */}
         <div className="grid grid-cols-4 gap-3">
           {[
-            { label:"Readiness Index",  value:"74%",    icon:Activity,      cls:"text-blue-600 bg-blue-50",   page:"readiness-profiling" },
-            { label:"Pre-test Avg",     value:"73%",    icon:ClipboardList, cls:"text-purple-600 bg-purple-50",page:"diagnostic-test"     },
+            { label:"Pre-test",         value:"Start",  icon:ClipboardList, cls:"text-purple-600 bg-purple-50",page:"diagnostic-test"     },
             { label:"Learning Streak",  value:"7 days", icon:Flame,         cls:"text-orange-600 bg-orange-50",page:"learner-schedule"    },
             { label:"Achievements",     value:"8",      icon:Trophy,        cls:"text-yellow-600 bg-yellow-50",page:"achievements"        },
           ].map(s => {
@@ -127,63 +117,12 @@ export function LearnerDashboard({ navigate, user, onLogout }) {
         </div>
 
         <div className="grid grid-cols-3 gap-5">
-          {/* Readiness mini */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-5">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-gray-800 font-semibold text-sm">Readiness Index</h3>
-              <span className="text-xs text-teal-500 bg-teal-50 px-2 py-0.5 rounded font-mono">M03</span>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <RadialBarChart width={100} height={100} cx={50} cy={50} innerRadius={30} outerRadius={45} startAngle={90} endAngle={-270} data={readinessRadial}>
-                  <PolarAngleAxis type="number" domain={[0,100]} angleAxisId={0} tick={false} />
-                  <RadialBar background dataKey="value" cornerRadius={6} fill="#3535C5" />
-                </RadialBarChart>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-lg font-bold text-gray-800">74%</span>
-                </div>
-              </div>
-              <div className="flex-1 space-y-1.5">
-                {[{ label:"Academic",val:78,c:"bg-blue-500" },{ label:"EEG/Affective",val:82,c:"bg-purple-500" },{ label:"Socioeconomic",val:65,c:"bg-teal-500" }].map(f => (
-                  <div key={f.label}>
-                    <div className="flex justify-between text-xs text-gray-500 mb-0.5"><span>{f.label}</span><span>{f.val}%</span></div>
-                    <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden"><div className={`h-full ${f.c} rounded-full`} style={{ width:`${f.val}%` }} /></div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <button onClick={() => navigate("readiness-profiling")} className="mt-3 w-full text-xs text-[#3535C5] bg-blue-50 hover:bg-blue-100 rounded-xl py-2 transition-colors flex items-center justify-center gap-1">
-              Full report <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-          {/* Diagnostic scores */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-5">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-gray-800 font-semibold text-sm">Pre-test Scores</h3>
-              <span className="text-xs text-purple-500 bg-purple-50 px-2 py-0.5 rounded font-mono">M02</span>
-            </div>
-            <ResponsiveContainer width="100%" height={120}>
-              <BarChart data={subjectScores} margin={{ top:0, right:0, left:-25, bottom:0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
-                <XAxis dataKey="subject" tick={{ fontSize:9, fill:"#9CA3AF" }} />
-                <YAxis tick={{ fontSize:9, fill:"#9CA3AF" }} domain={[0,100]} />
-                <Tooltip formatter={v => [`${v}%`, "Score"]} contentStyle={{ fontSize:11, borderRadius:8 }} />
-                <Bar dataKey="score" radius={[4,4,0,0]} fill="#3535C5" />
-              </BarChart>
-            </ResponsiveContainer>
-            <button onClick={() => navigate("diagnostic-test")} className="mt-2 w-full text-xs text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-xl py-2 transition-colors flex items-center justify-center gap-1">
-              Retake tests <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
           {/* Quick actions */}
           <div className="bg-white rounded-2xl border border-gray-100 p-5">
             <h3 className="text-gray-800 font-semibold text-sm mb-3">Quick Actions</h3>
             <div className="space-y-2">
               {[
                 { label:"Pre-test",         icon:ClipboardList, color:"from-purple-500 to-purple-600", page:"diagnostic-test"    },
-                { label:"EEG Profiling",    icon:Brain,         color:"from-indigo-500 to-indigo-600", page:"eeg-profiling"      },
                 { label:"Learning Content", icon:BookOpen,      color:"from-green-500 to-green-600",   page:"stimulus-content"   },
                 { label:"Post-test",        icon:Target,        color:"from-orange-500 to-amber-500",  page:"post-test"          },
                 { label:"My Progress",      icon:TrendingUp,    color:"from-blue-500 to-blue-600",     page:"my-progress"        },

@@ -13,6 +13,7 @@ const demoAccounts = [
   { email: "teacher@als.edu",      name: "Jose Reyes",      role: "facilitator",  label: "Demo Facilitator"  },
   { email: "coordinator@als.edu",  name: "Dr. Ana Mendoza", role: "admin",        label: "Demo Coordinator"  },
 ];
+const API_ROOT = import.meta.env.VITE_API_URL || "/api";
 
 export function LoginPage({ navigate, onLogin }) {
   const [email, setEmail] = useState("");
@@ -27,10 +28,31 @@ export function LoginPage({ navigate, onLogin }) {
     if (!email || !password) { setError("Please fill in all fields."); return; }
     setIsLoading(true);
     setError("");
-    await new Promise(r => setTimeout(r, 1000));
-    const name = demoAccounts.find(d => d.email === email)?.name || "User";
-    onLogin(selectedRole, name, email);
-    setIsLoading(false);
+    try {
+      const form = new URLSearchParams({ username: email, password });
+      const loginResponse = await fetch(`${API_ROOT}/auth/login`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: form,
+      });
+      const loginData = await loginResponse.json();
+      if (!loginResponse.ok) throw new Error(loginData?.message || "Unable to sign in.");
+
+      localStorage.setItem("alsense_access_token", loginData.access_token);
+      const meResponse = await fetch(`${API_ROOT}/users/me`, {
+        credentials: "include",
+        headers: { Authorization: `Bearer ${loginData.access_token}` },
+      });
+      const me = await meResponse.json();
+      if (!meResponse.ok) throw new Error(me?.message || "Unable to load your account.");
+      const name = [me.profile?.first_name, me.profile?.last_name].filter(Boolean).join(" ") || "Learner";
+      onLogin(me.role, name, me.profile?.contact_email || email);
+    } catch (loginError) {
+      setError(loginError.message || "Unable to sign in. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleDemoLogin = async (demo) => {
@@ -98,10 +120,10 @@ export function LoginPage({ navigate, onLogin }) {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="text-blue-200 text-sm mb-2 block">Email Address</label>
+              <label className="text-blue-200 text-sm mb-2 block">Learner ID number</label>
                 <div className="relative">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-400" />
-                  <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="your@email.com"
+                  <input value={email} onChange={e => setEmail(e.target.value)} placeholder="Your learner ID"
                     className="w-full bg-white/5 border border-white/15 text-white placeholder-blue-400/50 rounded-xl py-3 pl-11 pr-4 focus:outline-none focus:border-blue-400 transition-colors" />
                 </div>
               </div>

@@ -9,8 +9,8 @@ import { ResetPassword }         from "./components/auth/ResetPassword";
 // Learner
 import { LearnerDashboard }      from "./components/learner/LearnerDashboard";
 import { DiagnosticTest }        from "./components/diagnostic/DiagnosticTest";
+import { ParticipantIntake }     from "./components/diagnostic/ParticipantIntake";
 import { EEGProfiling }          from "./components/learner/EEGProfiling";
-import { ReadinessProfiling }    from "./components/readiness/ReadinessProfiling";
 import { StimulusContent }       from "./components/learner/StimulusContent";
 import { PostTest }              from "./components/learner/PostTest";
 import { MyProgress }            from "./components/learner/MyProgress";
@@ -32,7 +32,7 @@ import { AccessDenied }          from "./components/shared/AccessDenied";
 
 /* ── Pages each role can access ── */
 const LEARNER_PAGES = new Set([
-  "learner-dashboard","diagnostic-test","eeg-profiling","readiness-profiling",
+  "learner-dashboard","participant-intake","diagnostic-test","eeg-profiling",
   "stimulus-content","post-test","my-progress","achievements","learner-schedule",
 ]);
 const FACI_PAGES = new Set([
@@ -65,7 +65,7 @@ export default function App() {
     setCurrentPage(home);
   };
 
-  const handleLogout          = () => { setUser(null); setCurrentPage("landing"); };
+  const handleLogout          = () => { localStorage.removeItem("alsense_access_token"); setUser(null); setCurrentPage("landing"); };
   const handleRegister        = () => setCurrentPage("profile-setup");
   const handleProfileComplete = (u) => {
     setUser(u);
@@ -99,9 +99,9 @@ export default function App() {
 
       {/* Learner pipeline */}
       {currentPage === "learner-dashboard"   && <LearnerDashboard {...lp} />}
+      {currentPage === "participant-intake"  && <ParticipantIntake {...lp} />}
       {currentPage === "diagnostic-test"     && <DiagnosticTest {...lp} />}
       {currentPage === "eeg-profiling"       && <EEGProfiling {...lp} />}
-      {currentPage === "readiness-profiling" && <ReadinessProfiling {...lp} />}
       {currentPage === "stimulus-content"    && <StimulusContent {...lp} />}
       {currentPage === "post-test"           && <PostTest {...lp} />}
       {currentPage === "my-progress"         && <MyProgress {...lp} />}

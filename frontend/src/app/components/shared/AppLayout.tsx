@@ -14,7 +14,6 @@ const learnerNav = [
   { page:"learner-dashboard",   icon:LayoutDashboard, label:"Home",               group:"pipeline" },
   { page:"diagnostic-test",     icon:ClipboardList,   label:"Pre-test",           group:"pipeline", badge:"M02" },
   { page:"eeg-profiling",       icon:Brain,           label:"EEG Profiling",      group:"pipeline", badge:"M03" },
-  { page:"readiness-profiling", icon:Activity,        label:"Readiness Index",    group:"pipeline", badge:"M03" },
   { page:"stimulus-content",    icon:BookOpen,        label:"Learning Content",   group:"pipeline", badge:"M04" },
   { page:"post-test",           icon:Target,          label:"Post-test",          group:"pipeline", badge:"M02" },
   // Track
@@ -39,9 +38,9 @@ const adminNav = [
 ];
 
 const notifications = [
-  { id:1, title:"Readiness profile updated",  desc:"Your AI readiness index changed to 74%",            time:"2 min ago",  read:false, type:"info"    },
+  { id:1, title:"Pre-test reminder",          desc:"Complete your participant intake before starting.", time:"2 min ago",  read:false, type:"info"    },
   { id:2, title:"New content available",      desc:"Algebra Basics audio lesson added",                 time:"1 hr ago",   read:false, type:"success" },
-  { id:3, title:"Test reminder",              desc:"You haven't completed the Science diagnostic test", time:"3 hrs ago",  read:true,  type:"warning" },
+  { id:3, title:"Test reminder",              desc:"Your pre-test includes English, Filipino, and Mathematics.", time:"3 hrs ago",  read:true,  type:"warning" },
   { id:4, title:"Achievement unlocked!",      desc:"You earned the 'First Test' badge",                 time:"1 day ago",  read:true,  type:"info"    },
 ];
 
