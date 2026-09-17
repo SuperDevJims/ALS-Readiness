@@ -1,114 +1,142 @@
-import { useState } from "react";
-import { LandingPage }           from "./components/LandingPage";
-import { LoginPage }             from "./components/auth/LoginPage";
-import { ProfileSetup }          from "./components/auth/ProfileSetup";
+import { useEffect } from "react";
+import { BrowserRouter, Routes, Route, useNavigate } from "react-router";
+import { LandingPage } from "./components/LandingPage";
+import { LoginPage } from "./components/auth/LoginPage";
+import { ProfileSetup } from "./components/auth/ProfileSetup";
 // Learner
-import { LearnerDashboard }      from "./components/learner/LearnerDashboard";
-import { DiagnosticTest }        from "./components/diagnostic/DiagnosticTest";
-import { EEGProfiling }          from "./components/learner/EEGProfiling";
-import { ReadinessProfiling }    from "./components/readiness/ReadinessProfiling";
-import { StimulusContent }       from "./components/learner/StimulusContent";
-import { PostTest }              from "./components/learner/PostTest";
-import { MyProgress }            from "./components/learner/MyProgress";
-import { Achievements }          from "./components/learner/Achievements";
-import { LearnerSchedule }       from "./components/learner/LearnerSchedule";
+import { LearnerDashboard } from "./components/learner/LearnerDashboard";
+import { DiagnosticTest } from "./components/diagnostic/DiagnosticTest";
+import { EEGProfiling } from "./components/learner/EEGProfiling";
+import { ReadinessProfiling } from "./components/readiness/ReadinessProfiling";
+import { StimulusContent } from "./components/learner/StimulusContent";
+import { PostTest } from "./components/learner/PostTest";
+import { MyProgress } from "./components/learner/MyProgress";
+import { Achievements } from "./components/learner/Achievements";
+import { LearnerSchedule } from "./components/learner/LearnerSchedule";
 // Facilitator
-import { FacilitatorDashboard }  from "./components/facilitator/FacilitatorDashboard";
-import { FacilitatorCohort }     from "./components/facilitator/FacilitatorCohort";
-import { FacilitatorContent }    from "./components/facilitator/FacilitatorContent";
-import { FacilitatorAnalytics }  from "./components/facilitator/FacilitatorAnalytics";
-import { FacilitatorReports }    from "./components/facilitator/FacilitatorReports";
+import { FacilitatorDashboard } from "./components/facilitator/FacilitatorDashboard";
+import { FacilitatorCohort } from "./components/facilitator/FacilitatorCohort";
+import { FacilitatorContent } from "./components/facilitator/FacilitatorContent";
+import { FacilitatorAnalytics } from "./components/facilitator/FacilitatorAnalytics";
+import { FacilitatorReports } from "./components/facilitator/FacilitatorReports";
 // Admin
-import { AdminDashboard }        from "./components/admin/AdminDashboard";
-import { AdminUsers }            from "./components/admin/AdminUsers";
-import { AdminAnalytics }        from "./components/admin/AdminAnalytics";
-import { AdminReports }          from "./components/admin/AdminReports";
+import { AdminDashboard } from "./components/admin/AdminDashboard";
+import { AdminUsers } from "./components/admin/AdminUsers";
+import { AdminAnalytics } from "./components/admin/AdminAnalytics";
+import { AdminReports } from "./components/admin/AdminReports";
 // Shared
-import { AccessDenied }          from "./components/shared/AccessDenied";
+import { AccessDenied } from "./components/shared/AccessDenied";
+import { SessionExpired } from "./components/shared/SessionExpired";
+import { ErrorBoundary } from "./components/shared/ErrorBoundary";
+import { Toaster } from "./components/ui/sonner";
+// Routing/session plumbing
+import { ProtectedPage } from "./routes/ProtectedPage";
+import { useAuthStore } from "../lib/store/authStore";
+import { setNavigateRef, useLegacyNavigate } from "../lib/navigation";
 
-/* ── Pages each role can access ── */
-const LEARNER_PAGES = new Set([
-  "learner-dashboard","diagnostic-test","eeg-profiling","readiness-profiling",
-  "stimulus-content","post-test","my-progress","achievements","learner-schedule",
-]);
-const FACI_PAGES = new Set([
-  "facilitator-dashboard","facilitator-cohort","facilitator-content",
-  "facilitator-analytics","facilitator-reports",
-]);
-const ADMIN_PAGES = new Set([
-  "admin-dashboard","admin-users","admin-analytics","admin-reports",
-]);
-
-function getAllowed(role) {
-  if (role === "learner")      return LEARNER_PAGES;
-  if (role === "facilitator")  return FACI_PAGES;
-  if (role === "admin")        return ADMIN_PAGES;
-  return new Set();
+function homeForRole(role) {
+  return role === "facilitator" ? "facilitator-dashboard"
+       : role === "admin"       ? "admin-dashboard"
+       : "learner-dashboard";
 }
 
-export default function App() {
-  const [currentPage, setCurrentPage] = useState("landing");
-  const [user,        setUser]        = useState(null);
+/** Wires the axios interceptor's redirect() helper to this router's navigate. */
+function NavigationBridge() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    setNavigateRef((path) => navigate(path));
+  }, [navigate]);
+  return null;
+}
 
-  const navigate = (page) => setCurrentPage(page);
+function LoadingScreen() {
+  return (
+    <div className="min-h-screen bg-[#F0F4F8] flex items-center justify-center">
+      <div className="w-8 h-8 border-2 border-[#0B1F3A]/20 border-t-[#0B1F3A] rounded-full animate-spin" />
+    </div>
+  );
+}
+
+function AccessDeniedRoute() {
+  const role = useAuthStore((s) => s.role);
+  const navigate = useLegacyNavigate();
+  return <AccessDenied role={role} navigate={navigate} />;
+}
+
+function AppRoutes() {
+  const navigate = useLegacyNavigate();
+  const sessionCheckComplete = useAuthStore((s) => s.sessionCheckComplete);
+  const bootstrap = useAuthStore((s) => s.bootstrap);
+
+  useEffect(() => {
+    bootstrap();
+    // Bootstrap runs exactly once, on app mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleLogin = (role, name, email) => {
-    setUser({ name, role, email });
-    const home = role === "facilitator" ? "facilitator-dashboard"
-               : role === "admin"       ? "admin-dashboard"
-               : "learner-dashboard";
-    setCurrentPage(home);
+    useAuthStore.getState().loginMock(role, name, email);
+    navigate(homeForRole(role));
   };
 
-  const handleLogout          = () => { setUser(null); setCurrentPage("landing"); };
   const handleProfileComplete = (u) => {
-    setUser(u);
-    const home = u.role === "facilitator" ? "facilitator-dashboard"
-               : u.role === "admin"       ? "admin-dashboard"
-               : "learner-dashboard";
-    setCurrentPage(home);
+    useAuthStore.getState().loginMock(u.role, u.name, u.email);
+    navigate(homeForRole(u.role));
   };
 
-  /* ── Role guard ── */
-  const publicPages = new Set(["landing","login","profile-setup"]);
-  const isProtected = user && !publicPages.has(currentPage);
-  const allowed     = user ? getAllowed(user.role) : new Set();
-  const isBlocked   = isProtected && !allowed.has(currentPage);
-
-  const lp = { navigate, user, onLogout: handleLogout };
-
-  if (isBlocked) return <AccessDenied role={user.role} navigate={navigate} />;
+  if (!sessionCheckComplete) {
+    return <LoadingScreen />;
+  }
 
   return (
     <div className="size-full min-h-screen bg-[#F0F4F8]">
-      {/* Public */}
-      {currentPage === "landing"             && <LandingPage navigate={navigate} />}
-      {currentPage === "login"               && <LoginPage navigate={navigate} onLogin={handleLogin} />}
-      {currentPage === "profile-setup"       && <ProfileSetup navigate={navigate} onComplete={handleProfileComplete} />}
+      <NavigationBridge />
+      <Routes>
+        {/* Public */}
+        <Route path="/" element={<LandingPage navigate={navigate} />} />
+        <Route path="/login" element={<LoginPage navigate={navigate} onLogin={handleLogin} />} />
+        <Route path="/profile-setup" element={<ProfileSetup navigate={navigate} onComplete={handleProfileComplete} />} />
 
-      {/* Learner pipeline */}
-      {currentPage === "learner-dashboard"   && <LearnerDashboard {...lp} />}
-      {currentPage === "diagnostic-test"     && <DiagnosticTest {...lp} />}
-      {currentPage === "eeg-profiling"       && <EEGProfiling {...lp} />}
-      {currentPage === "readiness-profiling" && <ReadinessProfiling {...lp} />}
-      {currentPage === "stimulus-content"    && <StimulusContent {...lp} />}
-      {currentPage === "post-test"           && <PostTest {...lp} />}
-      {currentPage === "my-progress"         && <MyProgress {...lp} />}
-      {currentPage === "achievements"        && <Achievements {...lp} />}
-      {currentPage === "learner-schedule"    && <LearnerSchedule {...lp} />}
+        {/* Learner pipeline */}
+        <Route path="/learner-dashboard" element={<ProtectedPage allowed={["learner"]} Component={LearnerDashboard} />} />
+        <Route path="/diagnostic-test" element={<ProtectedPage allowed={["learner"]} Component={DiagnosticTest} />} />
+        <Route path="/eeg-profiling" element={<ProtectedPage allowed={["learner"]} Component={EEGProfiling} />} />
+        <Route path="/readiness-profiling" element={<ProtectedPage allowed={["learner"]} Component={ReadinessProfiling} />} />
+        <Route path="/stimulus-content" element={<ProtectedPage allowed={["learner"]} Component={StimulusContent} />} />
+        <Route path="/post-test" element={<ProtectedPage allowed={["learner"]} Component={PostTest} />} />
+        <Route path="/my-progress" element={<ProtectedPage allowed={["learner"]} Component={MyProgress} />} />
+        <Route path="/achievements" element={<ProtectedPage allowed={["learner"]} Component={Achievements} />} />
+        <Route path="/learner-schedule" element={<ProtectedPage allowed={["learner"]} Component={LearnerSchedule} />} />
 
-      {/* Facilitator */}
-      {currentPage === "facilitator-dashboard" && <FacilitatorDashboard {...lp} />}
-      {currentPage === "facilitator-cohort"    && <FacilitatorCohort {...lp} />}
-      {currentPage === "facilitator-content"   && <FacilitatorContent {...lp} />}
-      {currentPage === "facilitator-analytics" && <FacilitatorAnalytics {...lp} />}
-      {currentPage === "facilitator-reports"   && <FacilitatorReports {...lp} />}
+        {/* Facilitator */}
+        <Route path="/facilitator-dashboard" element={<ProtectedPage allowed={["facilitator"]} Component={FacilitatorDashboard} />} />
+        <Route path="/facilitator-cohort" element={<ProtectedPage allowed={["facilitator"]} Component={FacilitatorCohort} />} />
+        <Route path="/facilitator-content" element={<ProtectedPage allowed={["facilitator"]} Component={FacilitatorContent} />} />
+        <Route path="/facilitator-analytics" element={<ProtectedPage allowed={["facilitator"]} Component={FacilitatorAnalytics} />} />
+        <Route path="/facilitator-reports" element={<ProtectedPage allowed={["facilitator"]} Component={FacilitatorReports} />} />
 
-      {/* Admin / Coordinator */}
-      {currentPage === "admin-dashboard"  && <AdminDashboard {...lp} />}
-      {currentPage === "admin-users"      && <AdminUsers {...lp} />}
-      {currentPage === "admin-analytics"  && <AdminAnalytics {...lp} />}
-      {currentPage === "admin-reports"    && <AdminReports {...lp} />}
+        {/* Admin / Coordinator */}
+        <Route path="/admin-dashboard" element={<ProtectedPage allowed={["admin"]} Component={AdminDashboard} />} />
+        <Route path="/admin-users" element={<ProtectedPage allowed={["admin"]} Component={AdminUsers} />} />
+        <Route path="/admin-analytics" element={<ProtectedPage allowed={["admin"]} Component={AdminAnalytics} />} />
+        <Route path="/admin-reports" element={<ProtectedPage allowed={["admin"]} Component={AdminReports} />} />
+
+        {/* Session/error utility routes - not linked from anywhere in the app,
+            only reached via the axios response interceptor (Task 5). */}
+        <Route path="/session-expired" element={<SessionExpired />} />
+        <Route path="/access-denied" element={<AccessDeniedRoute />} />
+      </Routes>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <ErrorBoundary>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+      <Toaster />
+    </ErrorBoundary>
   );
 }
