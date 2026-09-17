@@ -1,11 +1,7 @@
 import { useState } from "react";
 import { LandingPage }           from "./components/LandingPage";
 import { LoginPage }             from "./components/auth/LoginPage";
-import { RegisterPage }          from "./components/auth/RegisterPage";
 import { ProfileSetup }          from "./components/auth/ProfileSetup";
-import { ForgotPassword }        from "./components/auth/ForgotPassword";
-import { VerifyEmail }           from "./components/auth/VerifyEmail";
-import { ResetPassword }         from "./components/auth/ResetPassword";
 // Learner
 import { LearnerDashboard }      from "./components/learner/LearnerDashboard";
 import { DiagnosticTest }        from "./components/diagnostic/DiagnosticTest";
@@ -53,7 +49,6 @@ function getAllowed(role) {
 export default function App() {
   const [currentPage, setCurrentPage] = useState("landing");
   const [user,        setUser]        = useState(null);
-  const [forgotEmail, setForgotEmail] = useState("");
 
   const navigate = (page) => setCurrentPage(page);
 
@@ -66,7 +61,6 @@ export default function App() {
   };
 
   const handleLogout          = () => { setUser(null); setCurrentPage("landing"); };
-  const handleRegister        = () => setCurrentPage("profile-setup");
   const handleProfileComplete = (u) => {
     setUser(u);
     const home = u.role === "facilitator" ? "facilitator-dashboard"
@@ -74,10 +68,9 @@ export default function App() {
                : "learner-dashboard";
     setCurrentPage(home);
   };
-  const handleForgotSubmit = (email) => { setForgotEmail(email); setCurrentPage("verify-email"); };
 
   /* ── Role guard ── */
-  const publicPages = new Set(["landing","login","register","profile-setup","forgot-password","verify-email","reset-password"]);
+  const publicPages = new Set(["landing","login","profile-setup"]);
   const isProtected = user && !publicPages.has(currentPage);
   const allowed     = user ? getAllowed(user.role) : new Set();
   const isBlocked   = isProtected && !allowed.has(currentPage);
@@ -91,11 +84,7 @@ export default function App() {
       {/* Public */}
       {currentPage === "landing"             && <LandingPage navigate={navigate} />}
       {currentPage === "login"               && <LoginPage navigate={navigate} onLogin={handleLogin} />}
-      {currentPage === "register"            && <RegisterPage navigate={navigate} onRegister={handleRegister} />}
       {currentPage === "profile-setup"       && <ProfileSetup navigate={navigate} onComplete={handleProfileComplete} />}
-      {currentPage === "forgot-password"     && <ForgotPassword navigate={navigate} onSubmit={handleForgotSubmit} />}
-      {currentPage === "verify-email"        && <VerifyEmail navigate={navigate} email={forgotEmail} />}
-      {currentPage === "reset-password"      && <ResetPassword navigate={navigate} />}
 
       {/* Learner pipeline */}
       {currentPage === "learner-dashboard"   && <LearnerDashboard {...lp} />}

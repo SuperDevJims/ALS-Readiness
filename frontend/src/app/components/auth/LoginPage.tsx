@@ -116,9 +116,6 @@ export function LoginPage({ navigate, onLogin }) {
                   </button>
                 </div>
               </div>
-              <div className="flex justify-end">
-                <button type="button" onClick={() => navigate("forgot-password")} className="text-blue-400 text-sm hover:text-blue-300 transition-colors">Forgot password?</button>
-              </div>
               <button type="submit" disabled={isLoading}
                 className="w-full py-3 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-400 hover:to-cyan-400 text-white rounded-xl font-medium transition-all duration-200 disabled:opacity-50 flex items-center justify-center gap-2">
                 {isLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : "Sign In"}
@@ -136,11 +133,6 @@ export function LoginPage({ navigate, onLogin }) {
                 ))}
               </div>
             </div>
-
-            <p className="text-center text-blue-400 text-sm mt-6">
-              New here?{" "}
-              <button onClick={() => navigate("register")} className="text-blue-300 hover:text-white transition-colors">Create account</button>
-            </p>
           </div>
         </div>
       </div>
