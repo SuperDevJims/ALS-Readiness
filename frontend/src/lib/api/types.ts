@@ -2,6 +2,16 @@
 //   - app/api/routes/auth.py, app/schemas/auth.py, app/schemas/user.py
 //   - app/api/routes/users.py, app/schemas/user_profile.py
 //   - app/main.py (exception -> status code mapping)
+//
+// Phase 3 additions, confirmed live against the running backend (2026-09-17):
+//   - PATCH /api/users/me accepts exactly UserProfileUpdate's fields below (all
+//     optional) - confirmed by sending id_no/role in the same request and
+//     observing they're silently ignored (not persisted, not errored).
+//   - PATCH /api/users/me/password: wrong current password -> 400 (not 401),
+//     code INCORRECT_CURRENT_PASSWORD; password reuse -> 400, code
+//     PASSWORD_REUSE; new_password too short -> 422 REQUEST_VALIDATION with a
+//     pydantic-style details array. Success -> 200 with UserResponse (NOT
+//     nested under `profile` - this endpoint's response has no profile field).
 
 export type Role = "learner" | "facilitator" | "admin";
 
@@ -46,6 +56,26 @@ export interface User {
 /** GET /api/users/me response shape */
 export interface UserMe extends User {
   profile: UserProfile;
+}
+
+export type Gender = "male" | "female" | "other";
+
+/** PATCH /api/users/me body - every field optional, only these are accepted. */
+export interface UserProfileUpdate {
+  first_name?: string | null;
+  last_name?: string | null;
+  middle_name?: string | null;
+  birthdate?: string | null;
+  gender?: Gender | null;
+  address?: string | null;
+  contact_number?: string | null;
+  contact_email?: string | null;
+}
+
+/** PATCH /api/users/me/password body */
+export interface PasswordChangeRequest {
+  current_password: string;
+  new_password: string;
 }
 
 /** Shape of app/schemas/error.py's ErrorResponse, returned by every handled exception */

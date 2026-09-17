@@ -3,11 +3,10 @@ import * as authApi from "../api/auth";
 import type { Role, UserMe } from "../api/types";
 
 /**
- * The shape every existing page/AppLayout already expects (`user.name`,
- * `user.email`, `user.role`) preserved from the pre-backend mock login, plus
- * the real UserMe fields once a real session exists. Phase 2 rewires Login's
- * own submit logic to the real API - this store just needs to hold whichever
- * shape produced the session without breaking pages that read `.name`/`.email`.
+ * `name`/`email` are derived from the real profile (see `fromUserMe`) so
+ * every existing page/AppLayout that reads `user.name`/`user.email` keeps
+ * working unchanged; `raw` carries the full UserMe for anything that needs
+ * more than that.
  */
 export interface StoreUser {
   name: string;
@@ -30,11 +29,11 @@ interface AuthState {
   /** Real POST /api/auth/login, then populates user via /me. Throws on failure - caller shows the error. */
   login: (idNo: string, password: string) => Promise<void>;
 
-  /** Still used by ProfileSetup's own mock completion flow - that page isn't in this phase's scope. */
-  loginMock: (role: Role, name: string, email: string) => void;
-
   /** Clears local session immediately, synchronously - never blocks on the network call. */
   logout: () => void;
+
+  /** Re-derives the store's user/role from a fresh UserMe (e.g. after a profile edit). */
+  refreshUser: (me: UserMe) => void;
 
   /** App-mount bootstrap: silent refresh -> populate via /me. Always resolves. */
   bootstrap: () => Promise<void>;
@@ -69,7 +68,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ user: fromUserMe(me), role: me.role });
   },
 
-  loginMock: (role, name, email) => set({ user: { role, name, email }, role }),
+  refreshUser: (me) => set({ user: fromUserMe(me), role: me.role }),
 
   logout: () => {
     // Clear immediately - a user who explicitly logs out sees it happen right

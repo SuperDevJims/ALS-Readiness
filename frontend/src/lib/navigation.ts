@@ -37,7 +37,7 @@ export function useLegacyNavigate() {
   return (page: string) => navigate(toPath(page));
 }
 
-/** The page key for a role's home dashboard, post-login/post-profile-setup. */
+/** The page key for a role's home dashboard, post-login. */
 export function homeForRole(role: Role): string {
   return role === "facilitator" ? "facilitator-dashboard"
        : role === "admin"       ? "admin-dashboard"

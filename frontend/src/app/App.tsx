@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, useNavigate } from "react-router";
 import { LandingPage } from "./components/LandingPage";
 import { LoginPage } from "./components/auth/LoginPage";
-import { ProfileSetup } from "./components/auth/ProfileSetup";
 // Learner
 import { LearnerDashboard } from "./components/learner/LearnerDashboard";
 import { DiagnosticTest } from "./components/diagnostic/DiagnosticTest";
@@ -28,11 +27,12 @@ import { AdminReports } from "./components/admin/AdminReports";
 import { AccessDenied } from "./components/shared/AccessDenied";
 import { SessionExpired } from "./components/shared/SessionExpired";
 import { ErrorBoundary } from "./components/shared/ErrorBoundary";
+import { ProfilePage } from "./components/shared/ProfilePage";
 import { Toaster } from "./components/ui/sonner";
 // Routing/session plumbing
 import { ProtectedPage } from "./routes/ProtectedPage";
 import { useAuthStore } from "../lib/store/authStore";
-import { setNavigateRef, useLegacyNavigate, homeForRole } from "../lib/navigation";
+import { setNavigateRef, useLegacyNavigate } from "../lib/navigation";
 
 /** Wires the axios interceptor's redirect() helper to this router's navigate. */
 function NavigationBridge() {
@@ -68,11 +68,6 @@ function AppRoutes() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleProfileComplete = (u) => {
-    useAuthStore.getState().loginMock(u.role, u.name, u.email);
-    navigate(homeForRole(u.role));
-  };
-
   if (!sessionCheckComplete) {
     return <LoadingScreen />;
   }
@@ -84,7 +79,7 @@ function AppRoutes() {
         {/* Public */}
         <Route path="/" element={<LandingPage navigate={navigate} />} />
         <Route path="/login" element={<LoginPage navigate={navigate} />} />
-        <Route path="/profile-setup" element={<ProfileSetup navigate={navigate} onComplete={handleProfileComplete} />} />
+        <Route path="/profile" element={<ProtectedPage allowed={["learner", "facilitator", "admin"]} Component={ProfilePage} />} />
 
         {/* Learner pipeline */}
         <Route path="/learner-dashboard" element={<ProtectedPage allowed={["learner"]} Component={LearnerDashboard} />} />
