@@ -78,6 +78,52 @@ export interface PasswordChangeRequest {
   new_password: string;
 }
 
+
+export interface AdminUserListItem {
+  id: number;
+  id_no: string | null;
+  role: Role;
+  is_active: boolean;
+  first_name: string | null;
+  last_name: string | null;
+  created_at: string;
+}
+
+export interface AdminUserListResponse {
+  items: AdminUserListItem[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+/** Identical body shape for POST /api/admin/{learners,facilitators,admins} */
+export interface AdminUserCreate {
+  first_name: string;
+  last_name: string;
+  middle_name?: string | null;
+  birthdate?: string | null;
+  gender?: Gender | null;
+  address?: string | null;
+  contact_number?: string | null;
+  contact_email?: string | null;
+}
+
+export interface AdminUserCreateResponse {
+  user_id: number;
+  id_no: string;
+  password: string;
+  role: Role;
+  is_active: boolean;
+  profile: UserProfile;
+  created_at: string;
+  updated_at: string;
+}
+
+/** PATCH /api/admin/users/{id}/password body - just the new password, admin-set */
+export interface AdminPasswordResetRequest {
+  password: string;
+}
+
 /** Shape of app/schemas/error.py's ErrorResponse, returned by every handled exception */
 export interface ApiErrorResponse {
   success: false;
