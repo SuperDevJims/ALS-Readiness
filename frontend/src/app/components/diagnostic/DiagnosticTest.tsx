@@ -1,457 +1,195 @@
-import { useState, useEffect } from "react";
-import { ClipboardList, ChevronRight, ChevronLeft, Clock, CheckCircle, BookOpen, Calculator, FlaskConical, Globe, FileText, Star, X, RotateCcw } from "lucide-react";
+import { useEffect, useState } from "react";
+import { BookOpen, Calculator, CheckCircle2, ChevronLeft, ChevronRight, ClipboardList, FileText, LoaderCircle, LockKeyhole, Star } from "lucide-react";
 import { AppLayout } from "../shared/AppLayout";
-import { ALSenseLogo } from "../shared/ALSenseLogo";
+import { ImageWithFallback } from "../figma/ImageWithFallback";
 
-const subjects = [
-  { id: "english",  label: "English",             strandCode: "LS1", nextCode: "LS2", icon: BookOpen,     color: "blue",   questions: 20, status: "available",  score: null },
-  { id: "math",     label: "Mathematics",          strandCode: "LS2", nextCode: "LS3", icon: Calculator,   color: "purple", questions: 20, status: "completed",  score: 78   },
-  { id: "science",  label: "Science",              strandCode: "LS3", nextCode: "LS4", icon: FlaskConical, color: "teal",   questions: 20, status: "available",  score: null },
-  { id: "ap",       label: "Araling Panlipunan",   strandCode: "LS4", nextCode: "LS5", icon: Globe,        color: "orange", questions: 20, status: "available",  score: null },
-  { id: "filipino", label: "Filipino",             strandCode: "LS5", nextCode: null,  icon: FileText,     color: "red",    questions: 20, status: "available",  score: null },
+const API_ROOT = import.meta.env.VITE_API_URL || "/api";
+const INTAKE_STORAGE_KEY = "alsense_demo_participant_intake";
+const DEMO_LRI_COMPLETE_KEY = "alsense_demo_lri_complete";
+const LIKERT_OPTIONS = [
+  { label: "Strongly Disagree", value: 1 },
+  { label: "Disagree", value: 2 },
+  { label: "Agree", value: 3 },
+  { label: "Strongly Agree", value: 4 },
 ];
-
-const englishQuestions = [
-  { id: 1, question: "Which sentence is grammatically correct?",                                           choices: ["She go to school every day.", "She goes to school every day.", "She going to school every day.", "She gone to school every day."], correct: 1, topic: "Grammar" },
-  { id: 2, question: "What is the synonym of 'eloquent'?",                                                 choices: ["Quiet", "Articulate", "Confused", "Timid"],                                                                                    correct: 1, topic: "Vocabulary" },
-  { id: 3, question: "In 'The book that was on the table is mine,' what is the relative clause?",          choices: ["The book", "that was on the table", "is mine", "on the table"],                                                                correct: 1, topic: "Sentence Structure" },
-  { id: 4, question: "Choose the correct preposition: 'She is good ___ mathematics.'",                    choices: ["in", "at", "on", "for"],                                                                                                       correct: 1, topic: "Grammar" },
-  { id: 5, question: "What literary device is used in 'The wind whispered through the trees'?",           choices: ["Simile", "Metaphor", "Personification", "Alliteration"],                                                                       correct: 2, topic: "Literature" },
+const demoLri = {
+  test_id: "demo-lri",
+  title: "Learner Readiness Inventory",
+  image_url: "https://images.unsplash.com/photo-1457369804613-52c61a468e7d?auto=format&fit=crop&w=1200&q=80",
+  items: Array.from({ length: 10 }, (_, index) => ({ item_id: `lri-${index + 1}`, question_text: `I feel ready to participate actively in my ALS learning activities. (Statement ${index + 1})` })),
+};
+const demoTests = [
+  { test_id: "demo-english", title: "English baseline diagnostic", image_url: "https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=1200&q=80", strand_code: "LS1", strand_name: "English" },
+  { test_id: "demo-filipino", title: "Filipino baseline diagnostic", image_url: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80", strand_code: "LS1", strand_name: "Filipino" },
+  { test_id: "demo-mathematics", title: "Mathematics baseline diagnostic", image_url: "https://images.unsplash.com/photo-1509228468518-180dd4864904?auto=format&fit=crop&w=1200&q=80", strand_code: "LS3", strand_name: "Mathematics" },
 ];
-
-const mathReviewData = [
-  { question: "What is 15% of 200?",                choices: ["25", "30", "35", "40"],          correct: 1, userAnswer: 1, topic: "Percentage" },
-  { question: "Solve for x: 3x + 6 = 21",          choices: ["3", "4", "5", "6"],              correct: 2, userAnswer: 0, topic: "Algebra" },
-  { question: "Area of a circle with radius 7?",   choices: ["44π", "49π", "14π", "28π"],     correct: 1, userAnswer: 1, topic: "Geometry" },
+const demoQuestions = [
+  { item_id: "question-1", question_text: "This is a demo diagnostic question. Choose the response that best answers the question.", options: ["Option A", "Option B", "Option C", "Option D"].map((option_text, index) => ({ option_id: `option-${index + 1}`, option_text })) },
+  { item_id: "question-2", question_text: "This is the second demo question for the selected learning strand.", options: ["Option A", "Option B", "Option C", "Option D"].map((option_text, index) => ({ option_id: `option-2-${index + 1}`, option_text })) },
 ];
+const strandStyles = {
+  English: { icon: BookOpen, tone: "blue" },
+  Filipino: { icon: FileText, tone: "rose" },
+  Mathematics: { icon: Calculator, tone: "violet" },
+};
+const toneClasses = {
+  blue: "bg-blue-50 text-blue-600 border-blue-100", rose: "bg-rose-50 text-rose-600 border-rose-100", violet: "bg-violet-50 text-violet-600 border-violet-100",
+};
 
-const colorMap  = { blue: "text-blue-600 bg-blue-50 border-blue-200", purple: "text-purple-600 bg-purple-50 border-purple-200", teal: "text-teal-600 bg-teal-50 border-teal-200", orange: "text-orange-600 bg-orange-50 border-orange-200", red: "text-red-600 bg-red-50 border-red-200" };
-const btnColor  = { blue: "bg-blue-500 hover:bg-blue-600 text-white", purple: "bg-purple-500 hover:bg-purple-600 text-white", teal: "bg-teal-500 hover:bg-teal-600 text-white", orange: "bg-orange-500 hover:bg-orange-600 text-white", red: "bg-red-500 hover:bg-red-600 text-white" };
+async function api(path, options) {
+  const accessToken = localStorage.getItem("alsense_access_token");
+  const response = await fetch(`${API_ROOT}${path}`, { credentials: "include", headers: { "Content-Type": "application/json", ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) }, ...options });
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    throw new Error(data?.message || `Request failed (${response.status})`);
+  }
+  const contentLength = response.headers.get("content-length");
+  return response.status === 204 || contentLength === "0" ? null : response.json();
+}
 
-/* ─── Break Screen ─────────────────────────────────────────────── */
-function BreakScreen({ completedSubject, onContinue, completedCount, totalCount }) {
-  const [mood, setMood]         = useState(null);
-  const [breaking, setBreaking] = useState(false);
-  const [countdown, setCountdown] = useState(null);
-
-  const moods = ["Focused", "Neutral", "Tired", "Anxious"];
-  const nextLabel = completedSubject?.nextCode ? `Continue to ${completedSubject.nextCode}` : "Finish Test";
-
-  const handleBreak = () => {
-    setBreaking(true);
-    setCountdown(120);
-  };
-
-  useEffect(() => {
-    if (countdown === null) return;
-    if (countdown === 0) { setBreaking(false); setCountdown(null); return; }
-    const t = setTimeout(() => setCountdown(c => c - 1), 1000);
-    return () => clearTimeout(t);
-  }, [countdown]);
-
-  const fmtCountdown = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
-
+function PretestLoadingIndicator() {
   return (
-    <div className="min-h-screen bg-[#1c1c1e] flex flex-col">
-      {/* Top bar */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
-        <div className="flex items-center gap-3">
-          <ALSenseLogo size="sm" light showSub={false} />
-          <span className="text-gray-500 text-sm">· Diagnostic test</span>
-        </div>
-        <div className="flex items-center gap-1.5 text-gray-400 text-sm">
-          <Clock className="w-4 h-4" />
-          <span className="font-mono">Break</span>
-        </div>
-      </div>
-
-      {/* Body */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 max-w-xl mx-auto w-full py-12">
-        {/* Check circle */}
-        <div className="w-16 h-16 rounded-full border-2 border-green-500 bg-green-500/10 flex items-center justify-center mb-6">
-          <CheckCircle className="w-8 h-8 text-green-400" />
-        </div>
-
-        {/* Strand label */}
-        <p className="text-yellow-400 text-xs font-bold tracking-widest uppercase mb-3">
-          {completedSubject?.strandCode} — {completedSubject?.label?.toUpperCase()} COMPLETE
-        </p>
-
-        {/* Headline */}
-        <h1 className="text-white text-center mb-8" style={{ fontSize: "1.75rem", fontWeight: 700, lineHeight: 1.3 }}>
-          Nice work. Take a short break<br />before continuing.
-        </h1>
-
-        {/* Progress bar */}
-        <div className="w-full mb-8">
-          <div className="flex justify-between text-gray-400 text-xs mb-2">
-            <span>Overall progress</span>
-            <span>{completedCount} of {totalCount} strands</span>
-          </div>
-          <div className="h-2.5 bg-white/10 rounded-full overflow-hidden">
-            <div className="h-full bg-yellow-400 rounded-full transition-all duration-700" style={{ width: `${(completedCount / totalCount) * 100}%` }} />
-          </div>
-        </div>
-
-        {/* Quick check-in */}
-        <div className="w-full bg-[#2c2c2e] rounded-2xl p-5 mb-6">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-yellow-400 text-sm">✦</span>
-            <span className="text-white font-semibold text-sm">Quick check-in</span>
-          </div>
-          <p className="text-gray-400 text-sm mb-4">
-            How are you feeling right now? This helps us pace the rest of the test.
-          </p>
-          <div className="flex gap-2 flex-wrap">
-            {moods.map(m => (
-              <button key={m} onClick={() => setMood(m)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all duration-200 ${mood === m ? "border-yellow-400 bg-yellow-400/10 text-yellow-300" : "border-white/20 text-white hover:border-white/40"}`}>
-                {m}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Break / Continue buttons */}
-        {breaking && countdown !== null ? (
-          <div className="w-full flex flex-col items-center gap-4">
-            <div className="text-gray-400 text-sm">Break ends in</div>
-            <div className="text-yellow-400 font-mono text-4xl font-bold">{fmtCountdown(countdown)}</div>
-            <button onClick={() => { setBreaking(false); setCountdown(null); onContinue(mood); }}
-              className="px-8 py-3 bg-yellow-400 hover:bg-yellow-300 text-black rounded-xl font-semibold text-sm transition-colors">
-              Skip break &amp; Continue
-            </button>
-          </div>
-        ) : (
-          <div className="flex gap-3 w-full">
-            <button onClick={handleBreak}
-              className="flex-1 py-3 bg-white/5 hover:bg-white/10 border border-white/15 text-white rounded-xl font-medium text-sm transition-colors">
-              Take a 2-min break
-            </button>
-            <button onClick={() => onContinue(mood)}
-              className="flex-1 py-3 bg-yellow-400 hover:bg-yellow-300 text-black rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2">
-              {nextLabel} <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-        )}
-      </div>
+    <div className="py-12 flex justify-center">
+      <LoaderCircle className="w-6 h-6 text-[#3535C5] animate-spin" />
     </div>
   );
 }
 
-/* ─── Review Screen ────────────────────────────────────────────── */
-function ReviewScreen({ onClose, onRetake }) {
-  return (
-    <AppLayout navigate={() => {}} user={null} onLogout={() => {}} currentPage="diagnostic-test">
-      <div className="p-6 max-w-3xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-gray-800" style={{ fontSize: "1.25rem", fontWeight: 700 }}>Mathematics — Test Review</h2>
-            <p className="text-gray-500 text-sm">Reviewing your previous answers</p>
-          </div>
-          <button onClick={onClose}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl transition-colors text-sm">
-            <X className="w-4 h-4" /> Close Review
-          </button>
-        </div>
-        <div className="space-y-4">
-          {mathReviewData.map((q, idx) => {
-            const isCorrect = q.userAnswer === q.correct;
-            return (
-              <div key={idx} className={`bg-white rounded-2xl border p-5 ${isCorrect ? "border-green-200" : "border-red-200"}`}>
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">{q.topic}</span>
-                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${isCorrect ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
-                    {isCorrect ? "✓ Correct" : "✗ Incorrect"}
-                  </span>
-                </div>
-                <p className="text-gray-800 font-medium mb-3">{q.question}</p>
-                <div className="space-y-2">
-                  {q.choices.map((choice, cidx) => (
-                    <div key={cidx} className={`flex items-center gap-3 p-3 rounded-xl text-sm ${cidx === q.correct ? "bg-green-50 border border-green-300 text-green-800" : cidx === q.userAnswer && !isCorrect ? "bg-red-50 border border-red-300 text-red-800" : "bg-gray-50 text-gray-600"}`}>
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${cidx === q.correct ? "bg-green-500 text-white" : cidx === q.userAnswer && !isCorrect ? "bg-red-500 text-white" : "bg-gray-200 text-gray-500"}`}>
-                        {String.fromCharCode(65 + cidx)}
-                      </div>
-                      {choice}
-                      {cidx === q.correct && <span className="ml-auto text-xs text-green-600 font-medium">Correct</span>}
-                      {cidx === q.userAnswer && !isCorrect && <span className="ml-auto text-xs text-red-600 font-medium">Your Answer</span>}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        <div className="mt-6 flex gap-3">
-          <button onClick={onRetake} className="flex items-center gap-2 px-5 py-3 bg-purple-500 hover:bg-purple-600 text-white rounded-xl transition-colors">
-            <RotateCcw className="w-4 h-4" /> Retake Test
-          </button>
-          <button onClick={onClose} className="px-5 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl transition-colors">
-            Back to Tests
-          </button>
-        </div>
-      </div>
-    </AppLayout>
-  );
-}
-
-/* ─── Main Component ───────────────────────────────────────────── */
 export function DiagnosticTest({ navigate, user, onLogout }) {
-  const [activeSubject, setActiveSubject]   = useState(null);
-  const [currentQ, setCurrentQ]             = useState(0);
-  const [answers, setAnswers]               = useState({});
-  const [testCompleted, setTestCompleted]   = useState(false);
-  const [showBreak, setShowBreak]           = useState(false);
-  const [completedCount, setCompletedCount] = useState(1);
-  const [reviewMode, setReviewMode]         = useState(false);
-  const [timeLeft]                          = useState(30 * 60);
+  const [lri, setLri] = useState(null);
+  const [tests, setTests] = useState([]);
+  const [intakeComplete, setIntakeComplete] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [view, setView] = useState("hub");
+  const [activeTest, setActiveTest] = useState(null);
+  const [demoMode, setDemoMode] = useState(false);
 
-  const totalStrands = subjects.length;
+  const loadHub = async () => {
+    setLoading(true); setError("");
+    try {
+      const [lriData, strandData] = await Promise.all([api("/learner/lri-tests"), api("/learner/strand-tests?test_type=pretest")]);
+      setLri(lriData); setTests((strandData?.tests || []).filter((test) => ["English", "Filipino", "Mathematics"].includes(test.strand_name))); setIntakeComplete(Boolean(sessionStorage.getItem(INTAKE_STORAGE_KEY)));
+    } catch {
+      setDemoMode(true);
+      setLri({ ...demoLri, attempt_status: sessionStorage.getItem(DEMO_LRI_COMPLETE_KEY) ? "completed" : "pending" });
+      setTests(demoTests.map((test) => ({ ...test, attempt_status: sessionStorage.getItem(`alsense_${test.test_id}_complete`) ? "completed" : "pending" })));
+      setIntakeComplete(Boolean(sessionStorage.getItem(INTAKE_STORAGE_KEY)));
+    }
+    finally { setLoading(false); }
+  };
+  useEffect(() => { loadHub(); }, []);
 
-  const handleStartTest = (subjectId) => {
-    setActiveSubject(subjectId);
-    setCurrentQ(0);
-    setAnswers({});
-    setTestCompleted(false);
-    setShowBreak(false);
+  const completed = tests.filter((test) => test.attempt_status === "completed");
+  const allComplete = tests.length === 3 && completed.length === 3 && lri?.attempt_status === "completed";
+  const openLri = async () => {
+    if (demoMode) { setActiveTest(demoLri); setView("lri"); return; }
+    try { setLoading(true); const data = await api(`/learner/lri-tests/${lri.test_id}`); setActiveTest(data); setView("lri"); }
+    catch { setError("The Learner Readiness Inventory could not be opened."); }
+    finally { setLoading(false); }
+  };
+  const openStrand = async (test) => {
+    if (demoMode) { setActiveTest({ ...test, items: demoQuestions }); setView("strand"); return; }
+    try { setLoading(true); const data = await api(`/learner/strand-tests/${test.test_id}?include_items=true`); setActiveTest({ ...data, strand_name: test.strand_name, strand_code: test.strand_code }); setView("strand"); }
+    catch { setError("This diagnostic test could not be opened."); }
+    finally { setLoading(false); }
   };
 
-  const handleAnswer = (idx) => setAnswers(prev => ({ ...prev, [currentQ]: idx }));
+  if (view === "lri") return <LriAttempt test={activeTest} demoMode={demoMode} onClose={() => { setView("hub"); loadHub(); }} />;
+  if (view === "strand") return <StrandAttempt test={activeTest} demoMode={demoMode} onClose={() => { setView("hub"); loadHub(); }} />;
 
-  const handleNext = () => {
-    if (currentQ < englishQuestions.length - 1) setCurrentQ(q => q + 1);
-    else setTestCompleted(true);
-  };
+  return <AppLayout navigate={navigate} user={user} onLogout={onLogout} currentPage="diagnostic-test">
+    <main className="p-6 max-w-6xl mx-auto w-full">
+      <section className="bg-gradient-to-r from-[#182f68] to-[#3535C5] rounded-2xl p-7 text-white mb-6">
+        <p className="text-blue-200 text-xs font-semibold uppercase tracking-[0.16em] mb-2">Baseline assessment · No EEG device</p>
+        <h2 className="text-2xl font-bold mb-2">Pre-test</h2>
+        <p className="text-blue-100 text-sm max-w-2xl leading-relaxed">Complete the participant intake, Learner Readiness Inventory, and three diagnostic exams to establish your baseline.</p>
+      </section>
 
-  const handleSubmitTest = () => {
-    setTestCompleted(false);
-    setShowBreak(true);
-    setCompletedCount(c => c + 1);
-  };
-
-  const handleBreakContinue = () => {
-    setShowBreak(false);
-    setActiveSubject(null);
-  };
-
-  const calcScore = () => {
-    let c = 0;
-    englishQuestions.forEach((q, idx) => { if (answers[idx] === q.correct) c++; });
-    return Math.round((c / englishQuestions.length) * 100);
-  };
-
-  const formatTime = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
-
-  const completedSubject = subjects.find(s => s.id === activeSubject) || subjects[0];
-
-  /* ── Break screen (full-page, no sidebar) */
-  if (showBreak) {
-    return (
-      <BreakScreen
-        completedSubject={completedSubject}
-        onContinue={handleBreakContinue}
-        completedCount={completedCount}
-        totalCount={totalStrands}
-      />
-    );
-  }
-
-  /* ── Review screen */
-  if (reviewMode) {
-    return (
-      <ReviewScreen
-        onClose={() => setReviewMode(false)}
-        onRetake={() => { setReviewMode(false); handleStartTest("math"); }}
-      />
-    );
-  }
-
-  /* ── Active test */
-  if (activeSubject && !testCompleted) {
-    const q       = englishQuestions[currentQ];
-    const subject = subjects.find(s => s.id === activeSubject);
-    return (
-      <AppLayout navigate={navigate} user={user} onLogout={onLogout} currentPage="diagnostic-test">
-        <div className="p-6 max-w-3xl mx-auto">
-          <div className="bg-white rounded-2xl border border-gray-100 p-5 mb-6">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-purple-500 bg-purple-50 px-2 py-1 rounded font-mono">M02</span>
-                <h2 className="text-gray-800" style={{ fontWeight: 600 }}>{subject.label} — Diagnostic Test</h2>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 text-orange-600 bg-orange-50 px-3 py-1.5 rounded-xl">
-                  <Clock className="w-4 h-4" />
-                  <span className="font-mono font-bold">{formatTime(timeLeft)}</span>
-                </div>
-                <button onClick={() => setActiveSubject(null)} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-            <div className="flex items-center justify-between text-sm text-gray-500 mb-2">
-              <span>Question {currentQ + 1} of {englishQuestions.length}</span>
-              <span>{Object.keys(answers).length} answered</span>
-            </div>
-            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-purple-500 to-blue-500 rounded-full transition-all duration-300"
-                style={{ width: `${((currentQ + 1) / englishQuestions.length) * 100}%` }} />
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl border border-gray-100 p-6 mb-4">
-            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded inline-block mb-4">{q.topic}</span>
-            <h3 className="text-gray-800 mb-6" style={{ fontSize: "1.1rem", fontWeight: 500, lineHeight: 1.6 }}>{q.question}</h3>
-            <div className="space-y-3">
-              {q.choices.map((choice, idx) => (
-                <button key={idx} onClick={() => handleAnswer(idx)}
-                  className={`w-full p-4 rounded-xl border text-left transition-all duration-200 flex items-center gap-4 ${answers[currentQ] === idx ? "border-blue-400 bg-blue-50 text-blue-800" : "border-gray-200 bg-gray-50 text-gray-700 hover:border-blue-300 hover:bg-blue-50/50"}`}>
-                  <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center flex-shrink-0 text-sm font-bold ${answers[currentQ] === idx ? "border-blue-500 bg-blue-500 text-white" : "border-gray-300 text-gray-500"}`}>
-                    {String.fromCharCode(65 + idx)}
-                  </div>
-                  {choice}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <button onClick={() => setCurrentQ(q => q - 1)} disabled={currentQ === 0}
-              className="flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 disabled:opacity-40 transition-all">
-              <ChevronLeft className="w-4 h-4" /> Previous
-            </button>
-            <div className="flex gap-2">
-              {englishQuestions.map((_, idx) => (
-                <button key={idx} onClick={() => setCurrentQ(idx)}
-                  className={`w-8 h-8 rounded-lg text-xs font-medium transition-all ${idx === currentQ ? "bg-blue-500 text-white" : answers[idx] !== undefined ? "bg-green-100 text-green-700 border border-green-200" : "bg-gray-100 text-gray-500"}`}>
-                  {idx + 1}
-                </button>
-              ))}
-            </div>
-            <button onClick={handleNext} disabled={answers[currentQ] === undefined}
-              className="flex items-center gap-2 px-5 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl disabled:opacity-40 transition-all">
-              {currentQ === englishQuestions.length - 1 ? "Submit Test" : "Next"} <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </AppLayout>
-    );
-  }
-
-  /* ── Results screen */
-  if (testCompleted) {
-    const score   = calcScore();
-    const correct = englishQuestions.filter((q, idx) => answers[idx] === q.correct).length;
-    return (
-      <AppLayout navigate={navigate} user={user} onLogout={onLogout} currentPage="diagnostic-test">
-        <div className="p-6 max-w-2xl mx-auto">
-          <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
-            <div className="w-20 h-20 bg-gradient-to-br from-green-400 to-teal-400 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="w-10 h-10 text-white" />
-            </div>
-            <h2 className="text-gray-800 mb-2" style={{ fontSize: "1.5rem", fontWeight: 700 }}>Test Completed!</h2>
-            <p className="text-gray-500 mb-6">Your {subjects.find(s => s.id === activeSubject)?.label || "English"} Diagnostic Test results are in.</p>
-            <div className="inline-flex items-center justify-center w-32 h-32 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 mb-6">
-              <div><div className="text-white text-3xl font-bold">{score}%</div><div className="text-blue-100 text-xs">Score</div></div>
-            </div>
-            <div className="grid grid-cols-3 gap-4 mb-6">
-              <div className="p-3 bg-green-50 rounded-xl"><div className="text-green-600 text-xl font-bold">{correct}</div><div className="text-green-700 text-xs">Correct</div></div>
-              <div className="p-3 bg-red-50 rounded-xl"><div className="text-red-600 text-xl font-bold">{englishQuestions.length - correct}</div><div className="text-red-700 text-xs">Incorrect</div></div>
-              <div className="p-3 bg-blue-50 rounded-xl"><div className="text-blue-600 text-xl font-bold">{englishQuestions.length}</div><div className="text-blue-700 text-xs">Total</div></div>
-            </div>
-            {score >= 75 && <div className="flex items-center gap-2 justify-center text-green-600 bg-green-50 rounded-xl p-3 mb-4"><Star className="w-4 h-4" /><span className="text-sm">Excellent! You passed this module.</span></div>}
-            {score < 75 && <div className="bg-orange-50 rounded-xl p-3 mb-4 text-orange-700 text-sm">Keep practicing! Review the topics you missed.</div>}
-            <div className="flex gap-3">
-              <button onClick={() => { setTestCompleted(false); setActiveSubject(null); }} className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl transition-colors">Back to Tests</button>
-              <button onClick={() => { setReviewMode(true); setTestCompleted(false); setActiveSubject(null); }}
-                className="flex-1 py-3 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-xl transition-colors">Review Answers</button>
-              <button onClick={handleSubmitTest}
-                className="flex-1 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl hover:from-blue-400 hover:to-cyan-400 transition-all">
-                Next Strand →
-              </button>
-            </div>
-          </div>
-        </div>
-      </AppLayout>
-    );
-  }
-
-  /* ── Subject list */
-  return (
-    <AppLayout navigate={navigate} user={user} onLogout={onLogout} currentPage="diagnostic-test">
-      <div className="p-6">
-        <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl p-6 mb-6 text-white">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-xs bg-white/20 px-2 py-1 rounded font-mono">M02</span>
-            <span className="text-purple-100 text-sm">Diagnostic & Inventory Test Module</span>
-          </div>
-          <h2 className="mb-1" style={{ fontSize: "1.5rem", fontWeight: 700 }}>Diagnostic Tests</h2>
-          <p className="text-purple-100 text-sm">Preparatory Equivalency Exams — Complete all strands. A short break screen will appear after each strand.</p>
-        </div>
-
-        <div className="grid grid-cols-4 gap-4 mb-6">
-          {[
-            { label: "Tests Completed", value: "1/5", icon: CheckCircle, cls: "text-green-600 bg-green-50" },
-            { label: "Average Score",   value: "78%", icon: Star,         cls: "text-blue-600 bg-blue-50"  },
-            { label: "Time Remaining",  value: "∞",   icon: Clock,        cls: "text-orange-600 bg-orange-50" },
-            { label: "Strands Pending", value: "4",   icon: ClipboardList,cls: "text-purple-600 bg-purple-50" },
-          ].map((stat) => {
-            const Icon = stat.icon;
-            return (
-              <div key={stat.label} className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${stat.cls}`}><Icon className="w-5 h-5" /></div>
-                <div><div className="text-gray-800 font-bold">{stat.value}</div><div className="text-gray-500 text-xs">{stat.label}</div></div>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {subjects.map((sub) => {
-            const Icon = sub.icon;
-            return (
-              <div key={sub.id} className="bg-white rounded-2xl border border-gray-100 p-5">
-                <div className="flex items-start justify-between mb-4">
-                  <div className={`w-12 h-12 rounded-xl border flex items-center justify-center ${colorMap[sub.color]}`}>
-                    <Icon className="w-6 h-6" />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-400 font-mono">{sub.strandCode}</span>
-                    {sub.status === "completed" && sub.score !== null
-                      ? <div className={`text-sm font-bold px-3 py-1 rounded-full ${sub.score >= 75 ? "text-green-700 bg-green-100" : "text-orange-700 bg-orange-100"}`}>{sub.score}%</div>
-                      : <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">Available</span>}
-                  </div>
-                </div>
-                <h3 className="text-gray-800 mb-1" style={{ fontWeight: 600 }}>{sub.label}</h3>
-                <p className="text-gray-500 text-sm mb-4">{sub.questions} questions • ~30 minutes</p>
-                {sub.status === "completed" ? (
-                  <div className="space-y-2">
-                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full ${sub.score >= 75 ? "bg-green-500" : "bg-orange-400"}`} style={{ width: `${sub.score}%` }} />
-                    </div>
-                    <div className="flex gap-2">
-                      <button onClick={() => setReviewMode(true)} className="flex-1 py-2 text-sm bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 transition-colors">Review</button>
-                      <button onClick={() => handleStartTest(sub.id)} className={`flex-1 py-2 text-sm rounded-xl transition-colors ${btnColor[sub.color]}`}>Retake</button>
-                    </div>
-                  </div>
-                ) : (
-                  <button onClick={() => handleStartTest(sub.id)} className={`w-full py-2.5 text-sm rounded-xl transition-colors flex items-center justify-center gap-2 ${btnColor[sub.color]}`}>
-                    Start Test <ChevronRight className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-2xl p-5 flex items-start gap-3">
-          <ALSenseLogo iconOnly size="sm" className="flex-shrink-0 mt-0.5" />
-          <div>
-            <h4 className="text-yellow-800 font-semibold mb-1">Break screens between strands</h4>
-            <p className="text-yellow-700 text-sm">After completing each strand you'll see a short break screen with a mood check-in. You can take a 2-minute break or continue directly to the next strand.</p>
-          </div>
-        </div>
+      <div className="grid gap-4 md:grid-cols-3 mb-6">
+        <Stat icon={ClipboardList} label="Diagnostic tests" value={`${completed.length}/3`} />
+        <Stat icon={CheckCircle2} label="LRI status" value={lri?.attempt_status === "completed" ? "Complete" : "Pending"} />
+        <Stat icon={Star} label="Pre-test status" value={allComplete ? "Complete" : "In progress"} />
       </div>
-    </AppLayout>
-  );
+
+      {error && <div className="mb-5 flex items-center justify-between gap-4 bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl text-sm"><span>{error}</span><button onClick={loadHub} className="font-semibold underline">Try again</button></div>}
+      {demoMode && <div className="mb-5 bg-blue-50 border border-blue-200 text-blue-800 p-4 rounded-xl text-sm">Demo mode is active. Pre-test responses are stored only for this browser session and are not sent to the database.</div>}
+      {loading ? <PretestLoadingIndicator /> : <div className="space-y-5">
+        <PartCard number="Part I" title="Participant intake" description="Background questionnaire required before all assessment activities." status={intakeComplete ? "Completed" : "Required"} action={intakeComplete ? "Review intake" : "Complete intake"} onClick={() => navigate("participant-intake")} />
+        <PartCard number="Part II" title="Learner Readiness Inventory" imageUrl={lri?.image_url} description="10 required statements using a four-point agreement scale." status={lri?.attempt_status === "completed" ? "Completed" : intakeComplete ? "Ready to attempt" : "Locked until Part I"} disabled={!intakeComplete || lri?.attempt_status === "completed"} action={lri?.attempt_status === "completed" ? "Completed" : "Attempt LRI"} onClick={openLri} />
+        <section className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-5">
+            <div><p className="text-xs font-bold text-[#3535C5] uppercase tracking-wider mb-1">Part III</p><h3 className="text-gray-800 font-bold text-lg">Diagnostic / Equivalency Exams</h3><p className="text-gray-500 text-sm mt-1">One baseline exam for each enrolled learning strand. Completed pre-tests cannot be retaken.</p></div>
+            <span className={`inline-flex items-center gap-1.5 self-start px-3 py-1.5 rounded-full text-xs font-medium ${intakeComplete ? "bg-green-50 text-green-700" : "bg-gray-100 text-gray-500"}`}><LockKeyhole className="w-3.5 h-3.5" /> {intakeComplete ? "Part I complete" : "Complete Part I first"}</span>
+          </div>
+          <div className="grid md:grid-cols-3 gap-4">
+            {tests.map((test) => <StrandCard key={test.test_id} test={test} intakeComplete={intakeComplete} onClick={() => openStrand(test)} />)}
+            {!tests.length && <p className="text-sm text-gray-500">No pre-test strands are currently available.</p>}
+          </div>
+        </section>
+      </div>}
+    </main>
+  </AppLayout>;
 }
+
+function Stat({ icon: Icon, label, value }) { return <div className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-3"><div className="w-10 h-10 bg-indigo-50 text-[#3535C5] rounded-xl flex items-center justify-center"><Icon className="w-5 h-5" /></div><div><p className="text-lg font-bold text-gray-800">{value}</p><p className="text-xs text-gray-500">{label}</p></div></div>; }
+function PartCard({ number, title, imageUrl, description, status, action, onClick, disabled }) { return <section className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm flex flex-col sm:flex-row gap-5 sm:items-center sm:justify-between">{imageUrl && <ImageWithFallback src={imageUrl} alt="" className="h-24 w-full sm:w-36 object-cover rounded-xl" />}<div className="flex-1"><p className="text-xs font-bold text-[#3535C5] uppercase tracking-wider mb-1">{number}</p><h3 className="text-gray-800 font-bold text-lg">{title}</h3><p className="text-gray-500 text-sm mt-1">{description}</p></div><div className="flex flex-col sm:items-end gap-2 shrink-0"><span className={`text-xs font-medium px-2.5 py-1 rounded-full ${disabled ? "bg-amber-50 text-amber-700" : "bg-blue-50 text-blue-700"}`}>{status}</span><button onClick={onClick} disabled={disabled} className="px-4 py-2.5 rounded-xl text-sm font-medium bg-[#3535C5] text-white hover:bg-[#2929a8] disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed">{action}</button></div></section>; }
+function StrandCard({ test, intakeComplete, onClick }) { const setting = strandStyles[test.strand_name] || strandStyles.English; const Icon = setting.icon; const done = test.attempt_status === "completed"; return <article className="overflow-hidden rounded-xl border border-gray-100"><ImageWithFallback src={test.image_url} alt={`${test.strand_name} test`} className="h-28 w-full object-cover" /><div className="p-4"><div className="flex justify-between mb-4"><div className={`w-10 h-10 rounded-xl border flex items-center justify-center ${toneClasses[setting.tone]}`}><Icon className="w-5 h-5" /></div><span className="text-xs text-gray-400 font-mono">{test.strand_code}</span></div><h4 className="text-gray-800 font-semibold">{test.strand_name}</h4><p className="text-xs text-gray-500 mt-1 mb-4">{test.title}</p>{done ? <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 py-2 px-3 rounded-lg"><CheckCircle2 className="w-4 h-4" /> Completed</div> : <button onClick={onClick} disabled={!intakeComplete} className="w-full py-2 rounded-lg text-sm bg-[#3535C5] text-white hover:bg-[#2929a8] disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed">{intakeComplete ? "Attempt test" : "Locked until Part I"}</button>}</div></article>; }
+
+function LriAttempt({ test, demoMode, onClose }) {
+  const [answers, setAnswers] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+  const complete = test.items?.length && Object.keys(answers).length === test.items.length;
+
+  const submit = async () => {
+    setSaving(true);
+    try {
+      if (demoMode) {
+        sessionStorage.setItem(DEMO_LRI_COMPLETE_KEY, "true");
+      } else {
+        await api(`/learner/lri-tests/${test.test_id}/attempts`, {
+          method: "POST",
+          body: JSON.stringify({
+            answers: test.items.map((item) => ({
+              item_id: item.item_id,
+              answer_value: answers[item.item_id],
+            })),
+          }),
+        });
+      }
+      onClose();
+    } catch {
+      setMessage("Your LRI responses could not be submitted. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return <AttemptShell title={test.title} subtitle="Select one response for every statement." onClose={onClose}>
+    {test.image_url && <ImageWithFallback src={test.image_url} alt="Learner Readiness Inventory" className="w-full h-40 object-cover rounded-xl mb-6" />}
+    <div className="overflow-x-auto border border-slate-800 rounded-sm">
+      <table className="w-full min-w-[700px] table-fixed border-collapse text-sm">
+        <thead className="bg-[#244477] text-white">
+          <tr>
+            <th className="w-1/2 border border-slate-800 p-3 text-center font-semibold">Statement</th>
+            {LIKERT_OPTIONS.map(({ label }) => <th key={label} className="w-[12.5%] border border-slate-800 p-2 text-center font-semibold leading-tight">{label}</th>)}
+          </tr>
+        </thead>
+        <tbody>
+          {test.items?.map((item, index) => <tr key={item.item_id} className="odd:bg-white even:bg-slate-50">
+            <td className="border border-slate-800 p-3 text-gray-800 align-top"><span className="font-semibold mr-1">{index + 1}.</span>{item.question_text}</td>
+            {LIKERT_OPTIONS.map(({ label, value }) => <td key={value} className="border border-slate-800 p-3 text-center">
+              <input aria-label={`${item.question_text}: ${label}`} type="radio" name={`item-${item.item_id}`} value={value} checked={answers[item.item_id] === value} onChange={() => setAnswers((current) => ({ ...current, [item.item_id]: value }))} className="h-4 w-4 accent-[#244477]" />
+            </td>)}
+          </tr>)}
+        </tbody>
+      </table>
+    </div>
+    {message && <p className="text-red-600 text-sm mt-4">{message}</p>}
+    <AttemptActions disabled={!complete || saving} saving={saving} onSubmit={submit} />
+  </AttemptShell>;
+}
+function StrandAttempt({ test, demoMode, onClose }) { const [current, setCurrent] = useState(0); const [answers, setAnswers] = useState({}); const [saving, setSaving] = useState(false); const [message, setMessage] = useState(""); const item = test.items[current]; const complete = test.items?.length && Object.keys(answers).length === test.items.length; const submit = async () => { setSaving(true); try { if (demoMode) sessionStorage.setItem(`alsense_${test.test_id}_complete`, "true"); else await api(`/learner/strand-tests/${test.test_id}/attempts`, { method: "POST", body: JSON.stringify({ answers: test.items.map((question) => ({ item_id: question.item_id, option_id: answers[question.item_id] })) }) }); onClose(); } catch { setMessage("Your answers could not be submitted. Please try again."); } finally { setSaving(false); } }; return <AttemptShell title={`${test.strand_name} diagnostic exam`} subtitle={`Question ${current + 1} of ${test.items?.length || 0}`} onClose={onClose}>{item && <><div className="h-2 bg-gray-100 rounded-full mb-6"><div className="h-full bg-[#3535C5] rounded-full" style={{ width: `${((current + 1) / test.items.length) * 100}%` }} /></div><section className="border border-gray-100 rounded-2xl p-6"><p className="text-gray-800 text-lg font-medium leading-relaxed mb-6">{item.question_text}</p><div className="space-y-3">{item.options.map((option, index) => <button key={option.option_id} onClick={() => setAnswers((old) => ({ ...old, [item.item_id]: option.option_id }))} className={`w-full flex text-left gap-3 p-4 border rounded-xl transition-colors ${answers[item.item_id] === option.option_id ? "border-[#3535C5] bg-indigo-50 text-indigo-900" : "border-gray-200 hover:border-indigo-300 text-gray-700"}`}><span className="w-6 h-6 shrink-0 rounded-full border flex justify-center items-center text-xs font-semibold">{String.fromCharCode(65 + index)}</span>{option.option_text}</button>)}</div></section><div className="flex justify-between mt-5"><button onClick={() => setCurrent((number) => number - 1)} disabled={current === 0} className="inline-flex gap-1 items-center px-4 py-2 text-sm text-gray-600 disabled:text-gray-300"><ChevronLeft className="w-4 h-4" /> Previous</button>{current < test.items.length - 1 ? <button onClick={() => setCurrent((number) => number + 1)} className="inline-flex gap-1 items-center px-4 py-2 rounded-xl text-sm text-white bg-[#3535C5]">Next <ChevronRight className="w-4 h-4" /></button> : <span />}</div></>}{message && <p className="text-red-600 text-sm mt-4">{message}</p>}<AttemptActions disabled={!complete || saving} saving={saving} onSubmit={submit} /></AttemptShell>; }
+function AttemptShell({ title, subtitle, onClose, children }) { return <div className="min-h-screen bg-[#F0F4F8] p-4 sm:p-8"><main className="max-w-4xl mx-auto"><button onClick={onClose} className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-[#3535C5] mb-5"><ChevronLeft className="w-4 h-4" /> Back to pre-test</button><div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm"><h1 className="text-xl font-bold text-gray-800">{title}</h1><p className="text-sm text-gray-500 mt-1 mb-6">{subtitle}</p>{children}</div></main></div>; }
+function AttemptActions({ disabled, saving, onSubmit }) { return <div className="border-t border-gray-100 pt-5 mt-6 flex justify-end"><button onClick={onSubmit} disabled={disabled} className="px-5 py-2.5 bg-[#3535C5] hover:bg-[#2929a8] text-white rounded-xl text-sm font-medium disabled:bg-gray-200 disabled:text-gray-400">{saving ? "Submitting…" : "Submit baseline responses"}</button></div>; }
