@@ -1,10 +1,13 @@
+from app.enums.user import UserRole
 from app.schemas.admin import (
+    AdminAdminCreate,
     AdminFacilitatorCreate,
     AdminLearnerCreate,
     AdminUserCreateResponse,
+    AdminUserListResponse,
 )
 from app.schemas.user import UserPasswordUpdate, UserResponse
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, Query, status
 
 from ..deps import AdminServiceDep, require_admin
 
@@ -15,18 +18,34 @@ router = APIRouter(
 )
 
 
+@router.get(
+    "/users",
+    response_model=AdminUserListResponse,
+)
+async def list_users(
+    admin_service: AdminServiceDep,
+    role: UserRole | None = None,
+    is_active: bool | None = None,
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+):
+    return await admin_service.list_users(
+        role=role,
+        is_active=is_active,
+        page=page,
+        page_size=page_size,
+    )
+
+
 @router.post(
     "/learners",
     status_code=status.HTTP_201_CREATED,
     response_model=AdminUserCreateResponse,
 )
 async def create_learner(
-    request: Request,
     learner_create: AdminLearnerCreate,
     admin_service: AdminServiceDep,
 ):
-    print(request.headers.get("Authorization"))
-
     return await admin_service.create_learner(learner_create)
 
 
@@ -36,12 +55,22 @@ async def create_learner(
     response_model=AdminUserCreateResponse,
 )
 async def create_facilitator(
-    request: Request,
     facilitator_create: AdminFacilitatorCreate,
     admin_service: AdminServiceDep,
 ):
-    print(request.headers.get("Authorization"))
     return await admin_service.create_facilitator(facilitator_create)
+
+
+@router.post(
+    "/admins",
+    status_code=status.HTTP_201_CREATED,
+    response_model=AdminUserCreateResponse,
+)
+async def create_admin(
+    admin_create: AdminAdminCreate,
+    admin_service: AdminServiceDep,
+):
+    return await admin_service.create_admin(admin_create)
 
 
 @router.patch(

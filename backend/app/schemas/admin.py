@@ -15,6 +15,10 @@ class AdminFacilitatorCreate(UserProfileCreate):
     pass
 
 
+class AdminAdminCreate(UserProfileCreate):
+    pass
+
+
 class AdminUserCreateResponse(BaseModel):
     user_id: int
     id_no: str
@@ -24,3 +28,20 @@ class AdminUserCreateResponse(BaseModel):
     profile: UserProfileResponse
     created_at: datetime
     updated_at: datetime
+
+
+class AdminUserListItem(BaseModel):
+    id: int
+    id_no: str | None
+    role: UserRole
+    is_active: bool
+    first_name: str | None = None
+    last_name: str | None = None
+    created_at: datetime
+
+
+class AdminUserListResponse(BaseModel):
+    items: list[AdminUserListItem]
+    total: int
+    page: int
+    page_size: int

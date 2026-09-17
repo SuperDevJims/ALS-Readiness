@@ -20,6 +20,11 @@ class Settings(BaseSettings):
         default=ACCESS_TOKEN_EXPIRE_MINUTES, alias="ACCESS_TOKEN_EXPIRE_MINUTES"
     )
 
+    """ CORS Config """
+    cors_origins: str = Field(
+        default="http://localhost:5173", alias="CORS_ORIGINS"
+    )
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_ignore_empty=True,
@@ -34,6 +39,10 @@ class Settings(BaseSettings):
             f"@{self.db_host}:{self.db_port}"
             f"/{self.db_name}"
         )
+
+    @property
+    def cors_origins_list(self) -> list[str]:
+        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
 
 settings = Settings()

@@ -5,7 +5,9 @@ from app.core.exceptions import (
     UserNotFoundError,
 )
 from app.core.security import generate_temp_password, hash_password
+from app.enums.user import UserRole
 from app.models.user import User
+from app.models.user_profile import UserProfile
 from app.repositories.user import UserRepository
 from app.schemas.user import UserCreate, UserPasswordUpdate
 
@@ -62,6 +64,20 @@ class UserService:
             raise InactiveUserError()
 
         return user
+
+    async def list_with_profiles(
+        self,
+        page: int,
+        page_size: int,
+        role: UserRole | None = None,
+        is_active: bool | None = None,
+    ) -> tuple[list[tuple[User, UserProfile | None]], int]:
+        return await self._user_repository.list_with_profiles(
+            page=page,
+            page_size=page_size,
+            role=role,
+            is_active=is_active,
+        )
 
     async def update_password(self, user: User, user_update: UserPasswordUpdate) -> User:
         hashed_password = hash_password(user_update.password)

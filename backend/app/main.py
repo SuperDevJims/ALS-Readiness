@@ -3,10 +3,12 @@ from typing import Any
 
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError as PydanticValidationError
 
 from .api.router import router as api_router
+from .core.config import settings
 from .core.exceptions import (
     AlreadyExistsError,
     DomainValidationError,
@@ -17,6 +19,15 @@ from .core.exceptions import (
 from .schemas.error import ErrorResponse
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins_list,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
+)
+
 app.include_router(api_router)
 
 

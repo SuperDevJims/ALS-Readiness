@@ -1,9 +1,12 @@
 from app.enums.user import UserRole
 from app.models.user import User
 from app.schemas.admin import (
+    AdminAdminCreate,
     AdminFacilitatorCreate,
     AdminLearnerCreate,
     AdminUserCreateResponse,
+    AdminUserListItem,
+    AdminUserListResponse,
 )
 from app.schemas.facilitator import FacilitatorCreate
 from app.schemas.learner import LearnerCreate
@@ -94,6 +97,69 @@ class AdminService:
             ),
             created_at=user.created_at,
             updated_at=user.updated_at,
+        )
+
+    async def create_admin(self, admin_create: AdminAdminCreate) -> AdminUserCreateResponse:
+        # Create user and get a system generated password
+        user, password = await self._user_service.create(
+            UserCreate(role=UserRole.ADMIN)
+        )
+
+        # No marker table for admins - just a users row + a user_profiles row
+        profile = await self._profile_service.create(
+            user_id=user.id,
+            profile_create=UserProfileCreate(
+                **admin_create.model_dump()
+            )
+        )
+
+        return AdminUserCreateResponse(
+            user_id=user.id,
+            id_no=user.id_no,
+            password=password,
+            role=user.role,
+            is_active=user.is_active,
+            profile=UserProfileResponse(
+                first_name=profile.first_name,
+                last_name=profile.last_name,
+                middle_name=profile.middle_name,
+            ),
+            created_at=user.created_at,
+            updated_at=user.updated_at,
+        )
+
+    async def list_users(
+        self,
+        role: UserRole | None,
+        is_active: bool | None,
+        page: int,
+        page_size: int,
+    ) -> AdminUserListResponse:
+        rows, total = await self._user_service.list_with_profiles(
+            page=page,
+            page_size=page_size,
+            role=role,
+            is_active=is_active,
+        )
+
+        items = [
+            AdminUserListItem(
+                id=user.id,
+                id_no=user.id_no,
+                role=user.role,
+                is_active=user.is_active,
+                first_name=profile.first_name if profile else None,
+                last_name=profile.last_name if profile else None,
+                created_at=user.created_at,
+            )
+            for user, profile in rows
+        ]
+
+        return AdminUserListResponse(
+            items=items,
+            total=total,
+            page=page,
+            page_size=page_size,
         )
 
     async def update_user_password(self, user_id: int, user_update: UserPasswordUpdate) -> User:
