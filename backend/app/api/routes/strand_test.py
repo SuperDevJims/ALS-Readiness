@@ -24,9 +24,9 @@ async def get_strand_tests_by_type_with_attempt_status(
 
 @router.get(
     "/learner/strand-tests/{test_id}",
-    response_model=StrandTestResponse | StrandTestWithItemsResponse,
+    response_model=StrandTestResponse | StrandTestWithItemsResponse | None,
 )
-async def get_strand_test(
+async def get_strand_test_by_id(
     test_id: int,
     include_items: bool = False,
     _: CurrentLearnernDep = ...,

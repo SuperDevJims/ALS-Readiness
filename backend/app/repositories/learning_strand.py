@@ -1,6 +1,6 @@
 from sqlalchemy import select
 
-from app.models.curriculum import LearningStrand
+from app.models.learning_strand import LearningStrand
 
 from .base import BaseRepository
 

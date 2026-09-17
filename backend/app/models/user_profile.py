@@ -26,6 +26,7 @@ class UserProfile(SQLModel, table=True):
         )
     )
 
+    civil_status: str | None = Field(default=None, max_length=40)
     address: str | None = Field(default=None)
     contact_number: str | None = Field(default=None, max_length=20)
     contact_email: EmailStr | None = Field(default=None, max_length=254)
