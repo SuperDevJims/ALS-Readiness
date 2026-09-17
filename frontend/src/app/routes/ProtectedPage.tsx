@@ -21,7 +21,7 @@ export function ProtectedPage({
 
   const onLogout = () => {
     useAuthStore.getState().logout();
-    navigate("landing");
+    navigate("login");
   };
 
   return (

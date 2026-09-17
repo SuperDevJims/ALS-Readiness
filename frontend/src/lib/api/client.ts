@@ -50,13 +50,18 @@ apiClient.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    const isRefreshCall = typeof config.url === "string" && config.url.includes("/api/auth/refresh");
+    const isAuthEndpoint =
+      typeof config.url === "string" &&
+      (config.url.includes("/api/auth/refresh") || config.url.includes("/api/auth/login"));
 
-    // A 401 on the refresh call itself means there's no valid session at all -
-    // never recurse into another refresh attempt, and never redirect from here.
-    // Bootstrap (Task 6) calls refresh() directly and handles this failure
-    // itself; any other 401 caller failing here just gets rejected as normal.
-    if (response.status === 401 && isRefreshCall) {
+    // A 401 on /api/auth/refresh itself means there's no valid session at all -
+    // never recurse into another refresh attempt (infinite-loop risk), and
+    // never redirect from here; bootstrap calls refresh() directly and handles
+    // that failure itself.
+    // A 401 on /api/auth/login means "wrong credentials" - there's no session
+    // to refresh, and no redirect belongs here either; the login form shows
+    // the real error itself (Task 1/2).
+    if (response.status === 401 && isAuthEndpoint) {
       return Promise.reject(error);
     }
 

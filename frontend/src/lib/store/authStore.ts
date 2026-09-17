@@ -27,10 +27,14 @@ interface AuthState {
   setAccessToken: (token: string | null) => void;
   clearSession: () => void;
 
-  /** Back-compat for the current mock demo login (Login's real submit logic is Phase 2's job). */
+  /** Real POST /api/auth/login, then populates user via /me. Throws on failure - caller shows the error. */
+  login: (idNo: string, password: string) => Promise<void>;
+
+  /** Still used by ProfileSetup's own mock completion flow - that page isn't in this phase's scope. */
   loginMock: (role: Role, name: string, email: string) => void;
 
-  logout: () => Promise<void>;
+  /** Clears local session immediately, synchronously - never blocks on the network call. */
+  logout: () => void;
 
   /** App-mount bootstrap: silent refresh -> populate via /me. Always resolves. */
   bootstrap: () => Promise<void>;
@@ -57,15 +61,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   clearSession: () => set({ user: null, role: null, accessToken: null }),
 
+  login: async (idNo, password) => {
+    const { access_token } = await authApi.login(idNo, password);
+    set({ accessToken: access_token });
+
+    const me = await authApi.getMe();
+    set({ user: fromUserMe(me), role: me.role });
+  },
+
   loginMock: (role, name, email) => set({ user: { role, name, email }, role }),
 
-  logout: async () => {
-    try {
-      await authApi.logout();
-    } catch {
-      // Best-effort - clear local session regardless of network/API outcome.
-    }
+  logout: () => {
+    // Clear immediately - a user who explicitly logs out sees it happen right
+    // away, regardless of whether the network call succeeds, hangs, or fails.
     get().clearSession();
+    authApi.logout().catch(() => {
+      // Best-effort - local session is already cleared either way.
+    });
   },
 
   bootstrap: async () => {

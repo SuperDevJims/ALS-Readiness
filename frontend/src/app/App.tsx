@@ -32,13 +32,7 @@ import { Toaster } from "./components/ui/sonner";
 // Routing/session plumbing
 import { ProtectedPage } from "./routes/ProtectedPage";
 import { useAuthStore } from "../lib/store/authStore";
-import { setNavigateRef, useLegacyNavigate } from "../lib/navigation";
-
-function homeForRole(role) {
-  return role === "facilitator" ? "facilitator-dashboard"
-       : role === "admin"       ? "admin-dashboard"
-       : "learner-dashboard";
-}
+import { setNavigateRef, useLegacyNavigate, homeForRole } from "../lib/navigation";
 
 /** Wires the axios interceptor's redirect() helper to this router's navigate. */
 function NavigationBridge() {
@@ -74,11 +68,6 @@ function AppRoutes() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleLogin = (role, name, email) => {
-    useAuthStore.getState().loginMock(role, name, email);
-    navigate(homeForRole(role));
-  };
-
   const handleProfileComplete = (u) => {
     useAuthStore.getState().loginMock(u.role, u.name, u.email);
     navigate(homeForRole(u.role));
@@ -94,7 +83,7 @@ function AppRoutes() {
       <Routes>
         {/* Public */}
         <Route path="/" element={<LandingPage navigate={navigate} />} />
-        <Route path="/login" element={<LoginPage navigate={navigate} onLogin={handleLogin} />} />
+        <Route path="/login" element={<LoginPage navigate={navigate} />} />
         <Route path="/profile-setup" element={<ProfileSetup navigate={navigate} onComplete={handleProfileComplete} />} />
 
         {/* Learner pipeline */}

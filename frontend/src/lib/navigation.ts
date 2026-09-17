@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router";
+import type { Role } from "./api/types";
 
 // A navigate() ref that code outside the React tree (axios interceptors) can
 // call. Wired up once from inside the router via NavigationBridge.
@@ -34,4 +35,11 @@ export function toPath(page: string): string {
 export function useLegacyNavigate() {
   const navigate = useNavigate();
   return (page: string) => navigate(toPath(page));
+}
+
+/** The page key for a role's home dashboard, post-login/post-profile-setup. */
+export function homeForRole(role: Role): string {
+  return role === "facilitator" ? "facilitator-dashboard"
+       : role === "admin"       ? "admin-dashboard"
+       : "learner-dashboard";
 }
