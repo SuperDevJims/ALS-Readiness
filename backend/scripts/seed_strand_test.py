@@ -26,6 +26,7 @@ STRAND_TEST_DATA = {
     "LS1-EN": {
         "pretest": {
             "title": "LS1-EN Diagnostic Pre-test",
+            "image_url": "https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=1200&q=80",
             "items": [
                 (
                     "Which word is a pronoun?",
@@ -48,6 +49,7 @@ STRAND_TEST_DATA = {
         },
         "posttest": {
             "title": "LS1-EN Post-test",
+            "image_url": "https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=1200&q=80",
             "items": [
                 (
                     "Identify the noun in the sentence: 'The dog barked loudly.'",
@@ -72,6 +74,7 @@ STRAND_TEST_DATA = {
     "LS1-FIL": {
         "pretest": {
             "title": "LS1-FIL Diagnostic Pre-test",
+            "image_url": "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80",
             "items": [
                 (
                     "Alin sa mga sumusunod ang panghalip?",
@@ -94,6 +97,7 @@ STRAND_TEST_DATA = {
         },
         "posttest": {
             "title": "LS1-FIL Post-test",
+            "image_url": "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80",
             "items": [
                 (
                     "Tukuyin ang pangngalan sa pangungusap: 'Tumahol nang malakas ang aso.'",
@@ -118,6 +122,7 @@ STRAND_TEST_DATA = {
     "LS3": {
         "pretest": {
             "title": "LS3 Diagnostic Pre-test",
+            "image_url": "https://images.unsplash.com/photo-1509228468518-180dd4864904?auto=format&fit=crop&w=1200&q=80",
             "items": [
                 (
                     "What is the value of the digit 5 in 5,432?",
@@ -135,6 +140,7 @@ STRAND_TEST_DATA = {
         },
         "posttest": {
             "title": "LS3 Post-test",
+            "image_url": "https://images.unsplash.com/photo-1509228468518-180dd4864904?auto=format&fit=crop&w=1200&q=80",
             "items": [
                 (
                     "What is 3/4 written as a decimal?",
@@ -171,9 +177,10 @@ async def create_strand_tests(session: AsyncSession) -> list[StrandTest]:
         for test_type, test_data in test_types.items():
             test = await test_repo.create(
                 StrandTest(
-                    strand_id=strand.id,
-                    title=test_data["title"],
-                    type=test_type,
+                strand_id=strand.id,
+                title=test_data["title"],
+                image_url=test_data["image_url"],
+                type=test_type,
                 )
             )
 

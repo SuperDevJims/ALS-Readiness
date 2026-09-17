@@ -12,6 +12,7 @@ class StrandTest(BaseEntity, table=True):
     strand_id: int = Field(foreign_key="learning_strands.id")
 
     title: str = Field(max_length=255)
+    image_url: str = Field(max_length=2048)
 
     type: StrandTestType = Field(
         sa_type=SQLEnum(

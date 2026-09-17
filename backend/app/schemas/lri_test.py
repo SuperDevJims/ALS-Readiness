@@ -7,6 +7,7 @@ class LRITestResponse(BaseModel):
     test_id: int
     title: str
     description: str
+    image_url: str
 
 
 class LRITestWithAttemptStatusResponse(LRITestResponse):

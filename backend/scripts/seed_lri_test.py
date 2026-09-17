@@ -21,6 +21,7 @@ LRI_TEST_DATA = {
         "An assessment used to measure the learner's readiness "
         "for learning and educational content."
     ),
+    "image_url": "https://images.unsplash.com/photo-1457369804613-52c61a468e7d?auto=format&fit=crop&w=1200&q=80",
     "items": [
         "I can understand instructions given by my teacher.",
         "I can focus on a learning activity until I finish it.",
@@ -44,6 +45,7 @@ async def create_lri_test(session: AsyncSession) -> LRITest:
         LRITest(
             title=LRI_TEST_DATA["title"],
             description=LRI_TEST_DATA["description"],
+            image_url=LRI_TEST_DATA["image_url"],
         )
     )
 

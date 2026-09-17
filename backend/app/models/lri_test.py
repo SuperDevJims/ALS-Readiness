@@ -8,6 +8,7 @@ class LRITest(BaseEntity, table=True):
 
     title: str = Field(max_length=100)
     description: str
+    image_url: str = Field(max_length=2048)
 
 
 class LRITestItem(BaseEntity, table=True):

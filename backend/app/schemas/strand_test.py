@@ -7,6 +7,7 @@ from app.enums.strand_test import StrandTestType
 class StrandTestWithAttemptStatus(BaseModel):
     test_id: int
     title: str
+    image_url: str
     strand_id: int
     strand_code: str
     strand_name: str
@@ -32,6 +33,7 @@ class StrandTestResponse(BaseModel):
     test_id: int
     strand_id: int
     title: str
+    image_url: str
     type:  StrandTestType
 
     model_config = ConfigDict(from_attributes=True)
