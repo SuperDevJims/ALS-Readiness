@@ -1,4 +1,4 @@
-from app.models.curriculum import Module
+from backend.app.models.learning_strand import Module
 
 from .base import BaseRepository
 

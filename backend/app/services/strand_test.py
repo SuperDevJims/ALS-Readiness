@@ -11,6 +11,7 @@ from app.schemas.strand_test import (
     StrandTestWithItemsResponse,
 )
 from app.services.learner import LearnerService
+from app.storage import get_read_url
 
 
 class StrandTestService:
@@ -67,6 +68,17 @@ class StrandTestService:
         Else return Test information only.
         """
 
+        """
+        {
+            test_information...
+            items: [
+                {
+
+                }
+            ]
+        }
+        """
+
         if include_items:
             consolidated_data = await self._test_repository.get_by_id_with_items(
                 test_id
@@ -79,7 +91,7 @@ class StrandTestService:
             items_with_options_dict = {}
 
             for data in consolidated_data:
-                _, item, option = data
+                _, item, option, asset = data
 
                 if item.id not in items_with_options_dict:
                     items_with_options_dict[item.id] = {
@@ -95,6 +107,9 @@ class StrandTestService:
                     )
                 )
 
+                if asset is not None:
+                    items_with_options_dict[item.id]["asset_url"] = get_read_url(asset.file_key, 3600)
+
             # Iterate through the temporary item dictionary values and create an item object for each item.
             items = []
 
@@ -104,6 +119,7 @@ class StrandTestService:
                         item_id=item.get("item_id"),
                         question_text=item.get("question_text"),
                         options=item.get("options"),
+                        asset_url=item.get("asset_url")
                     )
                 )
 

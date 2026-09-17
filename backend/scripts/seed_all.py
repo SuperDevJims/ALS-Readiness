@@ -8,9 +8,9 @@ from app.db.session import AsyncSessionLocal
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .seed_admin import create_admin
-from .seed_curriculum import create_curriculum
 from .seed_facilitator import create_facilitator
 from .seed_learner import create_learner
+from .seed_learning_strand import create_strands
 from .seed_lri_attempt import create_lri_attempt
 from .seed_lri_test import create_lri_test
 from .seed_strand_test import create_strand_tests
@@ -20,7 +20,7 @@ from .seed_strand_test_attempt import create_strand_attempt
 async def populate_db(session: AsyncSession) -> None:
     # ======== Curriculum ========
     print("======== Curriculum ========")
-    await create_curriculum(session)
+    await create_strands(session)
 
     print("\n======== Tests ========")
     print("LRI Test:")

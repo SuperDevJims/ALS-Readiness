@@ -26,6 +26,7 @@ class StrandTestItemWithOptionsResponse(BaseModel):
     item_id: int
     question_text: str
     options: list[StrandTestItemOptionResponse]
+    asset_url: str | None
 
 
 class StrandTestResponse(BaseModel):

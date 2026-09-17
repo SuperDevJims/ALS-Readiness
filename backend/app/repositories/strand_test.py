@@ -1,9 +1,10 @@
 from sqlalchemy import select
 
 from app.enums.strand_test import StrandTestType
-from app.models.curriculum import LearningStrand
+from app.models.learning_strand import LearningStrand
 from app.models.strand_test import StrandTest, StrandTestItem, StrandTestItemOption
 from app.models.strand_test_attempt import StrandTestAttempt
+from app.models.test_item_asset import TestItemAsset
 
 from .base import BaseRepository
 
@@ -33,27 +34,15 @@ class StrandTestRepository(BaseRepository[StrandTest]):
         result = await self._session.execute(statement)
         return result.scalar_one_or_none()
 
-    async def get_by_id_with_items(self, test_id: int) -> list[tuple[StrandTest, StrandTestItem, StrandTestItemOption]]:
+    async def get_by_id_with_items(self, test_id: int) -> list[tuple[StrandTest, StrandTestItem, StrandTestItemOption, TestItemAsset]]:
         statement = (
-            select(StrandTest, StrandTestItem, StrandTestItemOption)
+            select(StrandTest, StrandTestItem, StrandTestItemOption, TestItemAsset)
             .join(StrandTestItem, StrandTestItem.test_id == StrandTest.id)
             .join(StrandTestItemOption, StrandTestItemOption.item_id == StrandTestItem.id)
+            .outerjoin(TestItemAsset, TestItemAsset.item_id == StrandTestItem.id)
             .where(StrandTest.id == test_id)
         )
 
         result = await self._session.execute(statement)
         return result.all()
     
-
-"""
-statement = (
-    select(StrandTest, LearningStrand, StrandTestAttempt)
-    .join(LearningStrand, LearningStrand.id == StrandTest.strand_id)
-    .outerjoin(
-        StrandTestAttempt,
-        (StrandTestAttempt.test_id == StrandTest.id)
-        & (StrandTestAttempt.learner_id == learner_id),
-    )
-    .where(StrandTest.type == type.value)
-)
-"""
