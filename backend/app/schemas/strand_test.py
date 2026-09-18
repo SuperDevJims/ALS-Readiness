@@ -34,7 +34,6 @@ class StrandTestResponse(BaseModel):
     test_id: int
     strand_id: int
     title: str
-    image_url: str
     type:  StrandTestType
 
     model_config = ConfigDict(from_attributes=True)

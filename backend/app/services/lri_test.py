@@ -38,7 +38,6 @@ class LRITestService:
             test_id=test.id,
             title=test.title,
             description=test.description,
-            image_url=test.image_url,
             attempt_status=AttemptStatus.COMPLETED if test_attempt is not None else AttemptStatus.PENDING
         )
 
@@ -66,6 +65,5 @@ class LRITestService:
             test_id=test.id,
             title=test.title,
             description=test.description,
-            image_url=test.image_url,
             items=items
         )

@@ -43,7 +43,6 @@ class StrandTestService:
                 StrandTestWithAttemptStatus(
                     test_id=test.id,
                     title=test.title,
-                    image_url=test.image_url,
                     strand_id=strand.id,
                     strand_code=strand.code,
                     strand_name=strand.name,
@@ -131,7 +130,6 @@ class StrandTestService:
                 test_id=test.id,
                 strand_id=test.strand_id,
                 title=test.title,
-                image_url=test.image_url,
                 type=test.type,
                 items=items,
             )
@@ -146,6 +144,5 @@ class StrandTestService:
                 "test_id": test.id,
                 "strand_id": test.strand_id,
                 "title": test.title,
-                "image_url": test.image_url,
                 "type": test.type,
             })

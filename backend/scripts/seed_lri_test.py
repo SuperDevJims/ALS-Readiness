@@ -45,7 +45,6 @@ async def create_lri_test(session: AsyncSession) -> LRITest:
         LRITest(
             title=LRI_TEST_DATA["title"],
             description=LRI_TEST_DATA["description"],
-            image_url=LRI_TEST_DATA["image_url"],
         )
     )
 
