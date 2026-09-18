@@ -1,65 +1,36 @@
 import { useState } from "react";
-import { Eye, EyeOff, Mail, Lock, ChevronLeft, Shield, Users, BookOpen } from "lucide-react";
+import { Eye, EyeOff, User, Lock, ChevronLeft } from "lucide-react";
 import { ALSenseLogo } from "../shared/ALSenseLogo";
+import { useAuthStore } from "../../../lib/store/authStore";
+import { homeForRole } from "../../../lib/navigation";
 
-const roleOptions = [
-  { value: "learner",     label: "Learner",      desc: "ALS Student",           icon: BookOpen },
-  { value: "facilitator", label: "Facilitator",  desc: "AIS Teacher",           icon: Users    },
-  { value: "admin",       label: "Coordinator",  desc: "CCES Principal / Admin",icon: Shield   },
-];
-
-const demoAccounts = [
-  { email: "learner@als.edu",      name: "Maria Santos",    role: "learner",      label: "Demo Learner"      },
-  { email: "teacher@als.edu",      name: "Jose Reyes",      role: "facilitator",  label: "Demo Facilitator"  },
-  { email: "coordinator@als.edu",  name: "Dr. Ana Mendoza", role: "admin",        label: "Demo Coordinator"  },
-];
-const API_ROOT = import.meta.env.VITE_API_URL || "/api";
-
-export function LoginPage({ navigate, onLogin }) {
-  const [email, setEmail] = useState("");
+export function LoginPage({ navigate }) {
+  const [idNo, setIdNo] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [selectedRole, setSelectedRole] = useState("learner");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!email || !password) { setError("Please fill in all fields."); return; }
+
+    if (!idNo || !password) {
+      setError("Please fill in all fields.");
+      return;
+    }
+
     setIsLoading(true);
     setError("");
-    try {
-      const form = new URLSearchParams({ username: email, password });
-      const loginResponse = await fetch(`${API_ROOT}/auth/login`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: form,
-      });
-      const loginData = await loginResponse.json();
-      if (!loginResponse.ok) throw new Error(loginData?.message || "Unable to sign in.");
 
-      localStorage.setItem("alsense_access_token", loginData.access_token);
-      const meResponse = await fetch(`${API_ROOT}/users/me`, {
-        credentials: "include",
-        headers: { Authorization: `Bearer ${loginData.access_token}` },
-      });
-      const me = await meResponse.json();
-      if (!meResponse.ok) throw new Error(me?.message || "Unable to load your account.");
-      const name = [me.profile?.first_name, me.profile?.last_name].filter(Boolean).join(" ") || "Learner";
-      onLogin(me.role, name, me.profile?.contact_email || email);
-    } catch (loginError) {
-      setError(loginError.message || "Unable to sign in. Please try again.");
+    try {
+      await useAuthStore.getState().login(idNo, password);
+      const role = useAuthStore.getState().role;
+      navigate(homeForRole(role));
+    } catch (err) {
+      setError(err?.response?.data?.message || "Unable to sign in. Please try again.");
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleDemoLogin = async (demo) => {
-    setIsLoading(true);
-    await new Promise(r => setTimeout(r, 600));
-    onLogin(demo.role, demo.name, demo.email);
-    setIsLoading(false);
   };
 
   return (
@@ -99,31 +70,14 @@ export function LoginPage({ navigate, onLogin }) {
             <h2 className="text-white mb-1" style={{ fontSize: "1.75rem", fontWeight: 700 }}>Sign In</h2>
             <p className="text-blue-300 mb-6">Module 1 — User Authentication</p>
 
-            <div className="mb-6">
-              <label className="text-blue-200 text-sm mb-3 block">Sign in as</label>
-              <div className="grid grid-cols-3 gap-2">
-                {roleOptions.map((role) => {
-                  const Icon = role.icon;
-                  return (
-                    <button key={role.value} onClick={() => setSelectedRole(role.value)}
-                      className={`p-3 rounded-xl border transition-all duration-200 text-center ${selectedRole === role.value ? "border-blue-400 bg-blue-500/20 text-white" : "border-white/10 bg-white/5 text-blue-300 hover:border-white/25"}`}>
-                      <Icon className="w-5 h-5 mx-auto mb-1" />
-                      <div className="text-xs font-medium">{role.label}</div>
-                      <div className="text-xs opacity-60">{role.desc}</div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
             {error && <div className="mb-4 p-3 bg-red-500/10 border border-red-400/30 rounded-xl text-red-300 text-sm">{error}</div>}
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-              <label className="text-blue-200 text-sm mb-2 block">Learner ID number</label>
+                <label className="text-blue-200 text-sm mb-2 block">ID Number</label>
                 <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-400" />
-                  <input value={email} onChange={e => setEmail(e.target.value)} placeholder="Your learner ID"
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-400" />
+                  <input type="text" value={idNo} onChange={e => setIdNo(e.target.value)} placeholder="2026-00001"
                     className="w-full bg-white/5 border border-white/15 text-white placeholder-blue-400/50 rounded-xl py-3 pl-11 pr-4 focus:outline-none focus:border-blue-400 transition-colors" />
                 </div>
               </div>
@@ -138,31 +92,11 @@ export function LoginPage({ navigate, onLogin }) {
                   </button>
                 </div>
               </div>
-              <div className="flex justify-end">
-                <button type="button" onClick={() => navigate("forgot-password")} className="text-blue-400 text-sm hover:text-blue-300 transition-colors">Forgot password?</button>
-              </div>
               <button type="submit" disabled={isLoading}
                 className="w-full py-3 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-400 hover:to-cyan-400 text-white rounded-xl font-medium transition-all duration-200 disabled:opacity-50 flex items-center justify-center gap-2">
                 {isLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : "Sign In"}
               </button>
             </form>
-
-            <div className="mt-6 pt-6 border-t border-white/10">
-              <p className="text-blue-400 text-sm mb-3 text-center">Quick Demo Access</p>
-              <div className="grid grid-cols-3 gap-2">
-                {demoAccounts.map(demo => (
-                  <button key={demo.email} onClick={() => handleDemoLogin(demo)} disabled={isLoading}
-                    className="p-2 bg-white/5 border border-white/10 hover:border-white/25 rounded-lg text-xs text-blue-300 hover:text-white transition-all duration-200 disabled:opacity-50">
-                    {demo.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <p className="text-center text-blue-400 text-sm mt-6">
-              New here?{" "}
-              <button onClick={() => navigate("register")} className="text-blue-300 hover:text-white transition-colors">Create account</button>
-            </p>
           </div>
         </div>
       </div>

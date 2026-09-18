@@ -69,6 +69,7 @@ class AuthService:
         self,
         current_user: User,
         password_change: PasswordChangeRequest,
+        current_refresh_token: str | None = None,
     ) -> User:
         if not verify_password(password_change.current_password, current_user.password_hash):
             logger.warning(
@@ -82,7 +83,21 @@ class AuthService:
         user = await self._user_service.update_password(
             current_user, UserPasswordUpdate(password=password_change.new_password)
         )
-        await self._refresh_token_service.revoke_all_for_user(current_user.id)
+
+        # Preserve the calling session; every other session gets revoked. If
+        # we can't identify the calling session's token (missing/unreadable
+        # cookie), fail safe and revoke everything rather than skip the revoke.
+        current_jti = (
+            RefreshTokenService.get_jti(current_refresh_token)
+            if current_refresh_token
+            else None
+        )
+        if current_jti is not None:
+            await self._refresh_token_service.revoke_all_for_user_except(
+                current_user.id, current_jti
+            )
+        else:
+            await self._refresh_token_service.revoke_all_for_user(current_user.id)
 
         logger.info("password changed for user_id=%s", current_user.id)
 

@@ -284,7 +284,7 @@ export function AppLayout({ children, navigate, user, onLogout, currentPage }) {
                     </div>
                   </div>
                   <div className="p-1.5">
-                    {[{ icon:User, label:"My Profile", action:()=>{} }, { icon:Settings, label:"Account Settings", action:()=>{ setShowProfile(false); setShowSettings(true); } }].map(({ icon:Icon, label, action }) => (
+                    {[{ icon:User, label:"My Profile", action:()=>{ setShowProfile(false); navigate("profile"); } }, { icon:Settings, label:"Account Settings", action:()=>{ setShowProfile(false); setShowSettings(true); } }].map(({ icon:Icon, label, action }) => (
                       <button key={label} onClick={action} className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-gray-600 hover:bg-gray-50 text-sm text-left">
                         <Icon className="w-4 h-4" /> {label}
                       </button>
