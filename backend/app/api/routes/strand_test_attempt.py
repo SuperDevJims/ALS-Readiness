@@ -11,7 +11,7 @@ router = APIRouter(
 
 @router.post(
     "",
-    response_model=StrandAttemptResponse | None,
+    response_model=StrandAttemptResponse,
     status_code=status.HTTP_201_CREATED,
 )
 async def create_strand_test_attempt(
@@ -20,7 +20,7 @@ async def create_strand_test_attempt(
     current_user: CurrentLearnernDep,
     attempt_service: StrandAttemptServiceDep,
 ):
-    await attempt_service.create(
+    return await attempt_service.create(
         user_id=current_user.id,
         test_id=test_id,
         attempt_create=attempt_create,

@@ -1059,6 +1059,7 @@ _LS3_ITEMS = [
 
 STRAND_TEST_DATA = {
     "LS1-EN": {
+<<<<<<< HEAD
         "pretest": {"title": "LS1-EN Diagnostic Pre-test", "items": _LS1_EN_ITEMS},
         "posttest": {"title": "LS1-EN Post-test", "items": _LS1_EN_ITEMS},
     },
@@ -1069,6 +1070,140 @@ STRAND_TEST_DATA = {
     "LS3": {
         "pretest": {"title": "LS3 Diagnostic Pre-test", "items": _LS3_ITEMS},
         "posttest": {"title": "LS3 Post-test", "items": _LS3_ITEMS},
+=======
+        "pretest": {
+            "title": "LS1-EN Diagnostic Pre-test",
+            "image_url": "https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=1200&q=80",
+            "items": [
+                (
+                    "Which word is a pronoun?",
+                    [("Run", False), ("She", True), ("Quickly", False), ("Table", False)],
+                ),
+                (
+                    "Choose the correct verb tense: 'Yesterday, I ___ to the market.'",
+                    [("go", False), ("goes", False), ("went", True), ("going", False)],
+                ),
+                (
+                    "Which sentence is a compound sentence?",
+                    [
+                        ("I like rice.", False),
+                        ("I like rice, but I also like bread.", True),
+                        ("Rice and bread.", False),
+                        ("Eating rice.", False),
+                    ],
+                ),
+            ],
+        },
+        "posttest": {
+            "title": "LS1-EN Post-test",
+            "image_url": "https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=1200&q=80",
+            "items": [
+                (
+                    "Identify the noun in the sentence: 'The dog barked loudly.'",
+                    [("dog", True), ("barked", False), ("loudly", False), ("the", False)],
+                ),
+                (
+                    "What is the main idea of a paragraph usually found in?",
+                    [
+                        ("The topic sentence", True),
+                        ("The last word", False),
+                        ("A random sentence", False),
+                        ("The title only", False),
+                    ],
+                ),
+                (
+                    "Choose the word closest in meaning to 'happy'.",
+                    [("Sad", False), ("Joyful", True), ("Angry", False), ("Tired", False)],
+                ),
+            ],
+        },
+    },
+    "LS1-FIL": {
+        "pretest": {
+            "title": "LS1-FIL Diagnostic Pre-test",
+            "image_url": "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80",
+            "items": [
+                (
+                    "Alin sa mga sumusunod ang panghalip?",
+                    [("Tumakbo", False), ("Siya", True), ("Mabilis", False), ("Mesa", False)],
+                ),
+                (
+                    "Piliin ang tamang aspekto ng pandiwa: 'Kahapon, ___ ako sa palengke.'",
+                    [("pumupunta", False), ("pupunta", False), ("pumunta", True), ("pagpunta", False)],
+                ),
+                (
+                    "Alin sa mga sumusunod ang tambalang pangungusap?",
+                    [
+                        ("Mahilig ako sa kanin.", False),
+                        ("Mahilig ako sa kanin, ngunit mahilig din ako sa tinapay.", True),
+                        ("Kanin at tinapay.", False),
+                        ("Kumakain ng kanin.", False),
+                    ],
+                ),
+            ],
+        },
+        "posttest": {
+            "title": "LS1-FIL Post-test",
+            "image_url": "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80",
+            "items": [
+                (
+                    "Tukuyin ang pangngalan sa pangungusap: 'Tumahol nang malakas ang aso.'",
+                    [("aso", True), ("tumahol", False), ("malakas", False), ("nang", False)],
+                ),
+                (
+                    "Karaniwang matatagpuan saan ang pangunahing kaisipan ng talata?",
+                    [
+                        ("Sa paksang pangungusap", True),
+                        ("Sa huling salita", False),
+                        ("Sa random na pangungusap", False),
+                        ("Sa pamagat lamang", False),
+                    ],
+                ),
+                (
+                    "Piliin ang salitang malapit sa kahulugan ng 'masaya'.",
+                    [("Malungkot", False), ("Natutuwa", True), ("Galit", False), ("Pagod", False)],
+                ),
+            ],
+        },
+    },
+    "LS3": {
+        "pretest": {
+            "title": "LS3 Diagnostic Pre-test",
+            "image_url": "https://images.unsplash.com/photo-1509228468518-180dd4864904?auto=format&fit=crop&w=1200&q=80",
+            "items": [
+                (
+                    "What is the value of the digit 5 in 5,432?",
+                    [("5", False), ("50", False), ("500", False), ("5000", True)],
+                ),
+                (
+                    "What is 245 + 178?",
+                    [("423", True), ("413", False), ("433", False), ("323", False)],
+                ),
+                (
+                    "What is 12 x 4?",
+                    [("36", False), ("48", True), ("44", False), ("52", False)],
+                ),
+            ],
+        },
+        "posttest": {
+            "title": "LS3 Post-test",
+            "image_url": "https://images.unsplash.com/photo-1509228468518-180dd4864904?auto=format&fit=crop&w=1200&q=80",
+            "items": [
+                (
+                    "What is 3/4 written as a decimal?",
+                    [("0.34", False), ("0.75", True), ("0.43", False), ("1.34", False)],
+                ),
+                (
+                    "Convert 0.5 to a fraction.",
+                    [("1/5", False), ("1/2", True), ("5/10", False), ("2/5", False)],
+                ),
+                (
+                    "A vendor sold 24 mangoes in the morning and 18 in the afternoon. How many mangoes were sold in total?",
+                    [("42", True), ("36", False), ("40", False), ("32", False)],
+                ),
+            ],
+        },
+>>>>>>> frontend-updates
     },
 }
 
@@ -1092,9 +1227,10 @@ async def create_strand_tests(session: AsyncSession) -> list[StrandTest]:
 
             test = await test_repo.create(
                 StrandTest(
-                    strand_id=strand.id,
-                    title=test_data["title"],
-                    type=test_type,
+                strand_id=strand.id,
+                title=test_data["title"],
+                image_url=test_data["image_url"],
+                type=test_type,
                 )
             )
 

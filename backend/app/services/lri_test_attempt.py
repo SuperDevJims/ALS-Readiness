@@ -1,4 +1,4 @@
-from app.core.exceptions import LRITestNotFoundError
+from app.core.exceptions import InvalidTestAttemptError
 from app.models.lri_test_attempt import LRITestAttempt, LRITestAttemptAnswer
 from app.repositories.lri_test_attempt import LRITestAttemptRepository
 from app.repositories.lri_test_attempt_answer import LRITestAttemptAnswerRepository
@@ -31,6 +31,18 @@ class LRITestAttemptService:
         test = await self._test_service.get_by_id(test_id)
 
         answers = attempt_create.answers
+        test_with_items = await self._test_service.get_by_id_with_items(test_id)
+        test_item_ids = {item.item_id for item in test_with_items.items}
+        answer_item_ids = [answer.item_id for answer in answers]
+
+        # Do not accept partial, duplicate, or cross-test submissions. The
+        # score is only meaningful when each LRI statement has one response.
+        if (
+            len(answer_item_ids) != len(test_item_ids)
+            or len(set(answer_item_ids)) != len(answer_item_ids)
+            or set(answer_item_ids) != test_item_ids
+        ):
+            raise InvalidTestAttemptError()
 
         # Utilize accumulator pattern to get total score
         score_sum = 0
