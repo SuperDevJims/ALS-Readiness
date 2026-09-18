@@ -5,6 +5,7 @@ from .routes import (
     auth,
     lri_test,
     lri_test_attempt,
+    participant_intake,
     strand_test,
     strand_test_attempt,
     users,
@@ -19,3 +20,4 @@ router.include_router(strand_test_attempt.router)
 router.include_router(strand_test.router)
 router.include_router(lri_test_attempt.router)
 router.include_router(lri_test.router)
+router.include_router(participant_intake.router)

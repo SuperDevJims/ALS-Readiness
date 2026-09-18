@@ -15,7 +15,7 @@ async def get_participant_intake(
     return await intake_service.get_by_user_id(current_user.id)
 
 
-@router.post("", response_model=ParticipantIntakeResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=ParticipantIntakeResponse, status_code=status.HTTP_200_OK)
 async def submit_participant_intake(
     intake: ParticipantIntakeUpsert,
     current_user: CurrentLearnernDep,

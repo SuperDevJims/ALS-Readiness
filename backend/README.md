@@ -85,6 +85,17 @@ uv run python -m scripts.seed_all
 uv run uvicorn app.main:app --reload
 ```
 
+**Windows:** the command above crashes on any request that touches the database
+(`psycopg.InterfaceError: ... cannot use the 'ProactorEventLoop'`), because uvicorn forces
+Proactor as its default loop on Windows. Use this instead:
+
+```bash
+uv run uvicorn app.main:app --reload --loop app.core.event_loop:selector_event_loop_factory
+```
+
+See Troubleshooting below for why the `asyncio.set_event_loop_policy(...)` trick used in
+`alembic/env.py` doesn't fix this — it needs the `--loop` flag instead.
+
 API: `http://localhost:8000`
 
 Docs: `http://localhost:8000/docs`
@@ -96,4 +107,11 @@ Docs: `http://localhost:8000/docs`
 - **Missing module** → `uv sync` again
 - **DB connection error** → check `DATABASE_URL` in `.env`
 - **Windows async errors on Alembic** → already handled in code, pull latest
+- **Windows: login (or any DB-touching request) returns 500 with `psycopg.InterfaceError:
+  ... ProactorEventLoop`** → this is a *different* spot than the Alembic fix above. Alembic calls
+  `asyncio.run()` directly, so setting the event loop policy at the top of `alembic/env.py` works.
+  Uvicorn instead does `asyncio.run(..., loop_factory=...)`, which bypasses the policy entirely and
+  hardcodes `ProactorEventLoop` on Windows regardless of it — so the same policy trick in
+  `app/main.py` has no effect. Run uvicorn with
+  `--loop app.core.event_loop:selector_event_loop_factory` (see step 6 above) instead.
 - **Don't run `alembic revision --autogenerate`** unless you're intentionally changing the schema — pull latest first

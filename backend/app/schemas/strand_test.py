@@ -7,7 +7,7 @@ from app.enums.strand_test import StrandTestType
 class StrandTestWithAttemptStatus(BaseModel):
     test_id: int
     title: str
-    image_url: str
+    image_url: str | None = None
     strand_id: int
     strand_code: str
     strand_name: str

@@ -25,10 +25,13 @@ class Settings(BaseSettings):
         default="http://localhost:5173", alias="CORS_ORIGINS"
     )
     # Backblaze Config
-    b2_key_id: str = Field(alias="B2_KEY_ID")
-    b2_application_key: str = Field(alias="B2_APPLICATION_KEY")
-    b2_endpoint_url: str = Field(alias="B2_ENDPOINT_URL")
-    b2_bucket_name: str = Field(alias="B2_BUCKET_NAME")
+    # Optional: only required for the file-storage feature (see app/storage.py).
+    # Unset locally, boto3 client construction still succeeds; only actual
+    # upload/download calls against B2 would fail.
+    b2_key_id: str | None = Field(default=None, alias="B2_KEY_ID")
+    b2_application_key: str | None = Field(default=None, alias="B2_APPLICATION_KEY")
+    b2_endpoint_url: str | None = Field(default=None, alias="B2_ENDPOINT_URL")
+    b2_bucket_name: str | None = Field(default=None, alias="B2_BUCKET_NAME")
 
     model_config = SettingsConfigDict(
         env_file=".env",
