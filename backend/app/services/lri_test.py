@@ -67,4 +67,3 @@ class LRITestService:
             description=test.description,
             items=items
         )
-    

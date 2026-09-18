@@ -99,6 +99,13 @@ class StrandTestItemOptionNotFoundError(NotFoundError):
     code = "STRAND_TEST_ITEM_OPTION_NOT_FOUND"
 
 
+class InvalidTestAttemptError(DomainValidationError):
+    """Raised when an attempt does not answer a test's items exactly once."""
+
+    message = "Answers must include one valid response for every test item."
+    code = "INVALID_TEST_ATTEMPT"
+
+
 # ================ LRI Test Error ================
 
 

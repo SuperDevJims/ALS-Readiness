@@ -1,8 +1,11 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class LRITestAttemptAnswerCreate(BaseModel):
-    answer_value: int
+    # LRI uses a four-point Likert scale: 1 = Strongly Disagree through 4 =
+    # Strongly Agree. Keeping the contract here prevents invalid client values
+    # from becoming part of a baseline assessment.
+    answer_value: int = Field(ge=1, le=4)
     item_id: int
 
 

@@ -6,14 +6,14 @@ from .constants import ACCESS_TOKEN_EXPIRE_MINUTES
 
 class Settings(BaseSettings):
 
-    """ Database Config """
+    # Database Config
     db_host: str = Field(alias="DB_HOST")
     db_port: int = Field(alias="DB_PORT")
     db_user: str = Field(alias="DB_USER")
     db_pass: str = Field(alias="DB_PASSWORD")
     db_name: str = Field(alias="DB_NAME")
 
-    """ JWT Config """
+    # JWT Config
     access_token_secret_key: str = Field(alias="ACCESS_TOKEN_SECRET_KEY")
     refresh_token_secret_key: str = Field(alias="REFRESH_TOKEN_SECRET_KEY")
     access_token_expire_minutes: int = Field(
@@ -24,6 +24,11 @@ class Settings(BaseSettings):
     cors_origins: str = Field(
         default="http://localhost:5173", alias="CORS_ORIGINS"
     )
+    # Backblaze Config
+    b2_key_id: str = Field(alias="B2_KEY_ID")
+    b2_application_key: str = Field(alias="B2_APPLICATION_KEY")
+    b2_endpoint_url: str = Field(alias="B2_ENDPOINT_URL")
+    b2_bucket_name: str = Field(alias="B2_BUCKET_NAME")
 
     model_config = SettingsConfigDict(
         env_file=".env",

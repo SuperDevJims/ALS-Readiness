@@ -1,4 +1,4 @@
-from app.core.exceptions import StrandTestItemOptionNotFoundError
+from app.core.exceptions import InvalidTestAttemptError, StrandTestItemOptionNotFoundError
 from app.models.strand_test_attempt import StrandTestAttempt, StrandTestAttemptAnswer
 from app.repositories.strand_test_attempt import StrandTestAttemptRepository
 from app.repositories.strand_test_attempt_answers import (
@@ -40,12 +40,23 @@ class StrandTestAttemptService:
 
         answers = attempt_create.answers
 
+        # An answer is valid only when its option belongs to the supplied item,
+        # and every item in this test is answered exactly once.
+        test_item_ids = {option.item_id for option in test_options}
+        answer_item_ids = [answer.item_id for answer in answers]
+        if (
+            len(answer_item_ids) != len(test_item_ids)
+            or len(set(answer_item_ids)) != len(answer_item_ids)
+            or set(answer_item_ids) != test_item_ids
+        ):
+            raise InvalidTestAttemptError()
+
         total_score = 0
 
         for answer in answers:
             option = test_options_by_id.get(answer.option_id)
 
-            if option is None:
+            if option is None or option.item_id != answer.item_id:
                 raise StrandTestItemOptionNotFoundError()
 
             if option.is_correct:

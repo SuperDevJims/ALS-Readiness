@@ -22,6 +22,7 @@ from app.repositories.strand_test_attempt_answers import (
 from app.repositories.strand_test_item_option import StrandTestItemOptionRepository
 from app.repositories.user import UserRepository
 from app.repositories.user_profile import UserProfileRepository
+from app.repositories.participant_intake import ParticipantIntakeRepository
 from app.services.admin import AdminService
 from app.services.auth import AuthService
 from app.services.facilitator import FacilitatorService
@@ -34,6 +35,7 @@ from app.services.user import UserService
 from app.services.user_profile import UserProfileService
 from app.repositories.lri_test import LRITestRepository
 from app.services.lri_test import LRITestService
+from app.services.participant_intake import ParticipantIntakeService
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
 
@@ -62,6 +64,15 @@ def get_profile_repository(session: SessionDep) -> UserProfileRepository:
 
 
 ProfileRepositoryDep = Annotated[UserProfileRepository, Depends(get_profile_repository)]
+
+
+def get_participant_intake_repository(session: SessionDep) -> ParticipantIntakeRepository:
+    return ParticipantIntakeRepository(session)
+
+
+ParticipantIntakeRepositoryDep = Annotated[
+    ParticipantIntakeRepository, Depends(get_participant_intake_repository)
+]
 
 
 def get_learner_repository(session: SessionDep) -> LearnerRepository:
@@ -124,6 +135,17 @@ def get_profile_service(profile_repository: ProfileRepositoryDep) -> UserProfile
 
 
 ProfileServiceDep = Annotated[UserProfileService, Depends(get_profile_service)]
+
+
+def get_participant_intake_service(
+    repository: ParticipantIntakeRepositoryDep,
+) -> ParticipantIntakeService:
+    return ParticipantIntakeService(repository)
+
+
+ParticipantIntakeServiceDep = Annotated[
+    ParticipantIntakeService, Depends(get_participant_intake_service)
+]
 
 
 def get_learner_service(learner_repository: LearnerRepositoryDep) -> LearnerService:
