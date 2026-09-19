@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel, Field
 
 
@@ -16,3 +18,10 @@ class LRITestAttemptCreate(BaseModel):
 class LRITestAttemptResponse(BaseModel):
     attempt_id: int
     status: str
+
+
+class LRITestAttemptResultResponse(BaseModel):
+    attempt_id: int
+    test_id: int
+    lri_score: float
+    submitted_at: datetime | None

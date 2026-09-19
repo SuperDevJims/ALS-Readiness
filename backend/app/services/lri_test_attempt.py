@@ -1,8 +1,12 @@
-from app.core.exceptions import InvalidTestAttemptError
+from app.core.exceptions import InvalidTestAttemptError, LRITestAttemptNotFoundError
 from app.models.lri_test_attempt import LRITestAttempt, LRITestAttemptAnswer
 from app.repositories.lri_test_attempt import LRITestAttemptRepository
 from app.repositories.lri_test_attempt_answer import LRITestAttemptAnswerRepository
-from app.schemas.lri_test_attempt import LRITestAttemptCreate, LRITestAttemptResponse
+from app.schemas.lri_test_attempt import (
+    LRITestAttemptCreate,
+    LRITestAttemptResponse,
+    LRITestAttemptResultResponse,
+)
 
 from .learner import LearnerService
 from .lri_test import LRITestService
@@ -72,4 +76,26 @@ class LRITestAttemptService:
         return LRITestAttemptResponse(
             attempt_id=attempt.id,
             status="submitted",
+        )
+
+    async def get_result(self, user_id: int, test_id: int) -> LRITestAttemptResultResponse:
+        """The calling learner's own attempt for a test, with its stored lri_score.
+
+        The learner is always derived from the authenticated user and used as a
+        filter, so another learner's attempt can never be returned.
+        """
+        learner = await self._learner_service.get_by_user_id(user_id)
+
+        attempt = await self._attempt_repository.get_by_test_and_learner(
+            test_id, learner.id
+        )
+
+        if attempt is None:
+            raise LRITestAttemptNotFoundError()
+
+        return LRITestAttemptResultResponse(
+            attempt_id=attempt.id,
+            test_id=attempt.test_id,
+            lri_score=attempt.lri_score,
+            submitted_at=attempt.submitted_at,
         )

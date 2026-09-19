@@ -1,11 +1,20 @@
-from app.core.exceptions import InvalidTestAttemptError, StrandTestItemOptionNotFoundError
+from app.core.exceptions import (
+    InvalidTestAttemptError,
+    StrandTestAttemptNotFoundError,
+    StrandTestItemOptionNotFoundError,
+    StrandTestNotFoundError,
+)
 from app.models.strand_test_attempt import StrandTestAttempt, StrandTestAttemptAnswer
 from app.repositories.strand_test_attempt import StrandTestAttemptRepository
 from app.repositories.strand_test_attempt_answers import (
     StrandTestAttemptAnswerRepository,
 )
 from app.repositories.strand_test_item_option import StrandTestItemOptionRepository
-from app.schemas.strand_test_attempt import StrandAttemptCreate, StrandAttemptResponse
+from app.schemas.strand_test_attempt import (
+    StrandAttemptCreate,
+    StrandAttemptResponse,
+    StrandAttemptResultResponse,
+)
 from app.services.learner import LearnerService
 
 
@@ -31,6 +40,10 @@ class StrandTestAttemptService:
         learner = await self._learner_service.get_by_user_id(user_id)
      
         test_options = await self._test_option_repository.get_by_test(test_id)
+
+        # A test with no items can't be attempted (and would make MPS undefined).
+        if not test_options:
+            raise StrandTestNotFoundError()
 
         # Turn test options into dictionaries for more efficient data access
         test_options_by_id = {
@@ -68,6 +81,7 @@ class StrandTestAttemptService:
                 test_id=test_id,
                 learner_id=learner.id,
                 total_score=total_score,
+                item_count=len(test_item_ids),
             )
         )
 
@@ -84,4 +98,32 @@ class StrandTestAttemptService:
                 )
             )
 
-        return StrandAttemptResponse(attempt_id=attempt.id, status="completed")        
+        return StrandAttemptResponse(attempt_id=attempt.id, status="submitted")
+
+    async def get_result(self, user_id: int, test_id: int) -> StrandAttemptResultResponse:
+        """The calling learner's own attempt for a test, with its MPS.
+
+        The learner is always derived from the authenticated user and used as a
+        filter, so another learner's attempt can never be returned.
+        """
+        learner = await self._learner_service.get_by_user_id(user_id)
+
+        attempt = await self._attempt_repository.get_by_test_and_learner(
+            test_id, learner.id
+        )
+
+        if attempt is None:
+            raise StrandTestAttemptNotFoundError()
+
+        # MPS is computed on read from the two stored values.
+        mps = round(attempt.total_score / attempt.item_count * 100, 2)
+
+        return StrandAttemptResultResponse(
+            attempt_id=attempt.id,
+            test_id=attempt.test_id,
+            total_score=attempt.total_score,
+            item_count=attempt.item_count,
+            mps=mps,
+            taken_at=attempt.taken_at,
+        )
+

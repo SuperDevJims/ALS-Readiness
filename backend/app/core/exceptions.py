@@ -99,6 +99,13 @@ class StrandTestItemOptionNotFoundError(NotFoundError):
     code = "STRAND_TEST_ITEM_OPTION_NOT_FOUND"
 
 
+class StrandTestAttemptNotFoundError(NotFoundError):
+    """Raised when a learner has no attempt for a strand test."""
+
+    message = "Strand test attempt not found."
+    code = "STRAND_TEST_ATTEMPT_NOT_FOUND"
+
+
 class InvalidTestAttemptError(DomainValidationError):
     """Raised when an attempt does not answer a test's items exactly once."""
 
@@ -114,6 +121,13 @@ class LRITestNotFoundError(NotFoundError):
 
     message = "LRI Test not found."
     code = "LRI_TEST_NOT_FOUND"
+
+
+class LRITestAttemptNotFoundError(NotFoundError):
+    """Raised when a learner has no attempt for an LRI test."""
+
+    message = "LRI test attempt not found."
+    code = "LRI_TEST_ATTEMPT_NOT_FOUND"
 
 
 # ================ Learner Error ================

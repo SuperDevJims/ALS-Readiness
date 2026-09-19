@@ -12,7 +12,11 @@ class StrandTestAttempt(BaseEntity, table=True):
     test_id: int = Field(foreign_key="strand_tests.id")
     learner_id: int = Field(foreign_key="learners.id")
 
+    # Raw count of correct answers.
     total_score: int
+    # Number of items in the test when this attempt was submitted. Together with
+    # total_score it makes the MPS derivable: total_score / item_count * 100.
+    item_count: int
 
     taken_at: datetime | None = Field(
         default=None,

@@ -1,4 +1,8 @@
-from app.schemas.lri_test_attempt import LRITestAttemptCreate, LRITestAttemptResponse
+from app.schemas.lri_test_attempt import (
+    LRITestAttemptCreate,
+    LRITestAttemptResponse,
+    LRITestAttemptResultResponse,
+)
 from fastapi import APIRouter, status
 
 from ..deps import CurrentLearnernDep, LRITestAttemptServiceDep
@@ -21,4 +25,19 @@ async def create_lri_test_attempt(
         test_id=test_id,
         user_id=current_user.id,
         attempt_create=attempt_create,
+    )
+
+
+@router.get(
+    "/learner/lri-tests/{test_id}/attempts",
+    response_model=LRITestAttemptResultResponse,
+)
+async def get_lri_test_attempt_result(
+    test_id: int,
+    current_user: CurrentLearnernDep,
+    attempt_service: LRITestAttemptServiceDep,
+):
+    return await attempt_service.get_result(
+        user_id=current_user.id,
+        test_id=test_id,
     )
