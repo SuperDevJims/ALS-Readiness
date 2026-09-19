@@ -44,6 +44,7 @@ async def create_strand_attempt(
         attempt_repository=attempt_repo,
         attempt_answer_repository=attempt_answer_repo,
         test_option_repository=item_option_repo,
+        test_repository=test_repo,
         learner_service=learner_service,
     )
 

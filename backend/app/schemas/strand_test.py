@@ -7,7 +7,7 @@ from app.enums.strand_test import StrandTestType
 class StrandTestWithAttemptStatus(BaseModel):
     test_id: int
     title: str
-    image_url: str
+    image_url: str | None = None
     strand_id: int
     strand_code: str
     strand_name: str
@@ -27,7 +27,7 @@ class StrandTestItemWithOptionsResponse(BaseModel):
     item_id: int
     question_text: str
     options: list[StrandTestItemOptionResponse]
-    asset_url: str | None
+    asset_url: str | None = None
 
 
 class StrandTestResponse(BaseModel):

@@ -288,10 +288,6 @@ export function EEGProfiling({ navigate, user, onLogout }) {
                 </div>
 
                 <div className="flex gap-3">
-                  <button onClick={() => navigate("readiness-profiling")}
-                    className="flex-1 py-3 bg-[#3535C5] hover:bg-[#2929a8] text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2">
-                    View Full Readiness Profile <ChevronRight className="w-4 h-4" />
-                  </button>
                   <button onClick={() => navigate("stimulus-content")}
                     className="flex-1 py-3 bg-green-500 hover:bg-green-600 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2">
                     Receive Personalized Content <ChevronRight className="w-4 h-4" />

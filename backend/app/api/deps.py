@@ -296,12 +296,14 @@ def get_strand_attempt_service(
     attempt_answer_repository: StrandAttemptAnswerRepositoryDep,
     learner_service: LearnerServiceDep,
     test_option_repository: StrandTestItemOptionRepositoryDep,
+    test_repository: StrandTestRepositoryDep,
 ) -> StrandTestAttemptService:
     return StrandTestAttemptService(
         attempt_repository=attempt_repository,
         attempt_answer_repository=attempt_answer_repository,
         learner_service=learner_service,
         test_option_repository=test_option_repository,
+        test_repository=test_repository,
     )
 
 

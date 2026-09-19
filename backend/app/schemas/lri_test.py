@@ -7,8 +7,12 @@ class LRITestResponse(BaseModel):
     title: str
     description: str
 
-class LRITestWithAttemptStatusResponse(LRITestResponse):
+class LRITestWithAttemptStatus(LRITestResponse):
     attempt_status: AttemptStatus
+
+
+class LRITestWithAttemptStatusResponse(BaseModel):
+    tests: list[LRITestWithAttemptStatus]
 
 
 class LRITestItemResponse(BaseModel):

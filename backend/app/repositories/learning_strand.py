@@ -6,7 +6,7 @@ from .base import BaseRepository
 
 
 class LearningStrandRepository(BaseRepository[LearningStrand]):
-    module = LearningStrand
+    model = LearningStrand
 
     async def get_by_code(self, code: str) -> LearningStrand | None:
         statement = select(LearningStrand).where(LearningStrand.code == code)

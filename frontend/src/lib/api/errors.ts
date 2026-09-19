@@ -35,3 +35,57 @@ export function getErrorMessage(err: unknown, fallback = "Something went wrong. 
 
   return data.message || fallback;
 }
+
+// ── M02 (diagnostic / inventory test) error codes ────────────────────────────
+// Confirmed against the live backend's ErrorResponse `code` values. Compare with
+// hasErrorCode()/the predicates below instead of repeating string literals.
+
+export const ApiErrorCode = {
+  /** 409 - the learner already submitted an attempt for this strand test. */
+  STRAND_TEST_ATTEMPT_ALREADY_EXISTS: "STRAND_TEST_ATTEMPT_ALREADY_EXISTS",
+  /** 409 - the learner already submitted an attempt for this LRI test. */
+  LRI_TEST_ATTEMPT_ALREADY_EXISTS: "LRI_TEST_ATTEMPT_ALREADY_EXISTS",
+  /** 400 - a posttest was submitted before the pretest for the same strand. */
+  PRETEST_REQUIRED: "PRETEST_REQUIRED",
+  /** 404 - results requested for a strand test the learner hasn't attempted. */
+  STRAND_TEST_ATTEMPT_NOT_FOUND: "STRAND_TEST_ATTEMPT_NOT_FOUND",
+  /** 404 - results requested for an LRI test the learner hasn't attempted. */
+  LRI_TEST_ATTEMPT_NOT_FOUND: "LRI_TEST_ATTEMPT_NOT_FOUND",
+  /** 400 - answers didn't cover every item exactly once, or an option didn't belong to its item. */
+  INVALID_TEST_ATTEMPT: "INVALID_TEST_ATTEMPT",
+  /** 404 - no such strand test (or it has no items). */
+  STRAND_TEST_NOT_FOUND: "STRAND_TEST_NOT_FOUND",
+  /** 404 - no such LRI test. */
+  LRI_TEST_NOT_FOUND: "LRI_TEST_NOT_FOUND",
+} as const;
+
+export type ApiErrorCodeValue = (typeof ApiErrorCode)[keyof typeof ApiErrorCode];
+
+/** True if the failed call's error `code` is any of the given codes. */
+export function hasErrorCode(err: unknown, ...codes: ApiErrorCodeValue[]): boolean {
+  const code = getErrorCode(err);
+  return code !== undefined && (codes as string[]).includes(code);
+}
+
+/** 409: this learner already submitted an attempt for this test (strand or LRI). */
+export function isAttemptAlreadySubmitted(err: unknown): boolean {
+  return hasErrorCode(
+    err,
+    ApiErrorCode.STRAND_TEST_ATTEMPT_ALREADY_EXISTS,
+    ApiErrorCode.LRI_TEST_ATTEMPT_ALREADY_EXISTS,
+  );
+}
+
+/** 400: a posttest needs the pretest for the same strand to be submitted first. */
+export function isPretestRequired(err: unknown): boolean {
+  return hasErrorCode(err, ApiErrorCode.PRETEST_REQUIRED);
+}
+
+/** 404: no result yet because the learner hasn't attempted this test (strand or LRI). */
+export function isAttemptNotFound(err: unknown): boolean {
+  return hasErrorCode(
+    err,
+    ApiErrorCode.STRAND_TEST_ATTEMPT_NOT_FOUND,
+    ApiErrorCode.LRI_TEST_ATTEMPT_NOT_FOUND,
+  );
+}
