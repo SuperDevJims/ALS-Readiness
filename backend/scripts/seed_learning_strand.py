@@ -1,6 +1,7 @@
-# This script seeds the curriculum structure (learning strands, modules, lessons).
+# This script seeds the learning strands (LS1-EN, LS1-FIL, LS3). There are no
+# module or lesson tables to seed.
 # Scope: LS1-EN, LS1-FIL, LS3 only, per thesis Delimitation.
-# Run 'uv run python -m scripts.seed_curriculum'.
+# Run 'uv run python -m scripts.seed_learning_strand'.
 
 import asyncio
 import sys

@@ -1,9 +1,15 @@
+import logging
 from uuid import uuid4
 
 import boto3
 from botocore.config import Config
 
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
+
+# Log the "B2 not configured" warning once, not once per asset.
+_warned_unconfigured = False
 
 s3_client = boto3.client(
     "s3",
@@ -29,8 +35,40 @@ def get_upload_url(key: str, expires_in: int = 600) -> str:
     )
 
 
-def get_read_url(key: str, expires_in: int = 7200) -> str:
-    """Generate a presigned URL for reading/viewing a file."""
+def _b2_is_configured() -> bool:
+    """Whether every B2 setting needed to build a URL is present.
+
+    The B2 settings are optional so the app can start without credentials, so
+    anything that builds a URL must cope with them being absent. Placeholder
+    values count as configured: they build a well-formed (if unusable) URL.
+    """
+    return all(
+        (
+            settings.b2_key_id,
+            settings.b2_application_key,
+            settings.b2_endpoint_url,
+            settings.b2_bucket_name,
+        )
+    )
+
+
+def get_read_url(key: str, expires_in: int = 7200) -> str | None:
+    """Generate a presigned URL for reading/viewing a file.
+
+    Returns None when B2 isn't configured, so callers can degrade (e.g. omit an
+    image) instead of failing.
+    """
+    global _warned_unconfigured
+
+    if not _b2_is_configured():
+        if not _warned_unconfigured:
+            _warned_unconfigured = True
+            logger.warning(
+                "B2 storage is not fully configured (B2_KEY_ID, B2_APPLICATION_KEY, "
+                "B2_ENDPOINT_URL, B2_BUCKET_NAME); file read URLs will be None."
+            )
+        return None
+
     return s3_client.generate_presigned_url(
         "get_object",
         Params={"Bucket": settings.b2_bucket_name, "Key": key},
