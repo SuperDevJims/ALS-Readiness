@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import { BookOpen, Calculator, CheckCircle2, ChevronLeft, ChevronRight, ClipboardList, FileText, LoaderCircle, LockKeyhole, Star } from "lucide-react";
 import { AppLayout } from "../shared/AppLayout";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
+import { getParticipantIntake } from "../../../lib/api/diagnostic";
 
 const API_ROOT = import.meta.env.VITE_API_URL || "/api";
-const INTAKE_STORAGE_KEY = "alsense_demo_participant_intake";
 const DEMO_LRI_COMPLETE_KEY = "alsense_demo_lri_complete";
 const LIKERT_OPTIONS = [
   { label: "Strongly Disagree", value: 1 },
@@ -47,6 +47,12 @@ async function api(path, options) {
   return response.status === 204 || contentLength === "0" ? null : response.json();
 }
 
+// Gate for Parts II/III: does this learner have a saved intake record? Read from the
+// backend, not a browser-local flag, so it holds on a fresh browser or device.
+async function hasSavedIntake() {
+  try { return Boolean(await getParticipantIntake()); } catch { return false; }
+}
+
 function PretestLoadingIndicator() {
   return (
     <div className="py-12 flex justify-center">
@@ -69,12 +75,12 @@ export function DiagnosticTest({ navigate, user, onLogout }) {
     setLoading(true); setError("");
     try {
       const [lriData, strandData] = await Promise.all([api("/learner/lri-tests"), api("/learner/strand-tests?test_type=pretest")]);
-      setLri(lriData); setTests((strandData?.tests || []).filter((test) => ["English", "Filipino", "Mathematics"].includes(test.strand_name))); setIntakeComplete(Boolean(sessionStorage.getItem(INTAKE_STORAGE_KEY)));
+      setLri(lriData); setTests((strandData?.tests || []).filter((test) => ["English", "Filipino", "Mathematics"].includes(test.strand_name))); setIntakeComplete(await hasSavedIntake());
     } catch {
       setDemoMode(true);
       setLri({ ...demoLri, attempt_status: sessionStorage.getItem(DEMO_LRI_COMPLETE_KEY) ? "completed" : "pending" });
       setTests(demoTests.map((test) => ({ ...test, attempt_status: sessionStorage.getItem(`alsense_${test.test_id}_complete`) ? "completed" : "pending" })));
-      setIntakeComplete(Boolean(sessionStorage.getItem(INTAKE_STORAGE_KEY)));
+      setIntakeComplete(await hasSavedIntake());
     }
     finally { setLoading(false); }
   };
