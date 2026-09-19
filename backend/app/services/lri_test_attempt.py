@@ -1,7 +1,13 @@
-from app.core.exceptions import InvalidTestAttemptError, LRITestAttemptNotFoundError
+from app.core.exceptions import (
+    InvalidTestAttemptError,
+    LRITestAttemptAlreadyExistsError,
+    LRITestAttemptNotFoundError,
+)
 from app.models.lri_test_attempt import LRITestAttempt, LRITestAttemptAnswer
 from app.repositories.lri_test_attempt import LRITestAttemptRepository
 from app.repositories.lri_test_attempt_answer import LRITestAttemptAnswerRepository
+from sqlalchemy.exc import IntegrityError
+
 from app.schemas.lri_test_attempt import (
     LRITestAttemptCreate,
     LRITestAttemptResponse,
@@ -34,6 +40,14 @@ class LRITestAttemptService:
         learner = await self._learner_service.get_by_user_id(user_id)
         test = await self._test_service.get_by_id(test_id)
 
+        # One attempt per learner per test. The unique constraint is the
+        # backstop; this check is what makes the failure a clean 409.
+        existing = await self._attempt_repository.get_by_test_and_learner(
+            test_id, learner.id
+        )
+        if existing is not None:
+            raise LRITestAttemptAlreadyExistsError()
+
         answers = attempt_create.answers
         test_with_items = await self._test_service.get_by_id_with_items(test_id)
         test_item_ids = {item.item_id for item in test_with_items.items}
@@ -56,13 +70,18 @@ class LRITestAttemptService:
 
         lri_score = score_sum / len(answers)
 
-        attempt = await self._attempt_repository.create(
-            LRITestAttempt(
-                test_id=test.id,
-                learner_id=learner.id,
-                lri_score=lri_score,
+        try:
+            attempt = await self._attempt_repository.create(
+                LRITestAttempt(
+                    test_id=test.id,
+                    learner_id=learner.id,
+                    lri_score=lri_score,
+                )
             )
-        )
+        except IntegrityError:
+            # A concurrent submission got past the check above; the unique
+            # constraint on (learner_id, test_id) rejected this one.
+            raise LRITestAttemptAlreadyExistsError() from None
 
         for answer in answers:
             answer = await self._answer_repository.create(

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import func
+from sqlalchemy import UniqueConstraint, func
 from sqlmodel import Field
 
 from .base import BaseEntity
@@ -23,6 +23,13 @@ class StrandTestAttempt(BaseEntity, table=True):
         sa_column_kwargs={
             "server_default": func.now(),
         },
+    )
+
+    # One attempt per learner per test.
+    __table_args__ = (
+        UniqueConstraint(
+            "learner_id", "test_id", name="uq_strand_test_attempts_learner_test"
+        ),
     )
 
 

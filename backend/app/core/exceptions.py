@@ -106,6 +106,20 @@ class StrandTestAttemptNotFoundError(NotFoundError):
     code = "STRAND_TEST_ATTEMPT_NOT_FOUND"
 
 
+class StrandTestAttemptAlreadyExistsError(AlreadyExistsError):
+    """Raised when a learner submits a second attempt for the same strand test."""
+
+    message = "You have already submitted an attempt for this test."
+    code = "STRAND_TEST_ATTEMPT_ALREADY_EXISTS"
+
+
+class PretestRequiredError(DomainValidationError):
+    """Raised when a posttest is submitted before the pretest for the same strand."""
+
+    message = "Complete the pretest for this strand before taking the posttest."
+    code = "PRETEST_REQUIRED"
+
+
 class InvalidTestAttemptError(DomainValidationError):
     """Raised when an attempt does not answer a test's items exactly once."""
 
@@ -128,6 +142,13 @@ class LRITestAttemptNotFoundError(NotFoundError):
 
     message = "LRI test attempt not found."
     code = "LRI_TEST_ATTEMPT_NOT_FOUND"
+
+
+class LRITestAttemptAlreadyExistsError(AlreadyExistsError):
+    """Raised when a learner submits a second attempt for the same LRI test."""
+
+    message = "You have already submitted an attempt for this test."
+    code = "LRI_TEST_ATTEMPT_ALREADY_EXISTS"
 
 
 # ================ Learner Error ================

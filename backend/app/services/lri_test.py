@@ -4,6 +4,7 @@ from app.models.lri_test import LRITest
 from app.repositories.lri_test import LRITestRepository
 from app.schemas.lri_test import (
     LRITestItemResponse,
+    LRITestWithAttemptStatus,
     LRITestWithAttemptStatusResponse,
     LRITestWithItemsResponse,
 )
@@ -27,19 +28,26 @@ class LRITestService:
     async def get_with_attempt_status(self, user_id) -> LRITestWithAttemptStatusResponse:
         learner = await self._learner_service.get_by_user_id(user_id)
 
-        consolidated_data = await self._test_repository.get_with_attempt(learner.id)
+        # Contains [(LRITest, LRITestAttempt | None)...]
+        tests_consolidated = await self._test_repository.get_with_attempt(learner.id)
 
-        if not consolidated_data:
-            raise LRITestNotFoundError()
+        tests = []
 
-        test, test_attempt = consolidated_data
+        for test, test_attempt in tests_consolidated:
+            tests.append(
+                LRITestWithAttemptStatus(
+                    test_id=test.id,
+                    title=test.title,
+                    description=test.description,
+                    attempt_status=(
+                        AttemptStatus.COMPLETED
+                        if test_attempt is not None
+                        else AttemptStatus.PENDING
+                    ),
+                )
+            )
 
-        return LRITestWithAttemptStatusResponse(
-            test_id=test.id,
-            title=test.title,
-            description=test.description,
-            attempt_status=AttemptStatus.COMPLETED if test_attempt is not None else AttemptStatus.PENDING
-        )
+        return LRITestWithAttemptStatusResponse(tests=tests)
 
     async def get_by_id_with_items(self, test_id: int):
         consolidated_data = await self._test_repository.get_by_id_with_items(test_id)

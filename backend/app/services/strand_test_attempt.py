@@ -1,10 +1,14 @@
 from app.core.exceptions import (
     InvalidTestAttemptError,
+    PretestRequiredError,
+    StrandTestAttemptAlreadyExistsError,
     StrandTestAttemptNotFoundError,
     StrandTestItemOptionNotFoundError,
     StrandTestNotFoundError,
 )
+from app.enums.strand_test import StrandTestType
 from app.models.strand_test_attempt import StrandTestAttempt, StrandTestAttemptAnswer
+from app.repositories.strand_test import StrandTestRepository
 from app.repositories.strand_test_attempt import StrandTestAttemptRepository
 from app.repositories.strand_test_attempt_answers import (
     StrandTestAttemptAnswerRepository,
@@ -16,6 +20,7 @@ from app.schemas.strand_test_attempt import (
     StrandAttemptResultResponse,
 )
 from app.services.learner import LearnerService
+from sqlalchemy.exc import IntegrityError
 
 
 class StrandTestAttemptService:
@@ -24,12 +29,14 @@ class StrandTestAttemptService:
         attempt_repository: StrandTestAttemptRepository,
         attempt_answer_repository: StrandTestAttemptAnswerRepository,
         test_option_repository:  StrandTestItemOptionRepository,
+        test_repository: StrandTestRepository,
         learner_service: LearnerService,
     ):
         self._attempt_repository = attempt_repository
         self._attempt_answer_repository = attempt_answer_repository
         self._learner_service = learner_service
         self._test_option_repository = test_option_repository
+        self._test_repository = test_repository
 
     async def create(
         self,
@@ -39,11 +46,32 @@ class StrandTestAttemptService:
     ) -> StrandAttemptResponse:
         learner = await self._learner_service.get_by_user_id(user_id)
      
+        test = await self._test_repository.get_by_id(test_id)
+
+        if test is None:
+            raise StrandTestNotFoundError()
+
         test_options = await self._test_option_repository.get_by_test(test_id)
 
         # A test with no items can't be attempted (and would make MPS undefined).
         if not test_options:
             raise StrandTestNotFoundError()
+
+        # One attempt per learner per test. The unique constraint is the
+        # backstop; this check is what makes the failure a clean 409.
+        existing = await self._attempt_repository.get_by_test_and_learner(
+            test_id, learner.id
+        )
+        if existing is not None:
+            raise StrandTestAttemptAlreadyExistsError()
+
+        # A posttest requires the learner's pretest for the same strand.
+        if test.type == StrandTestType.POSTTEST:
+            has_pretest = await self._attempt_repository.has_pretest_attempt(
+                learner.id, test.strand_id
+            )
+            if not has_pretest:
+                raise PretestRequiredError()
 
         # Turn test options into dictionaries for more efficient data access
         test_options_by_id = {
@@ -76,14 +104,19 @@ class StrandTestAttemptService:
                 total_score += 1
 
         # Store attempt in strand_test_attempts table
-        attempt = await self._attempt_repository.create(
-            StrandTestAttempt(
-                test_id=test_id,
-                learner_id=learner.id,
-                total_score=total_score,
-                item_count=len(test_item_ids),
+        try:
+            attempt = await self._attempt_repository.create(
+                StrandTestAttempt(
+                    test_id=test_id,
+                    learner_id=learner.id,
+                    total_score=total_score,
+                    item_count=len(test_item_ids),
+                )
             )
-        )
+        except IntegrityError:
+            # A concurrent submission got past the check above; the unique
+            # constraint on (learner_id, test_id) rejected this one.
+            raise StrandTestAttemptAlreadyExistsError() from None
 
         # Store each answer in strand_test_attempt_answers table
         for answer in answers:
