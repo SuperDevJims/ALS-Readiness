@@ -10,11 +10,4 @@ class CohortStatus(StrEnum):
 
 class CohortMemberStatus(StrEnum):
     ACTIVE = "active"
-    COMPLETED = "completed"
-    WITHDRAWN = "withdrawn"
-
-
-class CohortFacilitatorStatus(StrEnum):
-    ACTIVE = "active"
     ENDED = "ended"
-    REMOVED = "removed"

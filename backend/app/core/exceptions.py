@@ -183,3 +183,12 @@ class PasswordReuseError(DomainValidationError):
 
     message = "New password must be different from the current password."
     code = "PASSWORD_REUSE"
+
+
+# ================ Password Error ================
+
+class CohortCodeAlreadyExists(AlreadyExistsError):
+    """Raised when creating a cohort with a code that already exists"""
+    message = "Cohort code already exists."
+    code = "COHORT_CODE_ALREADY_EXISTS"
+    
