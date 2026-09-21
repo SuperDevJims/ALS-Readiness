@@ -14,7 +14,7 @@ class Cohort(BaseEntity, TimestampMixin, table=True):
 
     created_by: int = Field(foreign_key="users.id")
 
-    code: str = Field(max_length=20, unique=True)
+    code: str | None = Field(max_length=20, unique=True)
     name: str = Field(max_length=100)
     school_year: str = Field(max_length=20)
 
@@ -31,7 +31,7 @@ class Cohort(BaseEntity, TimestampMixin, table=True):
     end_date: date | None = Field(default=None)
 
 
-class CohortLearners(BaseEntity, table=True):
+class CohortLearner(BaseEntity, table=True):
     __tablename__ = "cohort_learners"
 
     cohort_id: int = Field(foreign_key="cohorts.id")
@@ -63,7 +63,7 @@ class CohortLearners(BaseEntity, table=True):
     )
 
 
-class CohortFacilitators(BaseEntity, table=True):
+class CohortFacilitator(BaseEntity, table=True):
     __tablename__ = "cohort_facilitators"
 
     cohort_id: int = Field(foreign_key="cohorts.id")

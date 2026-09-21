@@ -151,7 +151,7 @@ def upgrade() -> None:
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('cohort_id', sa.Integer(), nullable=False),
     sa.Column('learner_id', sa.Integer(), nullable=False),
-    sa.Column('status', sa.Enum('active', 'completed', 'withdrawn', name='cohort_member_status'), nullable=False),
+    sa.Column('status', sa.Enum('active', 'ended', name='cohort_member_status'), nullable=False),
     sa.Column('assigned_by', sa.Integer(), nullable=False),
     sa.Column('assigned_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     sa.Column('completed_at', sa.DateTime(), nullable=True),

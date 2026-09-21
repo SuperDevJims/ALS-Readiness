@@ -9,10 +9,14 @@ from app.core.jwt import decode_access_token
 from app.db.session import get_session
 from app.enums.user import UserRole
 from app.models.user import User
+from app.repositories.cohort import CohortRepository
+from app.repositories.cohort_learner import CohortLearnerRepository
 from app.repositories.facilitator import FacilitatorRepository
 from app.repositories.learner import LearnerRepository
+from app.repositories.lri_test import LRITestRepository
 from app.repositories.lri_test_attempt import LRITestAttemptRepository
 from app.repositories.lri_test_attempt_answer import LRITestAttemptAnswerRepository
+from app.repositories.participant_intake import ParticipantIntakeRepository
 from app.repositories.refresh_token import RefreshTokenRepository
 from app.repositories.strand_test import StrandTestRepository
 from app.repositories.strand_test_attempt import StrandTestAttemptRepository
@@ -22,20 +26,22 @@ from app.repositories.strand_test_attempt_answers import (
 from app.repositories.strand_test_item_option import StrandTestItemOptionRepository
 from app.repositories.user import UserRepository
 from app.repositories.user_profile import UserProfileRepository
-from app.repositories.participant_intake import ParticipantIntakeRepository
 from app.services.admin import AdminService
 from app.services.auth import AuthService
+from app.services.cohort import CohortService
+from app.services.cohort_learner import CohortLearnerService
 from app.services.facilitator import FacilitatorService
 from app.services.learner import LearnerService
+from app.services.lri_test import LRITestService
 from app.services.lri_test_attempt import LRITestAttemptService
+from app.services.participant_intake import ParticipantIntakeService
 from app.services.refresh_token import RefreshTokenService
 from app.services.strand_test import StrandTestService
 from app.services.strand_test_attempt import StrandTestAttemptService
 from app.services.user import UserService
 from app.services.user_profile import UserProfileService
-from app.repositories.lri_test import LRITestRepository
-from app.services.lri_test import LRITestService
-from app.services.participant_intake import ParticipantIntakeService
+from app.services.cohort_facilitator import CohortFacilitatorService
+from app.repositories.cohort_facilitator import CohortFacilitatorRepository
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
 
@@ -66,7 +72,9 @@ def get_profile_repository(session: SessionDep) -> UserProfileRepository:
 ProfileRepositoryDep = Annotated[UserProfileRepository, Depends(get_profile_repository)]
 
 
-def get_participant_intake_repository(session: SessionDep) -> ParticipantIntakeRepository:
+def get_participant_intake_repository(
+    session: SessionDep,
+) -> ParticipantIntakeRepository:
     return ParticipantIntakeRepository(session)
 
 
@@ -314,6 +322,7 @@ StrandAttemptServiceDep = Annotated[
 
 # ================ LRI Test ==============
 
+
 def get_lri_test_repository(session: SessionDep) -> LRITestRepository:
     return LRITestRepository(session)
 
@@ -321,8 +330,12 @@ def get_lri_test_repository(session: SessionDep) -> LRITestRepository:
 LRITestRepositoryDep = Annotated[LRITestRepository, Depends(get_lri_test_repository)]
 
 
-def get_lri_test_service(test_repository: LRITestRepositoryDep, learner_service: LearnerServiceDep) -> LRITestService:
-    return LRITestService(test_repository=test_repository, learner_service=learner_service)
+def get_lri_test_service(
+    test_repository: LRITestRepositoryDep, learner_service: LearnerServiceDep
+) -> LRITestService:
+    return LRITestService(
+        test_repository=test_repository, learner_service=learner_service
+    )
 
 
 LRITestServiceDep = Annotated[LRITestService, Depends(get_lri_test_service)]
@@ -365,3 +378,72 @@ def get_lri_test_attempt_service(
 LRITestAttemptServiceDep = Annotated[
     LRITestAttemptService, Depends(get_lri_test_attempt_service)
 ]
+
+
+# ================ Cohorts ===============
+
+
+def get_cohort_learner_repo(session: SessionDep) -> CohortLearnerRepository:
+    return CohortLearnerRepository(session)
+
+
+CohortLearnerRepoDep = Annotated[
+    CohortLearnerRepository, Depends(get_cohort_learner_repo)
+]
+
+
+def get_cohort_learner_service(
+    cohort_learner_repo: CohortLearnerRepoDep,
+    learner_service: LearnerServiceDep,
+) -> CohortLearnerService:
+    return CohortLearnerService(
+        cohort_learner_repo,
+        learner_service,
+    )
+
+
+CohortLearnerServiceDep = Annotated[
+    CohortLearnerService, Depends(get_cohort_learner_service)
+]
+
+
+def get_cohort_facilitator_repo(session: SessionDep) -> CohortFacilitatorRepository:
+    return CohortFacilitatorRepository(session)
+
+
+CohortFacilitatorRepoDep = Annotated[CohortFacilitatorRepository, Depends(get_cohort_facilitator_repo)]
+
+
+def get_cohort_facilitator_service(
+    cohort_facilitator_repo: CohortFacilitatorRepoDep, 
+    facilitator_service: FacilitatorServiceDep,
+) -> CohortFacilitatorService:
+    return CohortFacilitatorService(
+        cohort_facilitator_repo,
+        facilitator_service,
+    )
+
+
+CohortFacilitatorServiceDep = Annotated[CohortFacilitatorService, Depends(get_cohort_facilitator_service)]
+
+
+def get_cohort_repo(session: SessionDep) -> CohortRepository:
+    return CohortRepository(session)
+
+
+CohortRepoDep = Annotated[CohortRepository, Depends(get_cohort_repo)]
+
+
+def get_cohort_service(
+    cohort_repo: CohortRepoDep,
+    cohort_learner_service: CohortLearnerServiceDep,
+    cohort_facilitator_service: CohortFacilitatorServiceDep,
+) -> CohortService:
+    return CohortService(
+        cohort_repo=cohort_repo,
+        cohort_learner_service=cohort_learner_service,
+        cohort_facilitator_service=cohort_facilitator_service,
+    )
+
+
+CohortServiceDep = Annotated[CohortService, Depends(get_cohort_service)]

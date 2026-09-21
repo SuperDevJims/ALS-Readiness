@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Any
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from app.enums.user import Gender
 
@@ -56,5 +56,8 @@ class UserProfileUpdate(UserProfileBase):
 
 
 class UserProfileResponse(UserProfileBase):
+    user_id: int
     first_name: str
     last_name: str
+
+    model_config = ConfigDict(from_attributes=True)

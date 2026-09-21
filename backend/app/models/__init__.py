@@ -1,4 +1,4 @@
-from .cohort import Cohort, CohortFacilitators, CohortMembers
+from .cohort import Cohort, CohortFacilitator, CohortLearner
 from .content_evaluation import ContentEvaluation
 from .facilitator import Facilitator
 from .learner import Learner
@@ -16,8 +16,8 @@ from .user_profile import UserProfile
 
 __all__ = [
     "Cohort",
-    "CohortFacilitators",
-    "CohortMembers",
+    "CohortFacilitator",
+    "CohortLearner",
     "ContentEvaluation",
     "Facilitator",
     "LRITest",
