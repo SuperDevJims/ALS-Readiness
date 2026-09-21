@@ -215,6 +215,16 @@ async def require_admin(current_user: CurrentUserDep) -> User:
 RequireAdminDep = Annotated[User, Depends(require_admin)]
 
 
+async def require_super_admin(current_user: CurrentUserDep) -> User:
+    if current_user.role != UserRole.ADMIN or not current_user.is_super_admin:
+        raise UnauthorizedError()
+
+    return current_user
+
+
+RequireSuperAdminDep = Annotated[User, Depends(require_super_admin)]
+
+
 async def get_current_learner(current_user: CurrentUserDep) -> User:
     if current_user.role != UserRole.LEARNER:
         raise UnauthorizedError()

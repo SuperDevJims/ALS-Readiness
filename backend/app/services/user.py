@@ -25,6 +25,7 @@ class UserService:
             User(
                 password_hash=hash_password(generated_password),
                 role=user_create.role,
+                is_active=user_create.is_active,
             )
         )
 

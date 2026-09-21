@@ -83,6 +83,27 @@ class InactiveUserError(UnauthenticatedError):
     code = "INACTIVE_USER"
 
 
+class NotAnAdminError(DomainValidationError):
+    """Raised when an admin-only action targets a user who is not an admin."""
+
+    message = "Target user is not an admin."
+    code = "NOT_AN_ADMIN"
+
+
+class UserAlreadyActiveError(DomainValidationError):
+    """Raised when approving a user who is already active."""
+
+    message = "User is already active."
+    code = "USER_ALREADY_ACTIVE"
+
+
+class SelfApprovalError(DomainValidationError):
+    """Raised when a super admin tries to approve their own account."""
+
+    message = "You cannot approve your own account."
+    code = "SELF_APPROVAL"
+
+
 # ================ Strand Test Error ================
 
 class StrandTestNotFoundError(NotFoundError):

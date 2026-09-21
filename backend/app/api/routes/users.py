@@ -20,6 +20,8 @@ async def get_me(
         id_no=current_user.id_no,
         role=current_user.role,
         is_active=current_user.is_active,
+        is_super_admin=current_user.is_super_admin,
+        must_change_password=current_user.must_change_password,
         created_at=current_user.created_at,
         updated_at=current_user.updated_at,
         profile=UserProfileResponse(
@@ -48,6 +50,8 @@ async def update_me(
         id_no=current_user.id_no,
         role=current_user.role,
         is_active=current_user.is_active,
+        is_super_admin=current_user.is_super_admin,
+        must_change_password=current_user.must_change_password,
         created_at=current_user.created_at,
         updated_at=current_user.updated_at,
         profile=UserProfileResponse(
