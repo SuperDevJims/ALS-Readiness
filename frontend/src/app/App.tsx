@@ -1,7 +1,8 @@
-import { useEffect } from "react";
-import { BrowserRouter, Routes, Route, useNavigate } from "react-router";
+import { useEffect, type ReactNode } from "react";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router";
 import { LandingPage } from "./components/LandingPage";
 import { LoginPage } from "./components/auth/LoginPage";
+import { ChangePasswordPage } from "./components/auth/ChangePasswordPage";
 // Learner
 import { LearnerDashboard } from "./components/learner/LearnerDashboard";
 import { DiagnosticTest } from "./components/diagnostic/DiagnosticTest";
@@ -32,7 +33,7 @@ import { Toaster } from "./components/ui/sonner";
 // Routing/session plumbing
 import { ProtectedPage } from "./routes/ProtectedPage";
 import { useAuthStore } from "../lib/store/authStore";
-import { setNavigateRef, useLegacyNavigate } from "../lib/navigation";
+import { CHANGE_PASSWORD_PATH, setNavigateRef, useLegacyNavigate } from "../lib/navigation";
 
 /** Wires the axios interceptor's redirect() helper to this router's navigate. */
 function NavigationBridge() {
@@ -41,6 +42,25 @@ function NavigationBridge() {
     setNavigateRef((path) => navigate(path));
   }, [navigate]);
   return null;
+}
+
+/**
+ * While the user's password change is forced (mustChangePassword), every path
+ * except the change-password page itself (and session-expired, so a dead
+ * session can still be reported) redirects there - a typed URL, a bookmark, the
+ * post-login destination, a page refresh, or a user reset mid-session whose
+ * next API call tripped the 403 interceptor. One gate here instead of a check
+ * per route, so no route (public ones included) can be forgotten.
+ */
+function ForcedPasswordChangeGate({ children }: { children: ReactNode }) {
+  const mustChangePassword = useAuthStore((s) => s.mustChangePassword);
+  const { pathname } = useLocation();
+
+  if (mustChangePassword && pathname !== CHANGE_PASSWORD_PATH && pathname !== "/session-expired") {
+    return <Navigate to={CHANGE_PASSWORD_PATH} replace />;
+  }
+
+  return <>{children}</>;
 }
 
 function LoadingScreen() {
@@ -75,10 +95,15 @@ function AppRoutes() {
   return (
     <div className="size-full min-h-screen bg-[#F0F4F8]">
       <NavigationBridge />
+      <ForcedPasswordChangeGate>
       <Routes>
         {/* Public */}
         <Route path="/" element={<LandingPage navigate={navigate} />} />
         <Route path="/login" element={<LoginPage navigate={navigate} />} />
+
+        {/* Forced password change - deliberately NOT wrapped in ProtectedPage: its AppLayout
+            (nav) would let a flagged user navigate away. Guards itself; see ChangePasswordPage. */}
+        <Route path={CHANGE_PASSWORD_PATH} element={<ChangePasswordPage />} />
         <Route path="/profile" element={<ProtectedPage allowed={["learner", "facilitator", "admin"]} Component={ProfilePage} />} />
 
         {/* Learner pipeline */}
@@ -105,11 +130,15 @@ function AppRoutes() {
         <Route path="/admin-analytics" element={<ProtectedPage allowed={["admin"]} Component={AdminAnalytics} />} />
         <Route path="/admin-reports" element={<ProtectedPage allowed={["admin"]} Component={AdminReports} />} />
 
-        {/* Session/error utility routes - not linked from anywhere in the app,
-            only reached via the axios response interceptor (Task 5). */}
+        {/* Session/error utility routes - not linked from anywhere in the app.
+            /session-expired is reached via the axios response interceptor (Task 5).
+            /access-denied is no longer redirected to by anything (the interceptor's blanket
+            403 redirect is gone; RequireRole renders AccessDenied in place) - it stays only so
+            a direct visit still resolves. */}
         <Route path="/session-expired" element={<SessionExpired />} />
         <Route path="/access-denied" element={<AccessDeniedRoute />} />
       </Routes>
+      </ForcedPasswordChangeGate>
     </div>
   );
 }

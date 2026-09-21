@@ -22,8 +22,15 @@ interface AuthState {
   accessToken: string | null;
   /** Router waits on this before rendering any guarded route. */
   sessionCheckComplete: boolean;
+  /**
+   * True while the backend is rejecting everything but a password change for
+   * this user. Set from /me (login, bootstrap, refreshUser) and by the 403
+   * interceptor for a user who was reset mid-session; cleared on session end.
+   */
+  mustChangePassword: boolean;
 
   setAccessToken: (token: string | null) => void;
+  setMustChangePassword: (value: boolean) => void;
   clearSession: () => void;
 
   /** Real POST /api/auth/login, then populates user via /me. Throws on failure - caller shows the error. */
@@ -32,7 +39,7 @@ interface AuthState {
   /** Clears local session immediately, synchronously - never blocks on the network call. */
   logout: () => void;
 
-  /** Re-derives the store's user/role from a fresh UserMe (e.g. after a profile edit). */
+  /** Re-derives the store's user/role/flag from a fresh UserMe (after a profile edit or password change). */
   refreshUser: (me: UserMe) => void;
 
   /** App-mount bootstrap: silent refresh -> populate via /me. Always resolves. */
@@ -55,20 +62,24 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   role: null,
   accessToken: null,
   sessionCheckComplete: false,
+  mustChangePassword: false,
 
   setAccessToken: (token) => set({ accessToken: token }),
 
-  clearSession: () => set({ user: null, role: null, accessToken: null }),
+  setMustChangePassword: (value) => set({ mustChangePassword: value }),
+
+  clearSession: () => set({ user: null, role: null, accessToken: null, mustChangePassword: false }),
 
   login: async (idNo, password) => {
     const { access_token } = await authApi.login(idNo, password);
     set({ accessToken: access_token });
 
     const me = await authApi.getMe();
-    set({ user: fromUserMe(me), role: me.role });
+    set({ user: fromUserMe(me), role: me.role, mustChangePassword: me.must_change_password });
   },
 
-  refreshUser: (me) => set({ user: fromUserMe(me), role: me.role }),
+  refreshUser: (me) =>
+    set({ user: fromUserMe(me), role: me.role, mustChangePassword: me.must_change_password }),
 
   logout: () => {
     // Clear immediately - a user who explicitly logs out sees it happen right
@@ -85,9 +96,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ accessToken: access_token });
 
       const me = await authApi.getMe();
-      set({ user: fromUserMe(me), role: me.role });
+      set({ user: fromUserMe(me), role: me.role, mustChangePassword: me.must_change_password });
     } catch {
-      set({ user: null, role: null, accessToken: null });
+      set({ user: null, role: null, accessToken: null, mustChangePassword: false });
     } finally {
       set({ sessionCheckComplete: true });
     }

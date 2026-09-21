@@ -45,8 +45,19 @@ export async function activateUser(userId: number): Promise<User> {
   return res.data;
 }
 
-/** PATCH /api/admin/users/{id}/password - admin-set, just {password}, no current password */
+/** PATCH /api/admin/users/{id}/password - admin-set, just {password}, no current password. Admin targets only. */
 export async function resetPassword(userId: number, data: AdminPasswordResetRequest): Promise<User> {
   const res = await apiClient.patch<User>(`/api/admin/users/${userId}/password`, data);
+  return res.data;
+}
+
+/**
+ * PATCH /api/admin/users/{id}/password with NO body - learner/facilitator targets.
+ * The backend sets the fixed default password and flags must_change_password; it
+ * rejects (400 PASSWORD_NOT_ALLOWED) any request that carries a password, so
+ * nothing is passed as data here, not even an empty object.
+ */
+export async function resetPasswordToDefault(userId: number): Promise<User> {
+  const res = await apiClient.patch<User>(`/api/admin/users/${userId}/password`);
   return res.data;
 }

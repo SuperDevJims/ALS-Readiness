@@ -41,6 +41,8 @@ function UserModal({ u, onClose, onChanged }) {
 
   if (!current) return null;
   const Icon = roleIcon[current.role];
+  // Learners and facilitators are reset to a fixed default server-side; only admin targets take a typed password.
+  const isAutoReset = current.role !== "admin";
 
   const toggleStatus = async () => {
     setStatusSaving(true);
@@ -62,6 +64,23 @@ function UserModal({ u, onClose, onChanged }) {
   const submitReset = async (e) => {
     e.preventDefault();
     setResetResult(null);
+
+    if (isAutoReset) {
+      setResetSaving(true);
+      try {
+        await adminApi.resetPasswordToDefault(current.id);
+        setResetResult({
+          type: "success",
+          text: `Password has been reset to the default value. ${displayName(current)} will be asked to change it at next sign-in — every active session was signed out.`,
+        });
+        setShowResetForm(false);
+      } catch (err) {
+        setResetResult({ type: "error", text: getErrorMessage(err, "Couldn't reset this account's password.") });
+      } finally {
+        setResetSaving(false);
+      }
+      return;
+    }
 
     if (newPassword.length < 8) {
       setResetResult({ type: "error", text: "New password must be at least 8 characters." });
@@ -153,22 +172,41 @@ function UserModal({ u, onClose, onChanged }) {
               </button>
             ) : (
               <form onSubmit={submitReset}>
-                <label className="text-gray-600 text-xs font-medium mb-1.5 block">New password for this account</label>
-                <input
-                  type="text"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="At least 8 characters"
-                  className="w-full border border-gray-200 rounded-xl py-2.5 px-4 text-gray-800 text-sm bg-gray-50 focus:outline-none focus:border-purple-400 mb-2"
-                />
+                {isAutoReset ? (
+                  <p className="text-gray-600 text-xs mb-2">
+                    Reset this account's password to the default value? {displayName(current)} will be asked to change it the next time they sign in.
+                  </p>
+                ) : (
+                  <>
+                    <label className="text-gray-600 text-xs font-medium mb-1.5 block">New password for this account</label>
+                    <input
+                      type="text"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="At least 8 characters"
+                      className="w-full border border-gray-200 rounded-xl py-2.5 px-4 text-gray-800 text-sm bg-gray-50 focus:outline-none focus:border-purple-400 mb-2"
+                    />
+                  </>
+                )}
                 <p className="text-gray-400 text-xs mb-3">Every active session for this account will be signed out immediately.</p>
-                <button
-                  type="submit"
-                  disabled={resetSaving}
-                  className="w-full py-2.5 bg-purple-500 hover:bg-purple-600 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
-                >
-                  {resetSaving ? "Resetting…" : "Confirm Reset"}
-                </button>
+                <div className={isAutoReset ? "flex gap-2" : ""}>
+                  {isAutoReset && (
+                    <button
+                      type="button"
+                      onClick={() => setShowResetForm(false)}
+                      className="flex-1 py-2.5 bg-gray-100 text-gray-600 rounded-xl text-sm hover:bg-gray-200 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={resetSaving}
+                    className={`${isAutoReset ? "flex-1" : "w-full"} py-2.5 bg-purple-500 hover:bg-purple-600 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50`}
+                  >
+                    {resetSaving ? "Resetting…" : "Confirm Reset"}
+                  </button>
+                </div>
               </form>
             )}
           </div>
