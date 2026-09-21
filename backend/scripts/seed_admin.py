@@ -13,12 +13,16 @@ if sys.platform == "win32":
 from app.db.session import AsyncSessionLocal
 from app.enums.user import UserRole
 from app.models.user import User
+from app.repositories.user import UserRepository
 
 from .seed_user import create_user
 
 
 async def create_admin(session: AsyncSession) -> User:
-    return await create_user(UserRole.ADMIN, session)
+    # The seeded admin is the founding super admin; it is created already
+    # active, so it never needs another super admin's approval.
+    user = await create_user(UserRole.ADMIN, session)
+    return await UserRepository(session).update(user, {"is_super_admin": True})
 
 
 async def main() -> None:

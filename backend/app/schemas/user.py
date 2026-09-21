@@ -9,6 +9,7 @@ from app.schemas.user_profile import UserProfileResponse
 
 class UserCreate(BaseModel):
     role: UserRole | None = Field(default=UserRole.LEARNER)
+    is_active: bool = Field(default=True)
 
 
 class UserPasswordUpdate(BaseModel):
@@ -20,6 +21,8 @@ class UserResponse(BaseModel):
     id_no: str
     role: UserRole
     is_active: bool
+    is_super_admin: bool
+    must_change_password: bool
     created_at: datetime
     updated_at: datetime
 

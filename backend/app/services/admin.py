@@ -1,3 +1,9 @@
+from app.core.exceptions import (
+    NotAnAdminError,
+    SelfApprovalError,
+    UnauthorizedError,
+    UserAlreadyActiveError,
+)
 from app.enums.user import UserRole
 from app.models.user import User
 from app.schemas.admin import (
@@ -100,9 +106,10 @@ class AdminService:
         )
 
     async def create_admin(self, admin_create: AdminAdminCreate) -> AdminUserCreateResponse:
-        # Create user and get a system generated password
+        # Create user and get a system generated password. New admins stay
+        # inactive until a super admin approves them.
         user, password = await self._user_service.create(
-            UserCreate(role=UserRole.ADMIN)
+            UserCreate(role=UserRole.ADMIN, is_active=False)
         )
 
         # No marker table for admins - just a users row + a user_profiles row
@@ -176,8 +183,26 @@ class AdminService:
         user = await self._user_service.deactivate(stored)
         return user
 
-    async def activate_user(self, user_id: int) -> User:
+    async def activate_user(self, user_id: int, activator: User) -> User:
         stored = await self._user_service.get_by_id(user_id)
+
+        # Activating an admin is the approval step, so only a super admin may.
+        if stored.role == UserRole.ADMIN and not activator.is_super_admin:
+            raise UnauthorizedError()
 
         user = await self._user_service.activate(stored)
         return user
+
+    async def approve_admin(self, user_id: int, approver: User) -> User:
+        if user_id == approver.id:
+            raise SelfApprovalError()
+
+        stored = await self._user_service.get_by_id(user_id)
+
+        if stored.role != UserRole.ADMIN:
+            raise NotAnAdminError()
+
+        if stored.is_active:
+            raise UserAlreadyActiveError()
+
+        return await self._user_service.activate(stored)
