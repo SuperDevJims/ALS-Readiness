@@ -13,7 +13,12 @@ class UserCreate(BaseModel):
 
 
 class UserPasswordUpdate(BaseModel):
-    password: str = Field(min_length=8, max_length=128)
+    password: str = Field(max_length=128)
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, value: str) -> str:
+        return validate_password_complexity(value)
 
 
 class UserResponse(BaseModel):
@@ -35,7 +40,7 @@ class UserMeResponse(UserResponse):
 
 class PasswordChangeRequest(BaseModel):
     current_password: str = Field(min_length=1, max_length=128)
-    new_password: str = Field(min_length=8, max_length=128)
+    new_password: str = Field(max_length=128)
 
     @field_validator("new_password")
     @classmethod

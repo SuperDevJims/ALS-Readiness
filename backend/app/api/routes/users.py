@@ -3,14 +3,19 @@ from fastapi import APIRouter, Request
 from app.schemas.user import PasswordChangeRequest, UserMeResponse, UserResponse
 from app.schemas.user_profile import UserProfileResponse, UserProfileUpdate
 
-from ..deps import AuthServiceDep, CurrentUserDep, ProfileServiceDep
+from ..deps import (
+    AuthServiceDep,
+    CurrentUserAllowPendingChangeDep,
+    CurrentUserDep,
+    ProfileServiceDep,
+)
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
 
 @router.get("/me", response_model=UserMeResponse)
 async def get_me(
-    current_user: CurrentUserDep,
+    current_user: CurrentUserAllowPendingChangeDep,
     profile_service: ProfileServiceDep,
 ):
     profile = await profile_service.get_by_user_id(current_user.id)
@@ -70,7 +75,7 @@ async def update_me(
 @router.patch("/me/password", response_model=UserResponse)
 async def change_my_password(
     request: Request,
-    current_user: CurrentUserDep,
+    current_user: CurrentUserAllowPendingChangeDep,
     password_change: PasswordChangeRequest,
     auth_service: AuthServiceDep,
 ):

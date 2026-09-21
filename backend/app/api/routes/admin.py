@@ -7,7 +7,7 @@ from app.schemas.admin import (
     AdminUserListResponse,
 )
 from app.schemas.user import UserPasswordUpdate, UserResponse
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Body, Depends, Query, status
 
 from ..deps import (
     AdminServiceDep,
@@ -84,10 +84,11 @@ async def create_admin(
 )
 async def update_user_password(
     user_id: int,
-    user_update: UserPasswordUpdate,
     admin_service: AdminServiceDep,
+    admin: RequireAdminDep,
+    user_update: UserPasswordUpdate | None = Body(default=None),
 ):
-    user = await admin_service.update_user_password(user_id, user_update)
+    user = await admin_service.update_user_password(user_id, user_update, admin)
     return UserResponse.model_validate(user)
 
 
@@ -98,8 +99,9 @@ async def update_user_password(
 async def deactivate_user(
     user_id: int,
     admin_service: AdminServiceDep,
+    admin: RequireAdminDep,
 ):
-    user = await admin_service.deactivate_user(user_id)
+    user = await admin_service.deactivate_user(user_id, admin)
     return UserResponse.model_validate(user)
 
 

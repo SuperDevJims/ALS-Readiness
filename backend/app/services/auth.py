@@ -41,6 +41,7 @@ class AuthService:
         return AuthTokens(
             access_token=access_token,
             refresh_token=refresh_token,
+            must_change_password=user.must_change_password,
         )
 
     async def refresh(
@@ -53,6 +54,7 @@ class AuthService:
         return AuthTokens(
             access_token=new_access_token,
             refresh_token=new_refresh_token,
+            must_change_password=user.must_change_password,
         )
 
     async def logout(self, refresh_token: str) -> None:
@@ -80,8 +82,11 @@ class AuthService:
         if verify_password(password_change.new_password, current_user.password_hash):
             raise PasswordReuseError()
 
+        # A successful self-service change also clears any forced-change flag.
         user = await self._user_service.update_password(
-            current_user, UserPasswordUpdate(password=password_change.new_password)
+            current_user,
+            UserPasswordUpdate(password=password_change.new_password),
+            must_change_password=False,
         )
 
         # Preserve the calling session; every other session gets revoked. If

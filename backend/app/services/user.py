@@ -80,10 +80,19 @@ class UserService:
             is_active=is_active,
         )
 
-    async def update_password(self, user: User, user_update: UserPasswordUpdate) -> User:
-        hashed_password = hash_password(user_update.password)
+    async def update_password(
+        self,
+        user: User,
+        user_update: UserPasswordUpdate,
+        must_change_password: bool | None = None,
+    ) -> User:
+        fields = {"password_hash": hash_password(user_update.password)}
 
-        return await self._user_repository.update(user, {"password_hash": hashed_password})
+        # None leaves the flag as it is.
+        if must_change_password is not None:
+            fields["must_change_password"] = must_change_password
+
+        return await self._user_repository.update(user, fields)
 
     async def deactivate(self, user: User) -> User:
         return await self._user_repository.update(user, {"is_active": False})

@@ -1,6 +1,11 @@
+from app.core.constants import DEFAULT_RESET_PASSWORD
 from app.core.exceptions import (
+    InactiveUserError,
     NotAnAdminError,
+    PasswordNotAllowedError,
+    PasswordRequiredError,
     SelfApprovalError,
+    SelfPasswordResetNotAllowedError,
     UnauthorizedError,
     UserAlreadyActiveError,
 )
@@ -169,16 +174,55 @@ class AdminService:
             page_size=page_size,
         )
 
-    async def update_user_password(self, user_id: int, user_update: UserPasswordUpdate) -> User:
-        stored = await self._user_service.get_active_by_id(user_id)
+    async def update_user_password(
+        self,
+        user_id: int,
+        user_update: UserPasswordUpdate | None,
+        resetter: User,
+    ) -> User:
+        # Even a super admin resets their own password via /users/me/password.
+        if user_id == resetter.id:
+            raise SelfPasswordResetNotAllowedError()
 
-        user = await self._user_service.update_password(stored, user_update)
+        stored = await self._user_service.get_by_id(user_id)
+
+        if stored.role == UserRole.ADMIN and not resetter.is_super_admin:
+            raise UnauthorizedError(
+                "Only a super admin can reset another admin's password."
+            )
+
+        if not stored.is_active:
+            raise InactiveUserError()
+
+        if stored.role == UserRole.ADMIN:
+            if user_update is None:
+                raise PasswordRequiredError()
+
+            user = await self._user_service.update_password(stored, user_update)
+        else:
+            # Learners and facilitators always get the fixed password and must
+            # replace it at next login, so no caller-supplied value is accepted.
+            if user_update is not None:
+                raise PasswordNotAllowedError()
+
+            user = await self._user_service.update_password(
+                stored,
+                UserPasswordUpdate(password=DEFAULT_RESET_PASSWORD),
+                must_change_password=True,
+            )
+
         await self._refresh_token_service.revoke_all_for_user(user_id)
 
         return user
 
-    async def deactivate_user(self, user_id: int) -> User:
+    async def deactivate_user(self, user_id: int, deactivator: User) -> User:
         stored = await self._user_service.get_active_by_id(user_id)
+
+        # Deactivating an admin is as sensitive as activating one.
+        if stored.role == UserRole.ADMIN and not deactivator.is_super_admin:
+            raise UnauthorizedError(
+                "Only a super admin can deactivate another admin."
+            )
 
         user = await self._user_service.deactivate(stored)
         return user
