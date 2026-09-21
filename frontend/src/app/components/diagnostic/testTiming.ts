@@ -10,8 +10,8 @@ import { useEffect, useRef, useState } from "react";
 /** Strand diagnostic exams: 20 multiple-choice items. */
 export const STRAND_TEST_TIME_LIMIT_SECONDS: number | null = 30 * 60;
 
-/** Learner Readiness Inventory: 10 Likert statements. */
-export const LRI_TEST_TIME_LIMIT_SECONDS: number | null = 15 * 60;
+/** Learner Readiness Inventory: untimed by decision - a self-report inventory, not a timed exam. */
+export const LRI_TEST_TIME_LIMIT_SECONDS: number | null = null;
 
 /** "12:34"; caps at 59:59 display-wise only if given a value under an hour (these limits are). */
 export function formatCountdown(totalSeconds: number): string {

@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { CheckCircle2, LoaderCircle, LockKeyhole } from "lucide-react";
 import { AppLayout } from "../shared/AppLayout";
-import { STRAND_CODES, getStrandTests, indexByStrandCode } from "../../../lib/api/diagnostic";
+import { STRAND_CODES, STRAND_SHORT_LABEL, getStrandTests, indexByStrandCode } from "../../../lib/api/diagnostic";
 import { getErrorMessage } from "../../../lib/api/errors";
-import type { StrandTestListItem } from "../../../lib/api/types";
+import type { StrandCode, StrandTestListItem } from "../../../lib/api/types";
 import { StrandAttempt } from "../diagnostic/PretestAttempts";
+import { ScoreCompareModal } from "../diagnostic/ScoreCompareModal";
 import { StrandTestCard } from "../diagnostic/StrandTestCard";
 
 // Post-test hub: one real diagnostic exam per in-scope strand (LS1-EN, LS1-FIL,
@@ -29,19 +30,18 @@ function PostTestLoadingIndicator() {
 export function PostTest({ navigate, user, onLogout }) {
   const learnerId: string | number = user?.raw?.id ?? user?.id_no ?? "anonymous";
   const [postTests, setPostTests] = useState<StrandTestListItem[]>([]);
-  const [pretestDoneByCode, setPretestDoneByCode] = useState<Partial<Record<string, boolean>>>({});
+  const [preTests, setPreTests] = useState<StrandTestListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [view, setView] = useState<View>({ name: "hub" });
+  const [scoreStrand, setScoreStrand] = useState<StrandCode | null>(null);
 
   const loadHub = async () => {
     setLoading(true); setError("");
     try {
       const [postData, preData] = await Promise.all([getStrandTests("posttest"), getStrandTests("pretest")]);
       setPostTests(postData.tests);
-      const preDone: Partial<Record<string, boolean>> = {};
-      for (const test of preData.tests) preDone[test.strand_code] = test.attempt_status === "completed";
-      setPretestDoneByCode(preDone);
+      setPreTests(preData.tests);
     } catch (err) {
       setError(getErrorMessage(err, "The post-test could not be loaded. Please try again."));
     } finally { setLoading(false); }
@@ -54,6 +54,10 @@ export function PostTest({ navigate, user, onLogout }) {
 
   // Strands are identified by strand_code, never by name; unknown codes are skipped.
   const byCode = indexByStrandCode(postTests);
+  // Reuses Phase 3's pretest/posttest cross-reference (same indexByStrandCode
+  // pattern that already powers the pretest-before-posttest gate) - here it
+  // also drives "Show Score" instead of an attempt gate.
+  const preByCode = indexByStrandCode(preTests);
   const strands = STRAND_CODES.map((code) => byCode[code]).filter((test): test is StrandTestListItem => Boolean(test));
   const completedStrands = strands.filter((test) => test.attempt_status === "completed");
   const allComplete = strands.length > 0 && completedStrands.length === strands.length;
@@ -82,16 +86,21 @@ export function PostTest({ navigate, user, onLogout }) {
             )}
           </div>
           <div className="grid md:grid-cols-3 gap-4">
-            {strands.map((test) => (
-              <StrandTestCard
-                key={test.test_id}
-                test={test}
-                canAttempt={Boolean(pretestDoneByCode[test.strand_code])}
-                disabledReason="Complete the pretest for this strand first"
-                attemptLabel="Start post-test"
-                onAttempt={() => setView({ name: "strand-attempt", test })}
-              />
-            ))}
+            {strands.map((test) => {
+              const pretestDone = preByCode[test.strand_code]?.attempt_status === "completed";
+              return (
+                <StrandTestCard
+                  key={test.test_id}
+                  test={test}
+                  canAttempt={pretestDone}
+                  disabledReason="Complete the pretest for this strand first"
+                  attemptLabel="Start post-test"
+                  onAttempt={() => setView({ name: "strand-attempt", test })}
+                  canShowScore={pretestDone && test.attempt_status === "completed"}
+                  onShowScore={() => setScoreStrand(test.strand_code)}
+                />
+              );
+            })}
             {!strands.length && <p className="text-sm text-gray-500">No post-test strands are currently available.</p>}
           </div>
         </section>
@@ -107,6 +116,15 @@ export function PostTest({ navigate, user, onLogout }) {
           </div>
         )}
       </>}
+
+      {scoreStrand && preByCode[scoreStrand] && byCode[scoreStrand] && (
+        <ScoreCompareModal
+          strandLabel={STRAND_SHORT_LABEL[scoreStrand]}
+          pretestTestId={preByCode[scoreStrand]!.test_id}
+          posttestTestId={byCode[scoreStrand]!.test_id}
+          onClose={() => setScoreStrand(null)}
+        />
+      )}
     </main>
   </AppLayout>;
 }
