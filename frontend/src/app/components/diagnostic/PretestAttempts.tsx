@@ -1,31 +1,33 @@
-import { useEffect, useState, type ReactNode } from "react";
-import { CheckCircle2, ChevronLeft, ChevronRight, LoaderCircle } from "lucide-react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { CheckCircle2, ChevronLeft, ChevronRight, Clock, LoaderCircle } from "lucide-react";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
 import {
   STRAND_SHORT_LABEL,
-  getLriAttemptResult,
   getLriTestWithItems,
-  getStrandAttemptResult,
   getStrandTestWithItems,
   submitLriAttempt,
   submitStrandAttempt,
 } from "../../../lib/api/diagnostic";
 import { getErrorMessage, isAttemptAlreadySubmitted } from "../../../lib/api/errors";
 import type { LriAnswerValue, LriTestListItem, StrandTestListItem } from "../../../lib/api/types";
-import {
-  LIKERT_OPTIONS,
-  formatWhen,
-  isComplete,
-  toLriAttemptCreate,
-  toStrandAttemptCreate,
-} from "./pretestLogic";
+import { LIKERT_OPTIONS, isComplete, toLriAttemptCreate, toStrandAttemptCreate } from "./pretestLogic";
+import { shuffleForLearner } from "./shuffle";
+import { LRI_TEST_TIME_LIMIT_SECONDS, STRAND_TEST_TIME_LIMIT_SECONDS, formatCountdown, useCountdown } from "./testTiming";
+import { TestOverviewModal } from "./TestOverviewModal";
 
-// The screens a learner sees while taking a pretest (strand + LRI) and viewing a
-// saved result. Everything here is loaded from the real API; a failure is shown
-// as a failure (with a retry), never replaced by placeholder content.
+// The screens a learner sees while taking a strand test or the LRI: an
+// overview modal, then the questions, then a plain success message - no score
+// is fetched or shown here (results-retrieval stays correct on the backend,
+// it's just not surfaced on this screen). A failure is shown as a failure
+// (with a retry), never replaced by placeholder content.
+//
+// StrandAttempt is generic over test_type - it doesn't know or care whether
+// `test` is a pretest or a posttest (both are plain StrandTestListItems from
+// the same endpoints). The posttest hub (learner/PostTest.tsx) reuses it
+// directly rather than duplicating it; LriAttempt has no posttest equivalent.
 
-const ALREADY_SUBMITTED_NOTICE =
-  "You've already submitted this test (perhaps on another tab or device), so here is your saved result.";
+const ALREADY_SUBMITTED_MESSAGE = "You've already submitted this test (perhaps on another tab or device) - nothing more to do here.";
+const SUBMIT_SUCCESS_MESSAGE = "Your responses have been submitted. Thank you for completing this.";
 
 // ── Shared pieces ────────────────────────────────────────────────────────────
 
@@ -50,11 +52,22 @@ function useLoad<T>(load: () => Promise<T>, errorFallback: string): [LoadState<T
   return [state, () => setAttempt((n) => n + 1)];
 }
 
-export function AttemptShell({ title, subtitle, onClose, children }: { title: string; subtitle?: string; onClose: () => void; children: ReactNode }) {
+function CountdownBadge({ secondsLeft, expired }: { secondsLeft: number; expired: boolean }) {
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 ${expired ? "bg-red-50 text-red-700" : "bg-indigo-50 text-[#3535C5]"}`}>
+      <Clock className="w-3.5 h-3.5" /> {expired ? "Time's up" : formatCountdown(secondsLeft)}
+    </span>
+  );
+}
+
+export function AttemptShell({ title, subtitle, onClose, countdown, backLabel = "Back to pre-test", children }: { title: string; subtitle?: string; onClose: () => void; countdown?: ReactNode; backLabel?: string; children: ReactNode }) {
   return (
     <div className="min-h-screen bg-[#F0F4F8] p-4 sm:p-8">
       <main className="max-w-4xl mx-auto">
-        <button onClick={onClose} className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-[#3535C5] mb-5"><ChevronLeft className="w-4 h-4" /> Back to pre-test</button>
+        <div className="flex items-center justify-between gap-4 mb-5">
+          <button onClick={onClose} className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-[#3535C5]"><ChevronLeft className="w-4 h-4" /> {backLabel}</button>
+          {countdown}
+        </div>
         <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
           <h1 className="text-xl font-bold text-gray-800">{title}</h1>
           {subtitle && <p className="text-sm text-gray-500 mt-1">{subtitle}</p>}
@@ -89,15 +102,12 @@ function SubmitBar({ disabled, saving, error, onSubmit }: { disabled: boolean; s
   );
 }
 
-function ResultCard({ notice, headline, label, detail, footnote, onClose }: { notice?: string; headline: string; label: string; detail: string; footnote?: string; onClose: () => void }) {
+/** Plain success state after a submission (or a 409 "already submitted") - no score, per the locked decision. */
+function AttemptSuccess({ message, onClose }: { message: string; onClose: () => void }) {
   return (
     <div className="text-center">
-      {notice && <p role="status" className="mb-5 p-3 rounded-xl bg-blue-50 text-blue-800 text-sm text-left">{notice}</p>}
       <div className="w-16 h-16 bg-green-50 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4"><CheckCircle2 className="w-8 h-8" /></div>
-      <p className="text-sm text-gray-500">{label}</p>
-      <p data-testid="result-headline" className="text-5xl font-bold text-gray-800 my-2">{headline}</p>
-      <p className="text-sm text-gray-600">{detail}</p>
-      {footnote && <p className="text-xs text-gray-400 mt-3">{footnote}</p>}
+      <p data-testid="attempt-success" className="text-gray-800 text-base font-medium max-w-md mx-auto">{message}</p>
       <button onClick={onClose} className="mt-8 px-5 py-2.5 rounded-xl bg-[#3535C5] text-white hover:bg-[#2929a8] text-sm font-medium">Back to pre-test</button>
     </div>
   );
@@ -105,59 +115,68 @@ function ResultCard({ notice, headline, label, detail, footnote, onClose }: { no
 
 const strandTitle = (test: StrandTestListItem) => `${STRAND_SHORT_LABEL[test.strand_code] ?? test.strand_name} diagnostic exam`;
 
-// ── Strand: result ───────────────────────────────────────────────────────────
-
-/** A saved strand result. Also shown right after submitting, and on a 409 (`notice`). */
-export function StrandResult({ test, notice, onClose }: { test: StrandTestListItem; notice?: string; onClose: () => void }) {
-  const [state, retry] = useLoad(() => getStrandAttemptResult(test.test_id), "Your result could not be loaded.");
-
-  return (
-    <AttemptShell title={strandTitle(test)} subtitle={test.title} onClose={onClose}>
-      {state.status === "loading" && <Loading />}
-      {state.status === "error" && <LoadError message={state.message} onRetry={retry} />}
-      {state.status === "ready" && (
-        <ResultCard
-          notice={notice}
-          label="Mean Percentage Score"
-          headline={`${state.data.mps}%`}
-          detail={`${state.data.total_score} of ${state.data.item_count} correct`}
-          footnote={state.data.taken_at ? `Submitted ${formatWhen(state.data.taken_at)}` : undefined}
-          onClose={onClose}
-        />
-      )}
-    </AttemptShell>
-  );
-}
-
 // ── Strand: take the test ────────────────────────────────────────────────────
 
-export function StrandAttempt({ test, onClose }: { test: StrandTestListItem; onClose: () => void }) {
+export function StrandAttempt({ test, learnerId, onClose, backLabel }: { test: StrandTestListItem; learnerId: string | number; onClose: () => void; backLabel?: string }) {
   const [detail, retry] = useLoad(() => getStrandTestWithItems(test.test_id), "This test could not be opened.");
+  const [phase, setPhase] = useState<"overview" | "in-progress">("overview");
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState("");
-  const [finished, setFinished] = useState<{ notice?: string } | null>(null);
+  const [finished, setFinished] = useState<{ alreadySubmitted: boolean } | null>(null);
 
-  if (finished) return <StrandResult test={test} notice={finished.notice} onClose={onClose} />;
+  const rawItems = detail.status === "ready" ? detail.data.items : [];
+  // Computed once per loaded attempt - stable across re-renders while answering,
+  // stable across a reload for the same learner+test (deterministic seed).
+  const items = useMemo(() => shuffleForLearner(rawItems, learnerId, test.test_id), [rawItems, learnerId, test.test_id]);
 
-  const items = detail.status === "ready" ? detail.data.items : [];
+  const { secondsLeft, expired } = useCountdown(phase === "in-progress" ? STRAND_TEST_TIME_LIMIT_SECONDS : null);
+
+  if (finished) {
+    return (
+      <AttemptShell title={strandTitle(test)} subtitle={test.title} onClose={onClose} backLabel={backLabel}>
+        <AttemptSuccess message={finished.alreadySubmitted ? ALREADY_SUBMITTED_MESSAGE : SUBMIT_SUCCESS_MESSAGE} onClose={onClose} />
+      </AttemptShell>
+    );
+  }
+
+  if (phase === "overview") {
+    return (
+      <TestOverviewModal
+        title={strandTitle(test)}
+        description={`Diagnostic exam for ${STRAND_SHORT_LABEL[test.strand_code] ?? test.strand_name}. Read each question carefully and choose the best answer for every item before submitting.`}
+        timeLimitSeconds={STRAND_TEST_TIME_LIMIT_SECONDS}
+        itemCount={detail.status === "ready" ? rawItems.length : undefined}
+        onStart={() => setPhase("in-progress")}
+        onCancel={onClose}
+      />
+    );
+  }
+
   const item = items[current];
 
   const submit = async () => {
     setSaving(true); setSubmitError("");
     try {
       await submitStrandAttempt(test.test_id, toStrandAttemptCreate(items, answers));
-      setFinished({});
+      setFinished({ alreadySubmitted: false });
     } catch (err) {
-      // A 409 means another tab/device already submitted: that's a result to show, not a dead end.
-      if (isAttemptAlreadySubmitted(err)) setFinished({ notice: ALREADY_SUBMITTED_NOTICE });
+      // A 409 means another tab/device already submitted: that's a completed
+      // state to show, not an error to surface.
+      if (isAttemptAlreadySubmitted(err)) setFinished({ alreadySubmitted: true });
       else setSubmitError(getErrorMessage(err, "Your answers could not be submitted. Please try again."));
     } finally { setSaving(false); }
   };
 
   return (
-    <AttemptShell title={strandTitle(test)} subtitle={detail.status === "ready" ? `Question ${current + 1} of ${items.length}` : test.title} onClose={onClose}>
+    <AttemptShell
+      title={strandTitle(test)}
+      subtitle={detail.status === "ready" ? `Question ${current + 1} of ${items.length}` : test.title}
+      onClose={onClose}
+      countdown={secondsLeft !== null ? <CountdownBadge secondsLeft={secondsLeft} expired={expired} /> : undefined}
+      backLabel={backLabel}
+    >
       {detail.status === "loading" && <Loading />}
       {detail.status === "error" && <LoadError message={detail.message} onRetry={retry} />}
       {detail.status === "ready" && items.length === 0 && <p className="text-sm text-gray-500">This test has no questions yet.</p>}
@@ -187,56 +206,61 @@ export function StrandAttempt({ test, onClose }: { test: StrandTestListItem; onC
   );
 }
 
-// ── LRI: result ──────────────────────────────────────────────────────────────
-
-export function LriResult({ test, notice, onClose }: { test: LriTestListItem; notice?: string; onClose: () => void }) {
-  const [state, retry] = useLoad(() => getLriAttemptResult(test.test_id), "Your result could not be loaded.");
-
-  return (
-    <AttemptShell title={test.title} onClose={onClose}>
-      {state.status === "loading" && <Loading />}
-      {state.status === "error" && <LoadError message={state.message} onRetry={retry} />}
-      {state.status === "ready" && (
-        <ResultCard
-          notice={notice}
-          label="Learner Readiness Inventory score"
-          headline={state.data.lri_score.toFixed(2)}
-          detail="Average of your responses on the 1–4 agreement scale"
-          footnote={state.data.submitted_at ? `Submitted ${formatWhen(state.data.submitted_at)}` : undefined}
-          onClose={onClose}
-        />
-      )}
-    </AttemptShell>
-  );
-}
-
 // ── LRI: take the inventory ──────────────────────────────────────────────────
 
-export function LriAttempt({ test, onClose }: { test: LriTestListItem; onClose: () => void }) {
+export function LriAttempt({ test, learnerId, onClose }: { test: LriTestListItem; learnerId: string | number; onClose: () => void }) {
   // The LRI detail always includes its statements - there's no include_items switch.
   const [detail, retry] = useLoad(() => getLriTestWithItems(test.test_id), "The Learner Readiness Inventory could not be opened.");
+  const [phase, setPhase] = useState<"overview" | "in-progress">("overview");
   const [answers, setAnswers] = useState<Record<number, LriAnswerValue>>({});
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState("");
-  const [finished, setFinished] = useState<{ notice?: string } | null>(null);
+  const [finished, setFinished] = useState<{ alreadySubmitted: boolean } | null>(null);
 
-  if (finished) return <LriResult test={test} notice={finished.notice} onClose={onClose} />;
+  const rawItems = detail.status === "ready" ? detail.data.items : [];
+  const items = useMemo(() => shuffleForLearner(rawItems, learnerId, test.test_id), [rawItems, learnerId, test.test_id]);
 
-  const items = detail.status === "ready" ? detail.data.items : [];
+  const { secondsLeft, expired } = useCountdown(phase === "in-progress" ? LRI_TEST_TIME_LIMIT_SECONDS : null);
+
+  if (finished) {
+    return (
+      <AttemptShell title={test.title} onClose={onClose}>
+        <AttemptSuccess message={finished.alreadySubmitted ? ALREADY_SUBMITTED_MESSAGE : SUBMIT_SUCCESS_MESSAGE} onClose={onClose} />
+      </AttemptShell>
+    );
+  }
+
+  if (phase === "overview") {
+    return (
+      <TestOverviewModal
+        title={test.title}
+        description={test.description}
+        timeLimitSeconds={LRI_TEST_TIME_LIMIT_SECONDS}
+        itemCount={detail.status === "ready" ? rawItems.length : undefined}
+        onStart={() => setPhase("in-progress")}
+        onCancel={onClose}
+      />
+    );
+  }
 
   const submit = async () => {
     setSaving(true); setSubmitError("");
     try {
       await submitLriAttempt(test.test_id, toLriAttemptCreate(items, answers));
-      setFinished({});
+      setFinished({ alreadySubmitted: false });
     } catch (err) {
-      if (isAttemptAlreadySubmitted(err)) setFinished({ notice: ALREADY_SUBMITTED_NOTICE });
+      if (isAttemptAlreadySubmitted(err)) setFinished({ alreadySubmitted: true });
       else setSubmitError(getErrorMessage(err, "Your LRI responses could not be submitted. Please try again."));
     } finally { setSaving(false); }
   };
 
   return (
-    <AttemptShell title={test.title} subtitle="Select one response for every statement." onClose={onClose}>
+    <AttemptShell
+      title={test.title}
+      subtitle="Select one response for every statement."
+      onClose={onClose}
+      countdown={secondsLeft !== null ? <CountdownBadge secondsLeft={secondsLeft} expired={expired} /> : undefined}
+    >
       {detail.status === "loading" && <Loading />}
       {detail.status === "error" && <LoadError message={detail.message} onRetry={retry} />}
       {detail.status === "ready" && items.length === 0 && <p className="text-sm text-gray-500">This inventory has no statements yet.</p>}
