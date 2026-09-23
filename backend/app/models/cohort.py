@@ -6,15 +6,15 @@ from sqlmodel import Field
 
 from app.enums.cohort import *
 
-from .base import BaseEntity
+from .base import BaseEntity, TimestampMixin
 
 
-class Cohort(BaseEntity, table=True):
+class Cohort(BaseEntity, TimestampMixin, table=True):
     __tablename__ = "cohorts"
 
     created_by: int = Field(foreign_key="users.id")
 
-    code: str = Field(max_length=20, unique=True)
+    code: str | None = Field(max_length=20, unique=True)
     name: str = Field(max_length=100)
     school_year: str = Field(max_length=20)
 
@@ -30,26 +30,9 @@ class Cohort(BaseEntity, table=True):
     start_date: date | None = Field(default=None)
     end_date: date | None = Field(default=None)
 
-    created_at: datetime = Field(
-        default=None,
-        sa_column_kwargs={"server_default": func.now()},
-    )
 
-    updated_at: datetime = Field(
-        default=None,
-        sa_column_kwargs={
-            "server_default": func.now(),
-            "onupdate": func.now(),
-        },
-    )
-
-    __table_args__ = (
-        UniqueConstraint("name", "school_year", name="uq_cohorts_name_school_year"),
-    )
-
-
-class CohortMembers(BaseEntity, table=True):
-    __tablename__ = "cohort_members"
+class CohortLearner(BaseEntity, table=True):
+    __tablename__ = "cohort_learners"
 
     cohort_id: int = Field(foreign_key="cohorts.id")
     learner_id: int = Field(foreign_key="learners.id")
@@ -80,18 +63,18 @@ class CohortMembers(BaseEntity, table=True):
     )
 
 
-class CohortFacilitators(BaseEntity, table=True):
+class CohortFacilitator(BaseEntity, table=True):
     __tablename__ = "cohort_facilitators"
 
     cohort_id: int = Field(foreign_key="cohorts.id")
     facilitator_id: int = Field(foreign_key="facilitators.id")
 
-    status: CohortFacilitatorStatus = Field(
-        default=CohortFacilitatorStatus.ACTIVE,
+    status: CohortMemberStatus = Field(
+        default=CohortMemberStatus.ACTIVE,
         sa_type=SQLEnum(
-            CohortFacilitatorStatus,
+            CohortMemberStatus,
             values_callable=lambda enum: [e.value for e in enum],
-            name="cohort_facilitator_status",
+            name="cohort_member_status",
         ),
     )
 

@@ -188,6 +188,15 @@ class LearnerNotFoundError(NotFoundError):
     code = "LEARNER_NOT_FOUND"
 
 
+# ================ Facilitator Errors ================
+
+class FacilitatorNotFoundError(NotFoundError):
+    """Raised when facilitator is not found."""
+
+    message = "Facilitator not found."
+    code = "FACILITATOR_NOT_FOUND"
+
+
 # ================ User Profile Error ================
 
 class UserProfileNotFoundError(NotFoundError):
@@ -213,6 +222,53 @@ class PasswordReuseError(DomainValidationError):
     code = "PASSWORD_REUSE"
 
 
+# ================ Cohort Error ================
+
+class CohortCodeAlreadyExistsError(AlreadyExistsError):
+    """Raised when creating a cohort with a code that already exists."""
+    message = "Cohort code already exists."
+    code = "COHORT_CODE_ALREADY_EXISTS"
+
+
+class CohortNotFoundError(NotFoundError):
+    """Raised when a cohort does not exists."""
+    message = "Cohort does not exists."
+    code = "COHORT_NOT_FOUND"
+
+
+class InvalidCohortStatusError(DomainValidationError):
+    """Raised when a cohort's status does not allow the requested operation."""
+
+    message = "Cohort status does not allow this action."
+    code = "INVALID_COHORT_STATUS"
+
+
+class CohortLearnerAlreadyExistsError(AlreadyExistsError):
+    """Raised when a learner is already enrolled in a cohort."""
+
+    message = "Learner is already assigned to the cohort."
+    code = "COHORT_LEARNER_ALREADY_EXISTS"
+
+
+class CohortFacilitatorAlreadyExistsError(AlreadyExistsError):
+    """Raised when a learner is already enrolled in a cohort."""
+
+    message = "Facilitator is already assigned to the cohort."
+    code = "COHORT_FACILITATOR_ALREADY_EXISTS"
+
+
+class CohortLearnerNotFoundError(NotFoundError):
+    """Raised when a cohort learner does not exists."""
+    message = "Cohort learner does not exists."
+    code = "COHORT_LEARNER_NOT_FOUND"
+
+
+class CohortFacilitatorNotFoundError(NotFoundError):
+    """Raised when a cohort facilitator does not exists."""
+    message = "Cohort facilitator does not exists."
+    code = "COHORT_FACILITATOR_NOT_FOUND"
+    
+    
 class SelfPasswordResetNotAllowedError(UnauthorizedError):
     """Raised when an admin targets their own account with the admin password reset."""
 

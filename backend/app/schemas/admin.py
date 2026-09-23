@@ -28,6 +28,7 @@ class AdminUserCreateResponse(BaseModel):
     profile: UserProfileResponse
     created_at: datetime
     updated_at: datetime
+    cohort_id: int
 
 
 class AdminUserListItem(BaseModel):

@@ -1,7 +1,6 @@
-from fastapi import APIRouter, Request
-
 from app.schemas.user import PasswordChangeRequest, UserMeResponse, UserResponse
 from app.schemas.user_profile import UserProfileResponse, UserProfileUpdate
+from fastapi import APIRouter, Request
 
 from ..deps import (
     AuthServiceDep,

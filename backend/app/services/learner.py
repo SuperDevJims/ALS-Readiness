@@ -14,7 +14,7 @@ class LearnerService:
         )
 
     async def get_by_id(self, learner_id: int) -> Learner:
-        learner = self._learner_repository.get_by_id(learner_id)
+        learner = await self._learner_repository.get_by_id(learner_id)
 
         if learner is None:
             raise LearnerNotFoundError()
