@@ -1,6 +1,7 @@
 import axios from "axios";
 import { useAuthStore } from "../store/authStore";
-import { redirect } from "../navigation";
+import { CHANGE_PASSWORD_PATH, redirect } from "../navigation";
+import { isMustChangePassword } from "./errors";
 
 export const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
@@ -80,13 +81,23 @@ apiClient.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    if (response.status === 403) {
-      redirect("/access-denied");
+    // The one 403 that's a routing concern rather than a request failure: the
+    // account must change its password before the backend will serve anything
+    // else. Flag the store first so the router's gate lets the change-password
+    // page render (a user reset mid-session has a stale flag until now), then
+    // send them there. The caller's own catch still runs, but the page is
+    // already being replaced.
+    if (response.status === 403 && isMustChangePassword(error)) {
+      useAuthStore.getState().setMustChangePassword(true);
+      redirect(CHANGE_PASSWORD_PATH);
       return Promise.reject(error);
     }
 
-    // 409 (conflict) and 400/422 (validation) are surfaced to the caller as-is -
-    // handling (toast vs. field-level error) depends on context, not this layer.
+    // Every other 403 (self-reset, admin-on-admin without super admin, approve
+    // by a non-super admin, ...) is surfaced to the caller as-is, like 409 and
+    // 400/422 - handling (toast vs. inline banner) depends on context, not this
+    // layer. There is deliberately no blanket 403 redirect: page-level role
+    // denial is done by RequireRole (routes/guards.tsx), in place.
     return Promise.reject(error);
   }
 );

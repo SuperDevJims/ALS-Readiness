@@ -35,6 +35,7 @@ async def login(
     return TokenResponse(
         access_token=auth_tokens.access_token,
         token_type="bearer",
+        must_change_password=auth_tokens.must_change_password,
     )
 
 
@@ -60,6 +61,7 @@ async def refresh(
     return TokenResponse(
         access_token=auth_tokens.access_token,
         token_type="bearer",
+        must_change_password=auth_tokens.must_change_password,
     )
 
 

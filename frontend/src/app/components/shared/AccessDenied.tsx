@@ -1,9 +1,13 @@
 import { ShieldX, ArrowLeft } from "lucide-react";
 import { ALSenseLogo } from "./ALSenseLogo";
+import { homeForRole } from "../../../lib/navigation";
 
 export function AccessDenied({ role, navigate }) {
   const isFaci = role === "facilitator" || role === "admin";
-  const home   = isFaci ? "facilitator-dashboard" : "learner-dashboard";
+  // Same mapping as post-login. This used to send admins to facilitator-dashboard,
+  // which they can't view, so the button landed on this same screen.
+  const home   = homeForRole(role);
+  const homeLabel = role === "admin" ? "Admin" : role === "facilitator" ? "Facilitator" : "Learner";
 
   return (
     <div className="min-h-screen bg-[#F5F7FA] flex flex-col items-center justify-center p-6">
@@ -28,7 +32,7 @@ export function AccessDenied({ role, navigate }) {
         <button onClick={() => navigate(home)}
           className="w-full flex items-center justify-center gap-2 py-3 bg-[#0B1F3A] hover:bg-[#152e56] text-white rounded-xl font-medium transition-colors">
           <ArrowLeft className="w-4 h-4" />
-          {isFaci ? "Back to Facilitator Dashboard" : "Back to Learner Dashboard"}
+          Back to {homeLabel} Dashboard
         </button>
       </div>
     </div>
