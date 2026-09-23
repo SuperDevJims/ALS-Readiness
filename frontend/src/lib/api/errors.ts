@@ -36,11 +36,17 @@ export function getErrorMessage(err: unknown, fallback = "Something went wrong. 
   return data.message || fallback;
 }
 
+// ── Auth error codes ─────────────────────────────────────────────────────────
+// Only codes something branches on live here; the rest (e.g. UNAUTHORIZED,
+// SELF_PASSWORD_RESET_NOT_ALLOWED) are read by the component that triggered them.
+
 // ── M02 (diagnostic / inventory test) error codes ────────────────────────────
 // Confirmed against the live backend's ErrorResponse `code` values. Compare with
 // hasErrorCode()/the predicates below instead of repeating string literals.
 
 export const ApiErrorCode = {
+  /** 403 - the account's password was just reset; only /users/me and /users/me/password work until it's changed. */
+  MUST_CHANGE_PASSWORD: "MUST_CHANGE_PASSWORD",
   /** 409 - the learner already submitted an attempt for this strand test. */
   STRAND_TEST_ATTEMPT_ALREADY_EXISTS: "STRAND_TEST_ATTEMPT_ALREADY_EXISTS",
   /** 409 - the learner already submitted an attempt for this LRI test. */
@@ -65,6 +71,11 @@ export type ApiErrorCodeValue = (typeof ApiErrorCode)[keyof typeof ApiErrorCode]
 export function hasErrorCode(err: unknown, ...codes: ApiErrorCodeValue[]): boolean {
   const code = getErrorCode(err);
   return code !== undefined && (codes as string[]).includes(code);
+}
+
+/** 403: the user must change their password before any other request will succeed. */
+export function isMustChangePassword(err: unknown): boolean {
+  return hasErrorCode(err, ApiErrorCode.MUST_CHANGE_PASSWORD);
 }
 
 /** 409: this learner already submitted an attempt for this test (strand or LRI). */

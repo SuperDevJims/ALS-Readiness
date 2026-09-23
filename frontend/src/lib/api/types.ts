@@ -25,6 +25,8 @@ export interface LoginRequest {
 export interface TokenResponse {
   access_token: string;
   token_type: string;
+  /** True right after an admin reset this account's password; the user must change it before anything else. */
+  must_change_password: boolean;
 }
 
 export type LoginResponse = TokenResponse;
@@ -49,6 +51,9 @@ export interface User {
   id_no: string;
   role: Role;
   is_active: boolean;
+  /** Only ever true for the single founding admin; the only account that can approve/deactivate/reset other admins. */
+  is_super_admin: boolean;
+  must_change_password: boolean;
   created_at: string;
   updated_at: string;
 }

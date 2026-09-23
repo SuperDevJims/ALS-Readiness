@@ -4,7 +4,11 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import InvalidAccessTokenError, UnauthorizedError
+from app.core.exceptions import (
+    InvalidAccessTokenError,
+    MustChangePasswordError,
+    UnauthorizedError,
+)
 from app.core.jwt import decode_access_token
 from app.db.session import get_session
 from app.enums.user import UserRole
@@ -196,10 +200,16 @@ AdminServiceDep = Annotated[AdminService, Depends(get_admin_service)]
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
 
 
-async def get_current_user(
+async def get_current_user_allow_pending_change(
     token: Annotated[str, Depends(oauth2_scheme)],
     user_service: UserServiceDep,
 ) -> User:
+    """Authenticate without enforcing must_change_password.
+
+    Only for endpoints a user must still reach to clear the flag (reading
+    their own account, changing their password). Everything else should use
+    get_current_user.
+    """
     payload = decode_access_token(token)
 
     try:
@@ -208,6 +218,18 @@ async def get_current_user(
         raise InvalidAccessTokenError()
 
     return await user_service.get_active_by_id(user_id)
+
+
+CurrentUserAllowPendingChangeDep = Annotated[
+    User, Depends(get_current_user_allow_pending_change)
+]
+
+
+async def get_current_user(current_user: CurrentUserAllowPendingChangeDep) -> User:
+    if current_user.must_change_password:
+        raise MustChangePasswordError()
+
+    return current_user
 
 
 CurrentUserDep = Annotated[User, Depends(get_current_user)]
@@ -221,6 +243,16 @@ async def require_admin(current_user: CurrentUserDep) -> User:
 
 
 RequireAdminDep = Annotated[User, Depends(require_admin)]
+
+
+async def require_super_admin(current_user: CurrentUserDep) -> User:
+    if current_user.role != UserRole.ADMIN or not current_user.is_super_admin:
+        raise UnauthorizedError()
+
+    return current_user
+
+
+RequireSuperAdminDep = Annotated[User, Depends(require_super_admin)]
 
 
 async def get_current_learner(current_user: CurrentUserDep) -> User:

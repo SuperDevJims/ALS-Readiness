@@ -22,3 +22,5 @@ class User(BaseEntity, TimestampMixin, table=True):
     )
 
     is_active: bool = Field(default=True)
+    is_super_admin: bool = Field(default=False)
+    must_change_password: bool = Field(default=False)

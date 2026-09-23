@@ -1,17 +1,24 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.core.security import validate_password_complexity
 from app.enums.user import UserRole
 from app.schemas.user_profile import UserProfileResponse
 
 
 class UserCreate(BaseModel):
     role: UserRole | None = Field(default=UserRole.LEARNER)
+    is_active: bool = Field(default=True)
 
 
 class UserPasswordUpdate(BaseModel):
-    password: str = Field(min_length=8, max_length=128)
+    password: str = Field(max_length=128)
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, value: str) -> str:
+        return validate_password_complexity(value)
 
 
 class UserResponse(BaseModel):
@@ -19,6 +26,8 @@ class UserResponse(BaseModel):
     id_no: str
     role: UserRole
     is_active: bool
+    is_super_admin: bool
+    must_change_password: bool
     created_at: datetime
     updated_at: datetime
 
@@ -31,4 +40,9 @@ class UserMeResponse(UserResponse):
 
 class PasswordChangeRequest(BaseModel):
     current_password: str = Field(min_length=1, max_length=128)
-    new_password: str = Field(min_length=8, max_length=128)
+    new_password: str = Field(max_length=128)
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_new_password(cls, value: str) -> str:
+        return validate_password_complexity(value)

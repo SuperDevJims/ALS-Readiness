@@ -83,6 +83,34 @@ class InactiveUserError(UnauthenticatedError):
     code = "INACTIVE_USER"
 
 
+class NotAnAdminError(DomainValidationError):
+    """Raised when an admin-only action targets a user who is not an admin."""
+
+    message = "Target user is not an admin."
+    code = "NOT_AN_ADMIN"
+
+
+class UserAlreadyActiveError(DomainValidationError):
+    """Raised when approving a user who is already active."""
+
+    message = "User is already active."
+    code = "USER_ALREADY_ACTIVE"
+
+
+class SelfApprovalError(DomainValidationError):
+    """Raised when a super admin tries to approve their own account."""
+
+    message = "You cannot approve your own account."
+    code = "SELF_APPROVAL"
+
+
+class MustChangePasswordError(UnauthorizedError):
+    """Raised when a user with a pending forced password change calls a protected endpoint."""
+
+    message = "You must change your password before continuing."
+    code = "MUST_CHANGE_PASSWORD"
+
+
 # ================ Strand Test Error ================
 
 class StrandTestNotFoundError(NotFoundError):
@@ -239,3 +267,24 @@ class CohortFacilitatorNotFoundError(NotFoundError):
     """Raised when a cohort facilitator does not exists."""
     message = "Cohort facilitator does not exists."
     code = "COHORT_FACILITATOR_NOT_FOUND"
+    
+    
+class SelfPasswordResetNotAllowedError(UnauthorizedError):
+    """Raised when an admin targets their own account with the admin password reset."""
+
+    message = "You cannot reset your own password here. Use the change password option instead."
+    code = "SELF_PASSWORD_RESET_NOT_ALLOWED"
+
+
+class PasswordRequiredError(DomainValidationError):
+    """Raised when resetting an admin's password without supplying a new one."""
+
+    message = "A new password is required to reset an admin's password."
+    code = "PASSWORD_REQUIRED"
+
+
+class PasswordNotAllowedError(DomainValidationError):
+    """Raised when a password is supplied for a reset that sets it automatically."""
+
+    message = "Passwords for learners and facilitators are reset automatically; do not supply one."
+    code = "PASSWORD_NOT_ALLOWED"

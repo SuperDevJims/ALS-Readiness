@@ -37,6 +37,9 @@ export function useLegacyNavigate() {
   return (page: string) => navigate(toPath(page));
 }
 
+/** The forced-password-change page. Deliberately outside ProtectedPage - see App.tsx. */
+export const CHANGE_PASSWORD_PATH = "/change-password";
+
 /** The page key for a role's home dashboard, post-login. */
 export function homeForRole(role: Role): string {
   return role === "facilitator" ? "facilitator-dashboard"

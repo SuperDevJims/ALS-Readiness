@@ -7,9 +7,14 @@ from app.schemas.admin import (
     AdminUserListResponse,
 )
 from app.schemas.user import UserPasswordUpdate, UserResponse
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Body, Depends, Query, status
 
-from ..deps import AdminServiceDep, require_admin
+from ..deps import (
+    AdminServiceDep,
+    RequireAdminDep,
+    RequireSuperAdminDep,
+    require_admin,
+)
 
 router = APIRouter(
     prefix="/admin",
@@ -79,10 +84,11 @@ async def create_admin(
 )
 async def update_user_password(
     user_id: int,
-    user_update: UserPasswordUpdate,
     admin_service: AdminServiceDep,
+    admin: RequireAdminDep,
+    user_update: UserPasswordUpdate | None = Body(default=None),
 ):
-    user = await admin_service.update_user_password(user_id, user_update)
+    user = await admin_service.update_user_password(user_id, user_update, admin)
     return UserResponse.model_validate(user)
 
 
@@ -93,8 +99,9 @@ async def update_user_password(
 async def deactivate_user(
     user_id: int,
     admin_service: AdminServiceDep,
+    admin: RequireAdminDep,
 ):
-    user = await admin_service.deactivate_user(user_id)
+    user = await admin_service.deactivate_user(user_id, admin)
     return UserResponse.model_validate(user)
 
 
@@ -105,7 +112,21 @@ async def deactivate_user(
 async def activate_user(
     user_id: int,
     admin_service: AdminServiceDep,
+    admin: RequireAdminDep,
 ):
-    user = await admin_service.activate_user(user_id)
+    user = await admin_service.activate_user(user_id, admin)
+    return UserResponse.model_validate(user)
+
+
+@router.patch(
+    "/users/{user_id}/approve",
+    response_model=UserResponse,
+)
+async def approve_admin(
+    user_id: int,
+    admin_service: AdminServiceDep,
+    super_admin: RequireSuperAdminDep,
+):
+    user = await admin_service.approve_admin(user_id, super_admin)
     return UserResponse.model_validate(user)
 
