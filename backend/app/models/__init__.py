@@ -4,8 +4,10 @@ from .facilitator import Facilitator
 from .learner import Learner
 from .learning_content import LearningContent
 from .learning_strand import LearningStrand
+from .lesson import Lesson
 from .lri_test import LRITest, LRITestItem
 from .lri_test_attempt import LRITestAttempt, LRITestAttemptAnswer
+from .module import Module
 from .participant_intake import ParticipantIntake
 from .refresh_token import RefreshToken
 from .strand_test import StrandTest, StrandTestItem, StrandTestItemOption
