@@ -1,10 +1,12 @@
+from datetime import datetime
+
 from sqlalchemy import Enum as SQLEnum
 from sqlmodel import Field
 
 from app.enums.curriculum import StructureStatus
 
 from .base import BaseEntity
-    
+
 
 class LearningStrand(BaseEntity, table=True):
     __tablename__ = "learning_strands"
@@ -14,10 +16,12 @@ class LearningStrand(BaseEntity, table=True):
     description: str
 
     status: StructureStatus | None = Field(
-            default=StructureStatus.ACTIVE,
-            sa_type=SQLEnum(
-                StructureStatus,
-                values_callable=lambda enum: [e.value for e in enum],
-                name="structure_status"
-            ),
-        )
+        default=StructureStatus.ACTIVE,
+        sa_type=SQLEnum(
+            StructureStatus,
+            values_callable=lambda enum: [e.value for e in enum],
+            name="structure_status"
+        ),
+    )
+
+    deleted_at: datetime | None

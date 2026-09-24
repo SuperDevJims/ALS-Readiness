@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy import Enum as SQLEnum
 from sqlmodel import Field
 
@@ -23,3 +25,5 @@ class Module(BaseEntity):
             name="structure_status"
         ),
     )
+
+    deleted_at: datetime | None

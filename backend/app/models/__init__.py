@@ -2,7 +2,6 @@ from .cohort import Cohort, CohortFacilitator, CohortLearner
 from .content_evaluation import ContentEvaluation
 from .facilitator import Facilitator
 from .learner import Learner
-from .learning_content import LearningContent
 from .learning_strand import LearningStrand
 from .lesson import Lesson
 from .lri_test import LRITest, LRITestItem
@@ -27,7 +26,6 @@ __all__ = [
     "LRITestAttemptAnswer",
     "LRITestItem",
     "Learner",
-    "LearningContent",
     "LearningStrand",
     "Lesson",
     "Module",
