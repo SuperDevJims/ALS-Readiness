@@ -170,7 +170,9 @@ class CohortService:
         if user.role == UserRole.LEARNER:
             cohort = await self._cohort_repo.get_cohort_by_learner_user_id(user.id)
             return [cohort] if cohort else []
+        
         elif user.role == UserRole.FACILITATOR:
             return await self._cohort_repo.get_cohort_by_facilitator_id(user.id)
+        
         else:
             pass

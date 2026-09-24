@@ -37,7 +37,7 @@ class CohortRepository(BaseRepository[Cohort]):
         statement = (
             select(Cohort)
             .join(CohortFacilitator, Cohort.id == CohortFacilitator.cohort_id)
-            .join(Facilitator, Facilitator.id == CohortFacilitator.learner_id)
+            .join(Facilitator, Facilitator.id == CohortFacilitator.facilitator_id)
             .join(User, User.id == Facilitator.user_id)
             .where(User.id == user_id)
         )

@@ -130,9 +130,15 @@ me_router = APIRouter(
 
 # ================ Current User ================ 
 
-@me_router.get("", response_model=None)
+@me_router.get("", response_model=CohortListResponse)
 async def get_my_cohorts(current_user: CurrentUserDep, cohort_service: CohortServiceDep):
     cohorts = await cohort_service.get_cohorts_for_user(current_user)
+    return CohortListResponse(
+        cohorts=[
+            CohortResponse.model_validate(cohort)
+            for cohort in cohorts
+        ]
+    )
 
 
 router = APIRouter()
