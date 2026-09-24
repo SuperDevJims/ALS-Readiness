@@ -1,4 +1,5 @@
 from app.enums.cohort import CohortStatus
+from app.enums.user import UserRole
 from app.schemas.cohort import (
     CohortCreate,
     CohortListResponse,
@@ -12,21 +13,27 @@ from app.schemas.cohort_facilitator import (
 from app.schemas.cohort_learner import CohortLearnerCreate, CohortLearnerResponse
 from fastapi import APIRouter, Depends, status
 
-from ..deps import CohortServiceDep, RequireAdminDep, require_admin
+from ..deps import (
+    CohortServiceDep,
+    CurrentUserDep,
+    RequireAdminDep,
+    get_current_user,
+    require_admin,
+)
 
-router = APIRouter(
+admin_router = APIRouter(
     prefix="/cohorts", 
     tags=["Cohorts"],
+    dependencies=[Depends(require_admin)],
 )
 
 
 # ================ Admin-only ================ 
 
-@router.post(
+@admin_router.post(
     "",
     status_code=status.HTTP_201_CREATED,
     response_model=CohortResponse,
-    dependencies=[Depends(require_admin)],
 )
 async def create_cohort(
     cohort_create: CohortCreate,
@@ -37,10 +44,9 @@ async def create_cohort(
     return CohortResponse.model_validate(res)
 
 
-@router.get(
+@admin_router.get(
     "",
     response_model=CohortListResponse,
-    dependencies=[Depends(require_admin)],
 )
 async def get_cohorts(
     status: CohortStatus | None = None,
@@ -52,10 +58,9 @@ async def get_cohorts(
     )
 
 
-@router.patch(
+@admin_router.patch(
     "/{cohort_id}/status",
     response_model=CohortResponse,
-    dependencies=[Depends(require_admin)],
 )
 async def update_cohort_status(
     cohort_id: int,
@@ -66,11 +71,10 @@ async def update_cohort_status(
     return CohortResponse.model_validate(cohort)
 
 
-@router.post(
+@admin_router.post(
     "/{cohort_id}/learners",
     status_code=status.HTTP_201_CREATED,
     response_model=CohortLearnerResponse,
-    dependencies=[Depends(require_admin)],
 )
 async def assign_learner_to_cohort(
     cohort_id: int,
@@ -86,11 +90,10 @@ async def assign_learner_to_cohort(
     return CohortLearnerResponse.model_validate(cohort_learner)
 
 
-@router.post(
+@admin_router.post(
     "/{cohort_id}/facilitators",
     status_code=status.HTTP_201_CREATED,
     response_model=CohortFacilitatorResponse,
-    dependencies=[Depends(require_admin)],
 )
 async def assign_facilitator_to_cohort(
     cohort_id: int,
@@ -109,6 +112,31 @@ async def assign_facilitator_to_cohort(
 
 # ================ Shared ================ 
 
-@router.get("/{cohort_id}/members")
+shared_router = APIRouter(
+    prefix="/cohorts",
+    tags=["Cohorts"],
+    dependencies=[Depends(get_current_user)]
+)
+
+@shared_router.get("/{cohort_id}/members")
 async def get_cohort_with_members(cohort_id: int, cohort_service: CohortServiceDep):
     return await cohort_service.get_cohort_with_members(cohort_id)
+
+
+me_router = APIRouter(
+    prefix="/me/cohorts",
+    tags=["Cohorts"]
+)
+
+# ================ Current User ================ 
+
+@me_router.get("", response_model=None)
+async def get_my_cohorts(current_user: CurrentUserDep, cohort_service: CohortServiceDep):
+    cohorts = await cohort_service.get_cohorts_for_user(current_user)
+
+
+router = APIRouter()
+
+router.include_router(admin_router)
+router.include_router(shared_router)
+router.include_router(me_router)
