@@ -8,7 +8,7 @@ from app.enums.curriculum import StructureStatus
 from .base import BaseEntity
 
 
-class Module(BaseEntity):
+class Module(BaseEntity, table=True):
     __tablename__ = "modules"
 
     strand_id: int = Field(foreign_key="learning_strands.id")

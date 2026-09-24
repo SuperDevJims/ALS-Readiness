@@ -1,5 +1,4 @@
 from .cohort import Cohort, CohortFacilitator, CohortLearner
-from .content_evaluation import ContentEvaluation
 from .facilitator import Facilitator
 from .learner import Learner
 from .learning_strand import LearningStrand
@@ -19,7 +18,6 @@ __all__ = [
     "Cohort",
     "CohortFacilitator",
     "CohortLearner",
-    "ContentEvaluation",
     "Facilitator",
     "LRITest",
     "LRITestAttempt",
