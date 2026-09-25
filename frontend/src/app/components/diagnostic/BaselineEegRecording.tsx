@@ -18,14 +18,6 @@ const STAGES = [
   { id: "done", label: "Baseline Recording Complete", duration: 0 },
 ];
 
-const readinessFactors = [
-  { label: "Attention Level", value: 82, color: "bg-blue-500", icon: "🧠" },
-  { label: "Meditation Score", value: 74, color: "bg-teal-500", icon: "🌊" },
-  { label: "Cognitive Load", value: 68, color: "bg-purple-500", icon: "⚡" },
-  { label: "Affective State", value: 78, color: "bg-green-500", icon: "😊" },
-  { label: "Focus Index", value: 85, color: "bg-indigo-500", icon: "🎯" },
-];
-
 function formatMMSS(totalSeconds: number) {
   const m = Math.floor(totalSeconds / 60).toString().padStart(2, "0");
   const s = Math.floor(totalSeconds % 60).toString().padStart(2, "0");
@@ -198,25 +190,6 @@ export function BaselineEegRecording({ onClose, onComplete }: { onClose: () => v
                     <h3 className="text-gray-800 font-bold">Baseline Recording Complete</h3>
                     <p className="text-gray-500 text-xs">{recordTotalSec}-second baseline EEG captured</p>
                   </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  {readinessFactors.map((f) => (
-                    <div key={f.label} className="p-3 bg-gray-50 rounded-xl">
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <span className="text-base">{f.icon}</span>
-                        <div className="flex-1">
-                          <div className="flex justify-between">
-                            <span className="text-gray-600 text-xs">{f.label}</span>
-                            <span className="text-gray-800 text-xs font-bold">{f.value}%</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                        <div className={`h-full ${f.color} rounded-full`} style={{ width: `${f.value}%` }} />
-                      </div>
-                    </div>
-                  ))}
                 </div>
 
                 <button onClick={onComplete}
