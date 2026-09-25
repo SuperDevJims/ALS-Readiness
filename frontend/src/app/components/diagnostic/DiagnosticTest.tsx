@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, ClipboardList, LoaderCircle, LockKeyhole, Star } from "lucide-react";
 import { AppLayout } from "../shared/AppLayout";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
@@ -12,6 +12,7 @@ import {
 } from "../../../lib/api/diagnostic";
 import { getErrorMessage } from "../../../lib/api/errors";
 import type { LriTestListItem, StrandCode, StrandTestListItem } from "../../../lib/api/types";
+import { discardAttemptDraft, hasAttemptDraft, readOpenAttempt, rememberOpenAttempt } from "./attemptDraft";
 import { LriAttempt, StrandAttempt } from "./PretestAttempts";
 import { ScoreCompareModal } from "./ScoreCompareModal";
 import { StrandTestCard } from "./StrandTestCard";
@@ -55,6 +56,8 @@ export function DiagnosticTest({ navigate, user, onLogout }) {
   const [error, setError] = useState("");
   const [view, setView] = useState<View>({ name: "hub" });
   const [scoreStrand, setScoreStrand] = useState<StrandCode | null>(null);
+  // Only the first hub load after mounting may reopen an attempt (i.e. after a reload).
+  const reopenPending = useRef(true);
 
   // Gate for Parts II/III is the learner's real intake record, not a browser-local flag.
   // The posttest list is fetched too (read-only here) - not to gate anything, but because
@@ -72,13 +75,34 @@ export function DiagnosticTest({ navigate, user, onLogout }) {
       setPostStrandTests(postStrandData.tests);
       setLriTests(lriData.tests);
       setIntakeComplete(intake !== null);
+
+      // A draft for a test the server already has as completed is stale (submitted elsewhere).
+      strandData.tests.forEach((t) => { if (t.attempt_status === "completed") discardAttemptDraft("strand", learnerId, t.test_id); });
+      lriData.tests.forEach((t) => { if (t.attempt_status === "completed") discardAttemptDraft("lri", learnerId, t.test_id); });
+
+      // Reopen the attempt that was on screen before a reload - only if it's still
+      // unsubmitted, still has a draft, and its gate is still met.
+      if (reopenPending.current) {
+        reopenPending.current = false;
+        const open = readOpenAttempt("pretest");
+        const lriDone = lriData.tests.length > 0 && lriData.tests.every((t) => t.attempt_status === "completed");
+        const lri = open?.kind === "lri" ? lriData.tests.find((t) => t.test_id === open.testId) : undefined;
+        const strand = open?.kind === "strand" ? strandData.tests.find((t) => t.test_id === open.testId) : undefined;
+        if (lri && lri.attempt_status !== "completed" && intake !== null && hasAttemptDraft("lri", learnerId, lri.test_id)) setView({ name: "lri-attempt", test: lri });
+        else if (strand && strand.attempt_status !== "completed" && lriDone && hasAttemptDraft("strand", learnerId, strand.test_id)) setView({ name: "strand-attempt", test: strand });
+        else rememberOpenAttempt("pretest", null);
+      }
     } catch (err) {
       setError(getErrorMessage(err, "The pre-test could not be loaded. Please try again."));
     } finally { setLoading(false); }
   };
   useEffect(() => { loadHub(); }, []);
 
-  const backToHub = () => { setView({ name: "hub" }); loadHub(); };
+  const openAttempt = (next: Exclude<View, { name: "hub" }>) => {
+    rememberOpenAttempt("pretest", { kind: next.name === "lri-attempt" ? "lri" : "strand", testId: next.test.test_id });
+    setView(next);
+  };
+  const backToHub = () => { rememberOpenAttempt("pretest", null); setView({ name: "hub" }); loadHub(); };
 
   if (view.name === "strand-attempt") return <StrandAttempt test={view.test} learnerId={learnerId} onClose={backToHub} />;
   if (view.name === "lri-attempt") return <LriAttempt test={view.test} learnerId={learnerId} onClose={backToHub} />;
@@ -122,7 +146,7 @@ export function DiagnosticTest({ navigate, user, onLogout }) {
           {lriTests.map((test) => {
             const done = test.attempt_status === "completed";
             // Completed, no further action - no score is fetched or shown here.
-            return <PartCard key={test.test_id} number="Part II" title={test.title} description={test.description} status={done ? "Completed" : intakeComplete ? "Ready to attempt" : "Locked until Part I"} disabled={!done && !intakeComplete} action={done ? undefined : "Attempt LRI"} onClick={done ? undefined : () => setView({ name: "lri-attempt", test })} />;
+            return <PartCard key={test.test_id} number="Part II" title={test.title} description={test.description} status={done ? "Completed" : intakeComplete ? "Ready to attempt" : "Locked until Part I"} disabled={!done && !intakeComplete} action={done ? undefined : hasAttemptDraft("lri", learnerId, test.test_id) ? "Resume LRI" : "Attempt LRI"} onClick={done ? undefined : () => openAttempt({ name: "lri-attempt", test })} />;
           })}
 
           <section className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
@@ -137,7 +161,8 @@ export function DiagnosticTest({ navigate, user, onLogout }) {
                   test={test}
                   canAttempt={lriComplete}
                   disabledReason={strandsLockReason}
-                  onAttempt={() => setView({ name: "strand-attempt", test })}
+                  attemptLabel={hasAttemptDraft("strand", learnerId, test.test_id) ? "Resume test" : undefined}
+                  onAttempt={() => openAttempt({ name: "strand-attempt", test })}
                   canShowScore={test.attempt_status === "completed" && postByCode[test.strand_code]?.attempt_status === "completed"}
                   onShowScore={() => setScoreStrand(test.strand_code)}
                 />

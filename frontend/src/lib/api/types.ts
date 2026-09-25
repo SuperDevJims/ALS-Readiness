@@ -227,7 +227,7 @@ export interface StrandAttemptAnswer {
   option_id: number;
 }
 
-/** POST /api/learner/strand-tests/{test_id}/attempts body - must answer every item exactly once. */
+/** POST /api/learner/strand-tests/{test_id}/attempts body - at most one answer per item; unanswered items score as incorrect. */
 export interface StrandAttemptCreate {
   answers: StrandAttemptAnswer[];
 }
