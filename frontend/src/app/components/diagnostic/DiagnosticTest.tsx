@@ -15,6 +15,7 @@ import type { LriTestListItem, StrandCode, StrandTestListItem } from "../../../l
 import { LriAttempt, StrandAttempt } from "./PretestAttempts";
 import { ScoreCompareModal } from "./ScoreCompareModal";
 import { StrandTestCard } from "./StrandTestCard";
+import { BaselineEegRecording } from "./BaselineEegRecording";
 
 // Pre-test hub: Part I participant intake, Part II Learner Readiness Inventory,
 // Part III one diagnostic exam per strand. All of it comes from the real API; if
@@ -33,7 +34,8 @@ import { StrandTestCard } from "./StrandTestCard";
 type View =
   | { name: "hub" }
   | { name: "strand-attempt"; test: StrandTestListItem }
-  | { name: "lri-attempt"; test: LriTestListItem };
+  | { name: "lri-attempt"; test: LriTestListItem }
+  | { name: "baseline-eeg" };
 
 function PretestLoadingIndicator() {
   return (
@@ -82,6 +84,7 @@ export function DiagnosticTest({ navigate, user, onLogout }) {
 
   if (view.name === "strand-attempt") return <StrandAttempt test={view.test} learnerId={learnerId} onClose={backToHub} />;
   if (view.name === "lri-attempt") return <LriAttempt test={view.test} learnerId={learnerId} onClose={backToHub} />;
+  if (view.name === "baseline-eeg") return <BaselineEegRecording onClose={backToHub} onComplete={() => navigate("stimulus-content")} />;
 
   // Strands are identified by strand_code, never by name; unknown codes are skipped.
   const byCode = indexByStrandCode(strandTests);
@@ -99,9 +102,9 @@ export function DiagnosticTest({ navigate, user, onLogout }) {
   return <AppLayout navigate={navigate} user={user} onLogout={onLogout} currentPage="diagnostic-test">
     <main className="p-6 max-w-6xl mx-auto w-full">
       <section className="bg-gradient-to-r from-[#182f68] to-[#3535C5] rounded-2xl p-7 text-white mb-6">
-        <p className="text-blue-200 text-xs font-semibold uppercase tracking-[0.16em] mb-2">Baseline assessment · No EEG device</p>
+        <p className="text-blue-200 text-xs font-semibold uppercase tracking-[0.16em] mb-2">Baseline assessment · Muse 2 baseline recording</p>
         <h2 className="text-2xl font-bold mb-2">Pre-test</h2>
-        <p className="text-blue-100 text-sm max-w-2xl leading-relaxed">Complete the participant intake, Learner Readiness Inventory, and three diagnostic exams to establish your baseline.</p>
+        <p className="text-blue-100 text-sm max-w-2xl leading-relaxed">Complete the participant intake, Learner Readiness Inventory, three diagnostic exams, and a short baseline EEG recording to establish your baseline.</p>
       </section>
 
       {loading ? <PretestLoadingIndicator /> : error ? (
@@ -145,6 +148,16 @@ export function DiagnosticTest({ navigate, user, onLogout }) {
               {!strands.length && <p className="text-sm text-gray-500">No pre-test strands are currently available.</p>}
             </div>
           </section>
+
+          <PartCard
+            number="Part IV"
+            title="Baseline EEG Recording"
+            description="A short baseline recording using the Muse 2 headband, taken right after the diagnostic exams."
+            status={allComplete ? "Ready to record" : "Locked until Part I–III complete"}
+            disabled={!allComplete}
+            action="Start Recording"
+            onClick={() => setView({ name: "baseline-eeg" })}
+          />
         </div>
       </>}
 
