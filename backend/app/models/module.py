@@ -14,10 +14,10 @@ class Module(BaseEntity, table=True):
     strand_id: int = Field(foreign_key="learning_strands.id")
 
     title: str = Field(max_length=255)
-    description: str
+    description: str | None
     order_index: int
 
-    status: StructureStatus | None = Field(
+    status: StructureStatus = Field(
         default=StructureStatus.ACTIVE,
         sa_type=SQLEnum(
             StructureStatus,

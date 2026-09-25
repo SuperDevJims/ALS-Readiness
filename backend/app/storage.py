@@ -23,7 +23,7 @@ s3_client = boto3.client(
 
 def build_key(folder: str, filename: str) -> str:
     """Build a unique object key within a given folder prefix."""
-    return f"{folder}/{uuid4()}_{filename}"
+    return f"{folder}/{uuid4()}_{"_".join(filename.lower().split())}"
 
 
 def get_upload_url(key: str, expires_in: int = 600) -> str:

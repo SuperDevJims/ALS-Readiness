@@ -13,9 +13,9 @@ class LearningStrand(BaseEntity, table=True):
 
     code: str = Field(max_length=20, unique=True)
     name: str = Field(max_length=255)
-    description: str
+    description: str | None
 
-    status: StructureStatus | None = Field(
+    status: StructureStatus = Field(
         default=StructureStatus.ACTIVE,
         sa_type=SQLEnum(
             StructureStatus,

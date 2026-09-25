@@ -9,7 +9,7 @@ from .base import BaseEntity
 class ContentEvaluation(BaseEntity, table=True):
     __tablename__ = "content_evaluations"
 
-    content_id: int = Field(foreign_key="learning_contents.id")
+    content_id: int = Field(foreign_key="contents.id")
 
     stimulus_level: StimulusLevel = Field(
         sa_type=SQLEnum(

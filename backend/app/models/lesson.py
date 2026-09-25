@@ -14,10 +14,10 @@ class Lesson(BaseEntity, table=True):
     module_id: int = Field(foreign_key="modules.id")
 
     title: str = Field(max_length=255)
-    description: str
+    description: str | None
     order_index: int
 
-    status: StructureStatus | None = Field(
+    status: StructureStatus = Field(
         default=StructureStatus.ACTIVE,
         sa_type=SQLEnum(
             StructureStatus,
