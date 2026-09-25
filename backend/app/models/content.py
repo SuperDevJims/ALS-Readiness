@@ -24,7 +24,7 @@ class Content(BaseEntity, table=True):
         )
     )
 
-    status: ContentStatus | None = Field(
+    status: ContentStatus = Field(
         default=ContentStatus.ACTIVE,
         sa_type=SQLEnum(
             ContentStatus,
