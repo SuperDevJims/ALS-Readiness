@@ -4,8 +4,7 @@ import { ALSenseLogo } from "./shared/ALSenseLogo";
 const modules = [
   { id: "M01", title: "User Authentication & Role Management", desc: "Secure multi-role access for learners, facilitators, and admins with profile setup wizard.", icon: Shield, tag: "Core" },
   { id: "M02", title: "Diagnostic & Inventory Test Module", desc: "Preparatory Equivalency Exams with validated questionnaires linked to learner accounts.", icon: Target, tag: "Core" },
-  // M03 Readiness Profiling — moved into the pretest flow, no longer a standalone landing module
-  // { id: "M03", title: "Readiness Profiling Module", desc: "AI-powered readiness prediction using Ensemble Learning and affective state tagging.", icon: Brain, tag: "AI/ML" },
+  { id: "M03", title: "Readiness Profiling Module", desc: "AI-powered readiness prediction using Ensemble Learning and affective state tagging.", icon: Brain, tag: "AI/ML" },
   { id: "M04", title: "Learner Dashboard & Stimulus Content", desc: "Personalized stimulus delivery with auditory, visual, and reading content types.", icon: BookOpen, tag: "FE" },
   { id: "M05", title: "Facilitator / AIS Teacher Dashboard", desc: "Cohort management, analytics, reporting, and exportable results for educators.", icon: BarChart3, tag: "Analytics" },
 ];
@@ -77,7 +76,7 @@ export function LandingPage({ navigate }) {
           <h2 className="text-white mb-3" style={{ fontSize: "2rem", fontWeight: 600 }}>Platform Modules</h2>
           <p className="text-blue-300">Five integrated modules powering the complete ALS learning experience</p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {modules.map((mod) => {
             const Icon = mod.icon;
             return (
