@@ -35,7 +35,7 @@ from app.repositories.test_item_asset import TestItemAssetRepository
 _LS1_EN_ITEMS = [
     {
         "question_text": (
-            "Elsa was tickled pink when her boyfriend surprised her with a "
+            "Elsa was <u>tickled pink</u> when her boyfriend surprised her with a "
             "marriage proposal on her birthday. What does the underlined "
             "phrase mean?"
         ),
@@ -50,7 +50,7 @@ _LS1_EN_ITEMS = [
     {
         "question_text": (
             "Kevin accused us of stealing his phone until he found it. Although "
-            "he realized his mistake, he was trying to sweep it under the rug. "
+            "he realized his mistake, he was trying to sweep it <u>under the rug</u>. "
             "What does the underlined expression mean?"
         ),
         "items": [
