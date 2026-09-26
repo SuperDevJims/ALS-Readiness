@@ -26,6 +26,9 @@ export function LandingPage({ navigate }) {
           <button onClick={() => navigate("login")} className="px-5 py-2 text-blue-200 hover:text-white border border-blue-400/30 hover:border-blue-300 rounded-lg transition-all duration-200">
             Sign In
           </button>
+          <button onClick={() => navigate("login")} className="px-5 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-400 hover:to-cyan-400 text-white rounded-lg transition-all duration-200 shadow-lg shadow-blue-500/25">
+            Get Started
+          </button>
         </div>
       </nav>
 
@@ -98,6 +101,16 @@ export function LandingPage({ navigate }) {
               </div>
             );
           })}
+          <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border border-blue-400/30 rounded-2xl p-6 flex flex-col items-center justify-center text-center">
+            <div className="mb-4">
+              <ALSenseLogo iconOnly size="lg" />
+            </div>
+            <h3 className="text-white mb-2" style={{ fontWeight: 600 }}>Ready to begin?</h3>
+            <p className="text-blue-200 text-sm mb-4">Join thousands of ALS learners on their journey</p>
+            <button onClick={() => navigate("login")} className="px-6 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg hover:from-blue-400 hover:to-cyan-400 transition-all duration-200">
+              Get Started
+            </button>
+          </div>
         </div>
       </div>
 

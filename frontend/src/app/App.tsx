@@ -6,12 +6,12 @@ import { ChangePasswordPage } from "./components/auth/ChangePasswordPage";
 // Learner
 import { LearnerDashboard } from "./components/learner/LearnerDashboard";
 import { DiagnosticTest } from "./components/diagnostic/DiagnosticTest";
-// import { EEGProfiling } from "./components/learner/EEGProfiling"; // route disabled, folded into Pre-test
+import { EEGProfiling } from "./components/learner/EEGProfiling";
 import { ParticipantIntake } from "./components/diagnostic/ParticipantIntake";
 import { StimulusContent } from "./components/learner/StimulusContent";
 import { PostTest } from "./components/learner/PostTest";
 import { MyProgress } from "./components/learner/MyProgress";
-// import { Achievements } from "./components/learner/Achievements"; // route disabled
+import { Achievements } from "./components/learner/Achievements";
 import { LearnerSchedule } from "./components/learner/LearnerSchedule";
 // Facilitator
 import { FacilitatorDashboard } from "./components/facilitator/FacilitatorDashboard";
@@ -109,14 +109,12 @@ function AppRoutes() {
         {/* Learner pipeline */}
         <Route path="/learner-dashboard" element={<ProtectedPage allowed={["learner"]} Component={LearnerDashboard} />} />
         <Route path="/diagnostic-test" element={<ProtectedPage allowed={["learner"]} Component={DiagnosticTest} />} />
-        {/* EEG Profiling — folded into the Pre-test flow */}
-        {/* <Route path="/eeg-profiling" element={<ProtectedPage allowed={["learner"]} Component={EEGProfiling} />} /> */}
+        <Route path="/eeg-profiling" element={<ProtectedPage allowed={["learner"]} Component={EEGProfiling} />} />
         <Route path="/participant-intake" element={<ProtectedPage allowed={["learner"]} Component={ParticipantIntake} />} />
         <Route path="/stimulus-content" element={<ProtectedPage allowed={["learner"]} Component={StimulusContent} />} />
         <Route path="/post-test" element={<ProtectedPage allowed={["learner"]} Component={PostTest} />} />
         <Route path="/my-progress" element={<ProtectedPage allowed={["learner"]} Component={MyProgress} />} />
-        {/* Achievements — hidden for now */}
-        {/* <Route path="/achievements" element={<ProtectedPage allowed={["learner"]} Component={Achievements} />} /> */}
+        <Route path="/achievements" element={<ProtectedPage allowed={["learner"]} Component={Achievements} />} />
         <Route path="/learner-schedule" element={<ProtectedPage allowed={["learner"]} Component={LearnerSchedule} />} />
 
         {/* Facilitator */}

@@ -210,10 +210,7 @@ export function StrandAttempt({ test, learnerId, onClose, backLabel }: { test: S
           <section className="border border-gray-100 rounded-2xl p-6">
             {/* Not every question has an image (asset_url is null when there's none, or storage isn't configured). */}
             {item.asset_url && <ImageWithFallback src={item.asset_url} alt="Illustration for this question" className="max-h-72 w-auto max-w-full object-contain rounded-xl mb-5" />}
-            <p
-            className="text-gray-800 text-lg font-medium leading-relaxed mb-6 whitespace-pre-line"
-            dangerouslySetInnerHTML={{ __html: item.question_text }}
-            />
+            <p className="text-gray-800 text-lg font-medium leading-relaxed mb-6 whitespace-pre-line">{item.question_text}</p>
             <div className="space-y-3">
               {item.options.map((option, index) => (
                 <button key={option.option_id} aria-pressed={answers[item.item_id] === option.option_id} disabled={expired} onClick={() => setAnswer(item.item_id, option.option_id)} className={`w-full flex text-left gap-3 p-4 border rounded-xl transition-colors ${answers[item.item_id] === option.option_id ? "border-[#3535C5] bg-indigo-50 text-indigo-900" : "border-gray-200 hover:border-indigo-300 text-gray-700"}`}>
