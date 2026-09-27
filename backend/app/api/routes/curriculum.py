@@ -1,14 +1,33 @@
-from fastapi import APIRouter, Depends
+from typing import Annotated
 
-from ..deps import get_current_user
+from fastapi import APIRouter, Depends, Path, Query
+
+from ..deps import CurrentLearnernDep, get_current_user
 
 router = APIRouter(
-    prefix="/curriculum",
-    tags=["Curriculum"],
-    dependencies=[Depends(get_current_user)]
+    tags=["Curriculum"]
 )
 
 
-@router.get("/{strand}")
-def get_curriculum_for_strand_and_cohort(cohort_id: int):
+@router.get(
+    "/curriculum/{strand_id}",
+    dependencies=[Depends(get_current_user)],
+)
+def get_curriculum(
+    strand_id: int,
+    cohort_id: int,
+    service: None
+):
+    pass
+
+
+@router.get(
+    "/me/curriculum/{strand_id}",
+)
+def get_my_curriculum(
+    strand_id: int,
+    cohort_id: int,
+    current_user: CurrentLearnernDep,
+    service: None,
+):
     pass
