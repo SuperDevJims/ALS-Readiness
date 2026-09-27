@@ -12,6 +12,8 @@ from .base import BaseEntity
 class Content(BaseEntity, table=True):
     __tablename__ = "contents"
 
+    lesson_id: int = Field(foreign_key="lessons.id")
+
     file_key: str = Field(max_length=255)
     title: str = Field(max_length=255)
     description: str | None
@@ -40,6 +42,11 @@ class Content(BaseEntity, table=True):
             values_callable=lambda enum: [e.value for e in enum],
             name="content_visibility",
         ),
+    )
+
+    uploaded_by: int | None = Field(
+        default=None,
+        foreign_key="facilitators.id",
     )
 
     uploaded_at: datetime | None = Field(

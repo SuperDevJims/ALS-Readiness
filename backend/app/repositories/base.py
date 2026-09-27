@@ -32,11 +32,4 @@ class BaseRepository[ModelT: SQLModel]:
         await self._session.refresh(instance)
 
         return instance
-
-    async def rollback(self) -> None:
-        """Allows handler to undo any pending changes in the current transactions."""
-        self._session.rollback()
-
-    async def commit(self) -> None:
-        """Allows handler to save changes to the database."""
-        self._session.commit()
+        

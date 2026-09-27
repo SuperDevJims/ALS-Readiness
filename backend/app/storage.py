@@ -3,6 +3,7 @@ from uuid import uuid4
 
 import boto3
 from botocore.config import Config
+from botocore.exceptions import ClientError
 
 from app.core.config import settings
 
@@ -24,6 +25,18 @@ s3_client = boto3.client(
 def build_key(folder: str, filename: str) -> str:
     """Build a unique object key within a given folder prefix."""
     return f"{folder}/{uuid4()}_{"_".join(filename.lower().split())}"
+
+
+def file_exists(key: str) -> bool:
+    """Check whether an object exists at the given key in B2."""
+    try:
+        s3_client.head_object(Bucket=settings.b2_bucket_name, Key=key)
+        return True
+    except ClientError as e:
+        error_code = e.response.get("Error", {}).get("Code")
+        if error_code in ("404", "NoSuchKey"):
+            return False
+        raise
 
 
 def get_upload_url(key: str, expires_in: int = 600) -> str:

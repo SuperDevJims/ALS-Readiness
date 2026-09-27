@@ -1,6 +1,11 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
-from app.enums.content import ContentStatus, ContentType, ContentVisibility
+from app.enums.content import (
+    ContentStatus,
+    ContentType,
+    ContentVisibility,
+    StimulusLevel,
+)
 
 
 class UploadUrlRequest(BaseModel):
@@ -13,7 +18,12 @@ class UploadUrlResponse(BaseModel):
 
 
 class ContentCreate(BaseModel):
-    pass
+    lesson_id: int
+    file_key: str
+    title: str
+    description: str | None = None
+    status: ContentStatus = ContentStatus.ACTIVE
+    visibility: ContentVisibility = ContentVisibility.PRIVATE
 
 
 class ContentResponse(BaseModel):
@@ -24,4 +34,19 @@ class ContentResponse(BaseModel):
     type: ContentType
     status: ContentStatus
     visibility: ContentVisibility
-    
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ContentEvaluationCreate(BaseModel):
+    stimulus_level: StimulusLevel
+    cognitive_sustainability_rating: float
+
+
+class ContentEvaluationResponse(BaseModel):
+    id: int
+    content_id: int
+    timulus_level: StimulusLevel
+    cognitive_sustainability_rating: float
+
+    model_config = ConfigDict(from_attributes=True)
