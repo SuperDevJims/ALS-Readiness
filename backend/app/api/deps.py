@@ -14,9 +14,15 @@ from app.db.session import get_session
 from app.enums.user import UserRole
 from app.models.user import User
 from app.repositories.cohort import CohortRepository
+from app.repositories.cohort_content import CohortContentRepository
+from app.repositories.cohort_facilitator import CohortFacilitatorRepository
 from app.repositories.cohort_learner import CohortLearnerRepository
+from app.repositories.content import ContentRepository
+from app.repositories.curriculum import CurriculumRepository
 from app.repositories.facilitator import FacilitatorRepository
 from app.repositories.learner import LearnerRepository
+from app.repositories.learning_strand import LearningStrandRepository
+from app.repositories.lesson import LessonRepository
 from app.repositories.lri_test import LRITestRepository
 from app.repositories.lri_test_attempt import LRITestAttemptRepository
 from app.repositories.lri_test_attempt_answer import LRITestAttemptAnswerRepository
@@ -33,9 +39,14 @@ from app.repositories.user_profile import UserProfileRepository
 from app.services.admin import AdminService
 from app.services.auth import AuthService
 from app.services.cohort import CohortService
+from app.services.cohort_facilitator import CohortFacilitatorService
 from app.services.cohort_learner import CohortLearnerService
+from app.services.content import ContentService
+from app.services.curriculum import CurriculumService
 from app.services.facilitator import FacilitatorService
 from app.services.learner import LearnerService
+from app.services.learning_strand import LearningStrandService
+from app.services.lesson import LessonService
 from app.services.lri_test import LRITestService
 from app.services.lri_test_attempt import LRITestAttemptService
 from app.services.participant_intake import ParticipantIntakeService
@@ -44,8 +55,6 @@ from app.services.strand_test import StrandTestService
 from app.services.strand_test_attempt import StrandTestAttemptService
 from app.services.user import UserService
 from app.services.user_profile import UserProfileService
-from app.services.cohort_facilitator import CohortFacilitatorService
-from app.repositories.cohort_facilitator import CohortFacilitatorRepository
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
 
@@ -262,7 +271,7 @@ async def get_current_learner(current_user: CurrentUserDep) -> User:
     return current_user
 
 
-CurrentLearnernDep = Annotated[User, Depends(get_current_learner)]
+CurrentLearnerDep = Annotated[User, Depends(get_current_learner)]
 
 
 async def get_current_facilitator(current_user: CurrentUserDep) -> User:
@@ -443,11 +452,13 @@ def get_cohort_facilitator_repo(session: SessionDep) -> CohortFacilitatorReposit
     return CohortFacilitatorRepository(session)
 
 
-CohortFacilitatorRepoDep = Annotated[CohortFacilitatorRepository, Depends(get_cohort_facilitator_repo)]
+CohortFacilitatorRepoDep = Annotated[
+    CohortFacilitatorRepository, Depends(get_cohort_facilitator_repo)
+]
 
 
 def get_cohort_facilitator_service(
-    cohort_facilitator_repo: CohortFacilitatorRepoDep, 
+    cohort_facilitator_repo: CohortFacilitatorRepoDep,
     facilitator_service: FacilitatorServiceDep,
 ) -> CohortFacilitatorService:
     return CohortFacilitatorService(
@@ -456,7 +467,9 @@ def get_cohort_facilitator_service(
     )
 
 
-CohortFacilitatorServiceDep = Annotated[CohortFacilitatorService, Depends(get_cohort_facilitator_service)]
+CohortFacilitatorServiceDep = Annotated[
+    CohortFacilitatorService, Depends(get_cohort_facilitator_service)
+]
 
 
 def get_cohort_repo(session: SessionDep) -> CohortRepository:
@@ -479,3 +492,110 @@ def get_cohort_service(
 
 
 CohortServiceDep = Annotated[CohortService, Depends(get_cohort_service)]
+
+
+# ============ Lessons ============
+
+
+def get_lesson_repo(session: SessionDep) -> LessonRepository:
+    return LessonRepository(session)
+
+
+LessonRepoDep = Annotated[LessonRepository, Depends(get_lesson_repo)]
+
+
+def get_lesson_service(lesson_repo: LessonRepoDep) -> LessonService:
+    return LessonService(lesson_repo)
+
+
+LessonServiceDep = Annotated[LessonService, Depends(get_lesson_service)]
+
+
+# ============ Contents ============
+
+
+def get_content_repo(session: SessionDep) -> ContentRepository:
+    return ContentRepository(session)
+
+
+ContentRepoDep = Annotated[ContentRepository, Depends(get_content_repo)]
+
+
+def get_content_service(
+    content_repo: ContentRepoDep,
+    lesson_service: LessonServiceDep,
+    facilitator_service: FacilitatorServiceDep,
+) -> ContentService:
+    return ContentService(
+        content_repo=content_repo,
+        lesson_service=lesson_service,
+        facilitator_service=facilitator_service,
+    )
+
+
+ContentServiceDep = Annotated[ContentService, Depends(get_content_service)]
+
+
+# =========== Cohort Content =============
+
+
+def get_cohort_content_repo(session: SessionDep) -> CohortContentRepository:
+    return CohortContentRepository(session)
+
+
+CohortContentRepoDep = Annotated[
+    CohortContentRepository, Depends(get_cohort_content_repo)
+]
+
+
+# ============ Curriculum =============
+
+
+def get_curriculum_repo(session: SessionDep) -> CurriculumRepository:
+    return CurriculumRepository(session)
+
+
+CurriculumRepoDep = Annotated[CurriculumRepository, Depends(get_curriculum_repo)]
+
+
+def get_curriculum_service(
+    curriculum_repo: CurriculumRepoDep,
+    learner_service: LearnerServiceDep,
+    cohort_content_repo: CohortContentRepoDep,
+    cohort_learner_service: CohortLearnerServiceDep,
+) -> CurriculumService:
+    return CurriculumService(
+        curriculum_repo=curriculum_repo,
+        learner_service=learner_service,
+        cohort_content_repo=cohort_content_repo,
+        cohort_learner_service=cohort_learner_service,
+    )
+
+
+CurriculumServiceDep = Annotated[CurriculumService, Depends(get_curriculum_service)]
+
+
+# ============ Learning Strand ============
+
+def get_strand_repo(session: SessionDep) -> LearningStrandRepository:
+    return LearningStrandRepository(session)
+
+
+StrandRepoDep = Annotated[LearningStrandRepository, Depends(get_strand_repo)]
+
+
+def get_strand_service(
+    strand_repo: StrandRepoDep,
+    curriculum_repo: CurriculumRepoDep,
+    cohort_learner_service: CohortLearnerServiceDep,
+    learner_service: LearnerServiceDep,
+) -> LearningStrandService:
+    return LearningStrandService(
+        strand_repo=strand_repo,
+        curriculum_repo=curriculum_repo,
+        learner_service=learner_service,
+        cohort_learner_service=cohort_learner_service,
+    )
+
+
+StrandServiceDep = Annotated[LearningStrandService, Depends(get_strand_service)]

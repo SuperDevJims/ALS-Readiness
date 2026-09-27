@@ -8,12 +8,14 @@ from app.enums.curriculum import StructureStatus
 from .base import BaseEntity
 
 
-class LearningStrand(BaseEntity, table=True):
-    __tablename__ = "learning_strands"
+class Lesson(BaseEntity, table=True):
+    __tablename__ = "lessons"
 
-    code: str = Field(max_length=20, unique=True)
-    name: str = Field(max_length=255)
+    module_id: int = Field(foreign_key="modules.id")
+
+    title: str = Field(max_length=255)
     description: str | None
+    order_index: int
 
     status: StructureStatus = Field(
         default=StructureStatus.ACTIVE,
@@ -26,7 +28,5 @@ class LearningStrand(BaseEntity, table=True):
 
     deleted_at: datetime | None
 
-    modules: list["Module"] = Relationship(
-        back_populates="strand",
-        sa_relationship_kwargs={"order_by": "Module.order_index"}
-    )
+    module: "Module" = Relationship(back_populates="lessons")
+    contents: list["Content"] = Relationship(back_populates="lesson")

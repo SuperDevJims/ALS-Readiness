@@ -5,7 +5,7 @@ from app.schemas.lri_test_attempt import (
 )
 from fastapi import APIRouter, status
 
-from ..deps import CurrentLearnernDep, LRITestAttemptServiceDep
+from ..deps import CurrentLearnerDep, LRITestAttemptServiceDep
 
 router = APIRouter(tags=["LRI Test Attempt"])
 
@@ -18,7 +18,7 @@ router = APIRouter(tags=["LRI Test Attempt"])
 async def create_lri_test_attempt(
     test_id: int,
     attempt_create: LRITestAttemptCreate,
-    current_user: CurrentLearnernDep,
+    current_user: CurrentLearnerDep,
     attempt_service: LRITestAttemptServiceDep,
 ):
     return await attempt_service.create(
@@ -34,7 +34,7 @@ async def create_lri_test_attempt(
 )
 async def get_lri_test_attempt_result(
     test_id: int,
-    current_user: CurrentLearnernDep,
+    current_user: CurrentLearnerDep,
     attempt_service: LRITestAttemptServiceDep,
 ):
     return await attempt_service.get_result(

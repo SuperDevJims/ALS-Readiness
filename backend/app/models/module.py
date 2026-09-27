@@ -6,14 +6,17 @@ from sqlmodel import Field, Relationship
 from app.enums.curriculum import StructureStatus
 
 from .base import BaseEntity
+from .learning_strand import LearningStrand
 
 
-class LearningStrand(BaseEntity, table=True):
-    __tablename__ = "learning_strands"
+class Module(BaseEntity, table=True):
+    __tablename__ = "modules"
 
-    code: str = Field(max_length=20, unique=True)
-    name: str = Field(max_length=255)
+    strand_id: int = Field(foreign_key="learning_strands.id")
+
+    title: str = Field(max_length=255)
     description: str | None
+    order_index: int
 
     status: StructureStatus = Field(
         default=StructureStatus.ACTIVE,
@@ -26,7 +29,8 @@ class LearningStrand(BaseEntity, table=True):
 
     deleted_at: datetime | None
 
-    modules: list["Module"] = Relationship(
-        back_populates="strand",
-        sa_relationship_kwargs={"order_by": "Module.order_index"}
+    strand: "LearningStrand" = Relationship(back_populates="modules")
+    lessons: list["Lesson"] = Relationship(
+        back_populates="module",
+        sa_relationship_kwargs={"order_by": "Lesson.order_index"},
     )

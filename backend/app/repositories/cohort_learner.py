@@ -4,6 +4,7 @@ from app.models.cohort import CohortLearner
 from app.models.learner import Learner
 from app.models.user import User
 from app.models.user_profile import UserProfile
+from app.enums.cohort import CohortMemberStatus
 
 from .base import BaseRepository
 
@@ -37,3 +38,14 @@ class CohortLearnerRepository(BaseRepository[CohortLearner]):
         )
         result = await self._session.execute(statement)
         return result.all()
+
+    async def get_active_by_learner_id(self, learner_id: int) -> CohortLearner | None:
+        statement = (
+            select(CohortLearner)
+            .where(
+                CohortLearner.learner_id == learner_id, 
+                CohortLearner.status == CohortMemberStatus.ACTIVE,
+            )
+        )
+        result = await self._session.execute(statement)
+        return result.scalar_one_or_none()

@@ -1,5 +1,5 @@
 from sqlalchemy import Enum as SQLEnum
-from sqlmodel import Field
+from sqlmodel import Field, Relationship
 
 from app.enums.content import StimulusLevel
 
@@ -9,7 +9,7 @@ from .base import BaseEntity
 class ContentEvaluation(BaseEntity, table=True):
     __tablename__ = "content_evaluations"
 
-    content_id: int = Field(foreign_key="learning_contents.id")
+    content_id: int = Field(foreign_key="contents.id")
 
     stimulus_level: StimulusLevel = Field(
         sa_type=SQLEnum(
@@ -20,3 +20,6 @@ class ContentEvaluation(BaseEntity, table=True):
     )
 
     cognitive_sustainability_rating: float = Field(ge=0, le=1)
+
+    content: "Content" = Relationship(back_populates="evaluation")
+

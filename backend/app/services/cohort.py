@@ -11,6 +11,8 @@ from app.schemas.cohort import (
 )
 from app.services.cohort_facilitator import CohortFacilitatorService
 from app.services.cohort_learner import CohortLearnerService
+from app.models.user import User
+from app.enums.user import UserRole
 
 DIVISION_PREFIX = "CBY"
 
@@ -163,3 +165,14 @@ class CohortService:
             facilitators=cohort_facilitator_members_response,
             learners=cohort_learner_members_response
         )
+
+    async def get_cohorts_for_user(self, user: User) -> list[Cohort]:
+        if user.role == UserRole.LEARNER:
+            cohort = await self._cohort_repo.get_cohort_by_learner_user_id(user.id)
+            return [cohort] if cohort else []
+        
+        elif user.role == UserRole.FACILITATOR:
+            return await self._cohort_repo.get_cohort_by_facilitator_id(user.id)
+        
+        else:
+            pass

@@ -14,7 +14,17 @@ class StimulusLevel(StrEnum):
 
 
 class ContentStatus(StrEnum):
-    PENDING = "pending"    
-    ACTIVE = "active"     
-    INACTIVE = "inactive"  
-    REJECTED = "rejected" 
+    ACTIVE = "active"
+    ARCHIVED = "archived"
+    DELETED = "deleted"
+
+
+class ContentProgressStatus(StrEnum):
+    NOT_OPENED = "not_opened"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+
+
+class ContentVisibility(StrEnum):
+    PRIVATE = "private"
+    PUBLIC = "public"

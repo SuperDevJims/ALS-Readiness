@@ -1,3 +1,5 @@
+from fastapi import HTTPException
+
 from app.core.exceptions import (
     CohortLearnerAlreadyExistsError,
     CohortLearnerNotFoundError,
@@ -60,3 +62,11 @@ class CohortLearnerService:
             raise CohortLearnerNotFoundError()
 
         return await self._cohort_learner_repo.update(cohort_learner, {"status": status})
+
+    async def get_active_by_learner_id(self, learner_id: int) -> CohortLearner:
+        cohort_learner = await self._cohort_learner_repo.get_active_by_learner_id(learner_id)
+
+        if cohort_learner is None:
+            raise HTTPException(404, "Learner is not assigned to a cohort")
+
+        return cohort_learner
