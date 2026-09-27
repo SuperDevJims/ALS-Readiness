@@ -21,6 +21,7 @@ from app.repositories.content import ContentRepository
 from app.repositories.curriculum import CurriculumRepository
 from app.repositories.facilitator import FacilitatorRepository
 from app.repositories.learner import LearnerRepository
+from app.repositories.learning_strand import LearningStrandRepository
 from app.repositories.lesson import LessonRepository
 from app.repositories.lri_test import LRITestRepository
 from app.repositories.lri_test_attempt import LRITestAttemptRepository
@@ -44,6 +45,7 @@ from app.services.content import ContentService
 from app.services.curriculum import CurriculumService
 from app.services.facilitator import FacilitatorService
 from app.services.learner import LearnerService
+from app.services.learning_strand import LearningStrandService
 from app.services.lesson import LessonService
 from app.services.lri_test import LRITestService
 from app.services.lri_test_attempt import LRITestAttemptService
@@ -560,12 +562,40 @@ def get_curriculum_service(
     curriculum_repo: CurriculumRepoDep,
     learner_service: LearnerServiceDep,
     cohort_content_repo: CohortContentRepoDep,
+    cohort_learner_service: CohortLearnerServiceDep,
 ) -> CurriculumService:
     return CurriculumService(
         curriculum_repo=curriculum_repo,
         learner_service=learner_service,
         cohort_content_repo=cohort_content_repo,
+        cohort_learner_service=cohort_learner_service,
     )
 
 
 CurriculumServiceDep = Annotated[CurriculumService, Depends(get_curriculum_service)]
+
+
+# ============ Learning Strand ============
+
+def get_strand_repo(session: SessionDep) -> LearningStrandRepository:
+    return LearningStrandRepository(session)
+
+
+StrandRepoDep = Annotated[LearningStrandRepository, Depends(get_strand_repo)]
+
+
+def get_strand_service(
+    strand_repo: StrandRepoDep,
+    curriculum_repo: CurriculumRepoDep,
+    cohort_learner_service: CohortLearnerServiceDep,
+    learner_service: LearnerServiceDep,
+) -> LearningStrandService:
+    return LearningStrandService(
+        strand_repo=strand_repo,
+        curriculum_repo=curriculum_repo,
+        learner_service=learner_service,
+        cohort_learner_service=cohort_learner_service,
+    )
+
+
+StrandServiceDep = Annotated[LearningStrandService, Depends(get_strand_service)]

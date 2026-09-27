@@ -28,5 +28,14 @@ class CurriculumResponse(BaseModel):
     strand_id: int
     strand_code: str
     strand_name: str
-    strand_description: str
+    strand_description: str | None
     modules: list[ModuleNode]
+
+
+class StrandProgressResponse(BaseModel):
+    strand_id: int
+    code: str
+    name: str
+    completed_lessons: int
+    total_lessons: int
+    progress_percent: float | None
