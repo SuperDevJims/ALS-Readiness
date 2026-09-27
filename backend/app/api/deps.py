@@ -14,9 +14,11 @@ from app.db.session import get_session
 from app.enums.user import UserRole
 from app.models.user import User
 from app.repositories.cohort import CohortRepository
+from app.repositories.cohort_content import CohortContentRepository
 from app.repositories.cohort_facilitator import CohortFacilitatorRepository
 from app.repositories.cohort_learner import CohortLearnerRepository
 from app.repositories.content import ContentRepository
+from app.repositories.curriculum import CurriculumRepository
 from app.repositories.facilitator import FacilitatorRepository
 from app.repositories.learner import LearnerRepository
 from app.repositories.lesson import LessonRepository
@@ -39,6 +41,7 @@ from app.services.cohort import CohortService
 from app.services.cohort_facilitator import CohortFacilitatorService
 from app.services.cohort_learner import CohortLearnerService
 from app.services.content import ContentService
+from app.services.curriculum import CurriculumService
 from app.services.facilitator import FacilitatorService
 from app.services.learner import LearnerService
 from app.services.lesson import LessonService
@@ -266,7 +269,7 @@ async def get_current_learner(current_user: CurrentUserDep) -> User:
     return current_user
 
 
-CurrentLearnernDep = Annotated[User, Depends(get_current_learner)]
+CurrentLearnerDep = Annotated[User, Depends(get_current_learner)]
 
 
 async def get_current_facilitator(current_user: CurrentUserDep) -> User:
@@ -529,3 +532,40 @@ def get_content_service(
 
 
 ContentServiceDep = Annotated[ContentService, Depends(get_content_service)]
+
+
+# =========== Cohort Content =============
+
+
+def get_cohort_content_repo(session: SessionDep) -> CohortContentRepository:
+    return CohortContentRepository(session)
+
+
+CohortContentRepoDep = Annotated[
+    CohortContentRepository, Depends(get_cohort_content_repo)
+]
+
+
+# ============ Curriculum =============
+
+
+def get_curriculum_repo(session: SessionDep) -> CurriculumRepository:
+    return CurriculumRepository(session)
+
+
+CurriculumRepoDep = Annotated[CurriculumRepository, Depends(get_curriculum_repo)]
+
+
+def get_curriculum_service(
+    curriculum_repo: CurriculumRepoDep,
+    learner_service: LearnerServiceDep,
+    cohort_content_repo: CohortContentRepoDep,
+) -> CurriculumService:
+    return CurriculumService(
+        curriculum_repo=curriculum_repo,
+        learner_service=learner_service,
+        cohort_content_repo=cohort_content_repo,
+    )
+
+
+CurriculumServiceDep = Annotated[CurriculumService, Depends(get_curriculum_service)]

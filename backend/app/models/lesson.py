@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from sqlalchemy import Enum as SQLEnum
-from sqlmodel import Field
+from sqlmodel import Field, Relationship
 
 from app.enums.curriculum import StructureStatus
 
@@ -27,3 +27,6 @@ class Lesson(BaseEntity, table=True):
     )
 
     deleted_at: datetime | None
+
+    module: "Module" = Relationship(back_populates="lessons")
+    contents: list["Content"] = Relationship(back_populates="lesson")

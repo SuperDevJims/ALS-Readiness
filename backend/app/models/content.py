@@ -1,8 +1,9 @@
 from datetime import datetime
+from typing import Optional
 
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy import func
-from sqlmodel import Field
+from sqlmodel import Field, Relationship
 
 from app.enums.content import ContentStatus, ContentType, ContentVisibility
 
@@ -53,3 +54,7 @@ class Content(BaseEntity, table=True):
         default=None,
         sa_column_kwargs={"server_default": func.now()},
     )
+
+    lesson: "Lesson" = Relationship(back_populates="contents")
+    evaluation: Optional["ContentEvaluation"] = Relationship(back_populates="content")
+    progress_records: list["LearnerContentProgress"] = Relationship(back_populates="content")

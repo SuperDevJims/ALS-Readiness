@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from sqlalchemy import Enum as SQLEnum
-from sqlmodel import Field
+from sqlmodel import Field, Relationship
 
 from app.enums.content import ContentProgressStatus
 
@@ -26,3 +26,5 @@ class LearnerContentProgress(BaseEntity, table=True):
     progress_status: float = Field(default=0)
     last_accessed_at: datetime | None
     completed_at: datetime | None
+
+    content: "Content" = Relationship(back_populates="progress_records")

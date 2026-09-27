@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from sqlalchemy import Enum as SQLEnum
-from sqlmodel import Field
+from sqlmodel import Field, Relationship
 
 from app.enums.curriculum import StructureStatus
 
@@ -25,3 +25,8 @@ class LearningStrand(BaseEntity, table=True):
     )
 
     deleted_at: datetime | None
+
+    modules: list["Module"] = Relationship(
+        back_populates="strand",
+        sa_relationship_kwargs={"order_by": "Module.order_index"}
+    )
