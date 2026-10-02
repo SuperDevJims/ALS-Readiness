@@ -5,6 +5,7 @@ from app.schemas.content import (
     ContentCreate,
     ContentEvaluationCreate,
     ContentEvaluationResponse,
+    ContentEvaluationResultResponse,
     ContentResponse,
     UploadUrlRequest,
     UploadUrlResponse,
@@ -52,27 +53,32 @@ async def create_content(
     return ContentResponse.model_validate(content)
 
 
-@router.post("/{content_id}/evaluate", status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{content_id}/evaluate",
+    status_code=status.HTTP_201_CREATED,
+    response_model=ContentEvaluationResultResponse,
+)
 async def evaluate_content(
     file: Annotated[UploadFile, File()],
     service: ContentServiceDep,
 ):
     stimulus_level, cognitive_sustainability_rating = await service.evaluate_content(file)
-    
-    return {
-        cognitive_sustainability_rating
-    }
-    
+
+    return ContentEvaluationResultResponse(
+        stimulus_level=stimulus_level,
+        cognitive_sustainability_rating=cognitive_sustainability_rating,
+    )
+
 
 @router.post(
-    "{content_id}/evaluation",
+    "/{content_id}/evaluation",
     status_code=status.HTTP_201_CREATED,
     response_model=ContentEvaluationResponse,
 )
-def save_content_evaluation(
+async def save_content_evaluation(
     content_id: int,
     data: ContentEvaluationCreate,
     service: ContentServiceDep,
 ):
-    content_eval = service.create_content_evaluation(content_id, **data.model_dump())
+    content_eval = await service.create_content_evaluation(content_id, **data.model_dump())
     return ContentEvaluationResponse.model_validate(content_eval)

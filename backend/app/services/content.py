@@ -1,6 +1,12 @@
 from botocore.exceptions import ClientError
-from fastapi import HTTPException
+from fastapi import UploadFile
 
+from app.core.exceptions import (
+    ContentFileNotFoundError,
+    ContentNotFoundError,
+    InvalidContentFileError,
+    StorageUnavailableError,
+)
 from app.enums.content import ContentType, StimulusLevel
 from app.models.content import Content
 from app.models.content_evaluation import ContentEvaluation
@@ -39,14 +45,14 @@ class ContentService:
 
     def _validate_extension(self, filename: str) -> None:
         if "." not in filename:
-            raise HTTPException(422, "Filename must include an extension")
+            raise InvalidContentFileError("Filename must include an extension")
         ext = filename.rsplit(".", 1)[-1].lower()
         if ext not in self.ALLOWED_EXTENSIONS:
-            raise HTTPException(422, f"Unsupported file extension: .{ext}")
+            raise InvalidContentFileError(f"Unsupported file extension: .{ext}")
 
     def _derive_content_type(self, file_key: str) -> ContentType:
         if "." not in file_key:
-            raise HTTPException(422, "File key has no extension")
+            raise InvalidContentFileError("File key has no extension")
 
         ext = file_key.rsplit(".", 1)[-1].lower()
         if ext in {"mp4", "mov", "webm"}:
@@ -56,7 +62,7 @@ class ContentService:
         if ext in {"pdf", "txt", "docx"}:
             return ContentType.READING
 
-        raise HTTPException(422, f"Unsupported file extension: .{ext}")
+        raise InvalidContentFileError(f"Unsupported file extension: .{ext}")
 
     def create_upload_url(self, filename: str) -> tuple[str, str]:
         self._validate_extension(filename)
@@ -77,10 +83,10 @@ class ContentService:
         try:
             exists = file_exists(content_create.file_key)
         except ClientError:
-            raise HTTPException(503, "Storage service unavailable.")
+            raise StorageUnavailableError() from None
 
         if not exists:
-            raise HTTPException(404, "File not found at the given key.")
+            raise ContentFileNotFoundError()
 
         content_type = self._derive_content_type(content_create.file_key)
 
@@ -92,14 +98,16 @@ class ContentService:
 
         return await self._content_repo.create(content)
 
-    async def evaluate_content(self) -> tuple[StimulusLevel, float]:
+    async def evaluate_content(self, file: UploadFile) -> tuple[StimulusLevel, float]:
+        # Placeholder pending the TRIBE decision: the file is not read or
+        # evaluated, and every call returns the same fixed result.
         return StimulusLevel.LOW, 0.5
 
     async def get_content_by_id(self, content_id: int) -> Content:
         content = await self._content_repo.get_by_id(content_id)
 
         if content is None:
-            raise HTTPException(404, "Content evaluation not found.")
+            raise ContentNotFoundError()
 
         return content
 

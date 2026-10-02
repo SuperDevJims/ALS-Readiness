@@ -43,10 +43,15 @@ class ContentEvaluationCreate(BaseModel):
     cognitive_sustainability_rating: float
 
 
+class ContentEvaluationResultResponse(BaseModel):
+    stimulus_level: StimulusLevel
+    cognitive_sustainability_rating: float
+
+
 class ContentEvaluationResponse(BaseModel):
     id: int
     content_id: int
-    timulus_level: StimulusLevel
+    stimulus_level: StimulusLevel
     cognitive_sustainability_rating: float
 
     model_config = ConfigDict(from_attributes=True)

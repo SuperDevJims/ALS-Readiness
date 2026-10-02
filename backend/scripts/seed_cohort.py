@@ -1,19 +1,24 @@
-# This script seeds a single cohort with one learner and one facilitator
-# assigned to it, for local development/testing purposes.
-# Assumes learner id = 1 and facilitator id = 1 already exist.
+# This script seeds a single cohort with a facilitator assigned to it, for
+# local development/testing purposes. Learners are left unassigned when run
+# standalone so the facilitator can assign them.
+# Assumes an admin and a facilitator already exist.
 # Run 'uv run python -m scripts.seed_cohort'.
 
 import asyncio
 import sys
 from datetime import date
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 from app.db.session import AsyncSessionLocal
+from app.enums.user import UserRole
 from app.models.cohort import Cohort, CohortFacilitator, CohortLearner
+from app.models.facilitator import Facilitator
+from app.models.user import User
 from app.repositories.cohort import CohortRepository
 from app.repositories.cohort_facilitator import CohortFacilitatorRepository
 from app.repositories.cohort_learner import CohortLearnerRepository
@@ -27,7 +32,7 @@ COHORT_DATA = {
 }
 
 
-async def create_cohort_with_members(session: AsyncSession, learner_id: int, facilitator_id: int, admin_user_id: int) -> None:
+async def create_cohort_with_members(session: AsyncSession, learner_id: int | None, facilitator_id: int, admin_user_id: int) -> None:
     cohort_repo = CohortRepository(session)
     cohort_learner_repo = CohortLearnerRepository(session)
     cohort_facilitator_repo = CohortFacilitatorRepository(session)
@@ -44,17 +49,18 @@ async def create_cohort_with_members(session: AsyncSession, learner_id: int, fac
     )
     print(f"Cohort created - code: {cohort.code}, id: {cohort.id}")
 
-    cohort_learner = await cohort_learner_repo.create(
-        CohortLearner(
-            cohort_id=cohort.id,
-            learner_id=learner_id,
-            assigned_by=admin_user_id,
+    if learner_id is not None:
+        cohort_learner = await cohort_learner_repo.create(
+            CohortLearner(
+                cohort_id=cohort.id,
+                learner_id=learner_id,
+                assigned_by=admin_user_id,
+            )
         )
-    )
-    print(
-        f"  Learner assigned - learner_id: {cohort_learner.learner_id}, "
-        f"cohort_id: {cohort_learner.cohort_id}"
-    )
+        print(
+            f"  Learner assigned - learner_id: {cohort_learner.learner_id}, "
+            f"cohort_id: {cohort_learner.cohort_id}"
+        )
 
     cohort_facilitator = await cohort_facilitator_repo.create(
         CohortFacilitator(
@@ -71,7 +77,14 @@ async def create_cohort_with_members(session: AsyncSession, learner_id: int, fac
 
 async def main() -> None:
     async with AsyncSessionLocal() as session, session.begin():
-        await create_cohort_with_members(session)
+        admin_user_id = await session.scalar(
+            select(User.id).where(User.role == UserRole.ADMIN).order_by(User.id)
+        )
+        facilitator_id = await session.scalar(select(Facilitator.id).order_by(Facilitator.id))
+        if admin_user_id is None or facilitator_id is None:
+            raise SystemExit("Seed an admin and a facilitator first.")
+
+        await create_cohort_with_members(session, None, facilitator_id, admin_user_id)
 
 
 if __name__ == "__main__":

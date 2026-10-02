@@ -45,6 +45,13 @@ class UnauthenticatedError(AppError):
     code = "UNAUTHENTICATED"
 
 
+class ServiceUnavailableError(AppError):
+    """Base for failures of an external service the request depends on."""
+
+    message = "Service temporarily unavailable."
+    code = "SERVICE_UNAVAILABLE"
+
+
 # ================ Auth Errors ================
 
 class InvalidCredentialsError(UnauthenticatedError):
@@ -290,3 +297,33 @@ class PasswordNotAllowedError(DomainValidationError):
 
     message = "Passwords for learners and facilitators are reset automatically; do not supply one."
     code = "PASSWORD_NOT_ALLOWED"
+
+
+# ================ Content Error ================
+
+class ContentNotFoundError(NotFoundError):
+    """Raised when a content does not exist."""
+
+    message = "Content not found."
+    code = "CONTENT_NOT_FOUND"
+
+
+class ContentFileNotFoundError(NotFoundError):
+    """Raised when no uploaded file exists in storage at the given key."""
+
+    message = "File not found at the given key."
+    code = "CONTENT_FILE_NOT_FOUND"
+
+
+class InvalidContentFileError(DomainValidationError):
+    """Raised when a content filename or file key has a missing or unsupported extension."""
+
+    message = "Unsupported content file."
+    code = "INVALID_CONTENT_FILE"
+
+
+class StorageUnavailableError(ServiceUnavailableError):
+    """Raised when the file storage service cannot be reached."""
+
+    message = "Storage service unavailable."
+    code = "STORAGE_UNAVAILABLE"

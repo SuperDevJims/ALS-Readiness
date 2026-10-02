@@ -14,6 +14,7 @@ from .core.exceptions import (
     AlreadyExistsError,
     DomainValidationError,
     NotFoundError,
+    ServiceUnavailableError,
     UnauthenticatedError,
     UnauthorizedError,
 )
@@ -138,6 +139,15 @@ async def handle_already_exists(_: Request, exc: AlreadyExistsError):
 async def handle_domain_validation(_: Request, exc: DomainValidationError):
     return error_response(
         status_code=status.HTTP_400_BAD_REQUEST,
+        error_code=exc.code,
+        message=exc.message,
+    )
+
+
+@app.exception_handler(ServiceUnavailableError)
+async def handle_service_unavailable(_: Request, exc: ServiceUnavailableError):
+    return error_response(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
         error_code=exc.code,
         message=exc.message,
     )

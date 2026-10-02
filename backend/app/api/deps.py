@@ -18,6 +18,7 @@ from app.repositories.cohort_content import CohortContentRepository
 from app.repositories.cohort_facilitator import CohortFacilitatorRepository
 from app.repositories.cohort_learner import CohortLearnerRepository
 from app.repositories.content import ContentRepository
+from app.repositories.content_evaluation import ContentEvaluationRepository
 from app.repositories.curriculum import CurriculumRepository
 from app.repositories.facilitator import FacilitatorRepository
 from app.repositories.learner import LearnerRepository
@@ -521,13 +522,24 @@ def get_content_repo(session: SessionDep) -> ContentRepository:
 ContentRepoDep = Annotated[ContentRepository, Depends(get_content_repo)]
 
 
+def get_content_eval_repo(session: SessionDep) -> ContentEvaluationRepository:
+    return ContentEvaluationRepository(session)
+
+
+ContentEvalRepoDep = Annotated[
+    ContentEvaluationRepository, Depends(get_content_eval_repo)
+]
+
+
 def get_content_service(
     content_repo: ContentRepoDep,
+    content_eval_repo: ContentEvalRepoDep,
     lesson_service: LessonServiceDep,
     facilitator_service: FacilitatorServiceDep,
 ) -> ContentService:
     return ContentService(
         content_repo=content_repo,
+        content_eval_repo=content_eval_repo,
         lesson_service=lesson_service,
         facilitator_service=facilitator_service,
     )
