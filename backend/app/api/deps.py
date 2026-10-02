@@ -45,6 +45,7 @@ from app.services.cohort_learner import CohortLearnerService
 from app.services.content import ContentService
 from app.services.curriculum import CurriculumService
 from app.services.facilitator import FacilitatorService
+from app.services.facilitator_scope import FacilitatorScopeService
 from app.services.learner import LearnerService
 from app.services.learning_strand import LearningStrandService
 from app.services.lesson import LessonService
@@ -285,6 +286,18 @@ async def get_current_facilitator(current_user: CurrentUserDep) -> User:
 CurrentFacilitatorDep = Annotated[User, Depends(get_current_facilitator)]
 
 
+async def get_current_facilitator_or_admin(current_user: CurrentUserDep) -> User:
+    if current_user.role not in (UserRole.FACILITATOR, UserRole.ADMIN):
+        raise UnauthorizedError()
+
+    return current_user
+
+
+CurrentFacilitatorOrAdminDep = Annotated[
+    User, Depends(get_current_facilitator_or_admin)
+]
+
+
 # ============== Strand Test Attempts ==============
 
 
@@ -473,6 +486,29 @@ CohortFacilitatorServiceDep = Annotated[
 ]
 
 
+# ============ Facilitator Scope ============
+# Sits between the cohort repositories it reads and the services below that
+# depend on it (cohort, curriculum).
+
+
+def get_facilitator_scope_service(
+    cohort_facilitator_repo: CohortFacilitatorRepoDep,
+    cohort_learner_repo: CohortLearnerRepoDep,
+) -> FacilitatorScopeService:
+    return FacilitatorScopeService(
+        cohort_facilitator_repo=cohort_facilitator_repo,
+        cohort_learner_repo=cohort_learner_repo,
+    )
+
+
+FacilitatorScopeServiceDep = Annotated[
+    FacilitatorScopeService, Depends(get_facilitator_scope_service)
+]
+
+
+# ============ Cohort Service ============
+
+
 def get_cohort_repo(session: SessionDep) -> CohortRepository:
     return CohortRepository(session)
 
@@ -484,11 +520,13 @@ def get_cohort_service(
     cohort_repo: CohortRepoDep,
     cohort_learner_service: CohortLearnerServiceDep,
     cohort_facilitator_service: CohortFacilitatorServiceDep,
+    facilitator_scope_service: FacilitatorScopeServiceDep,
 ) -> CohortService:
     return CohortService(
         cohort_repo=cohort_repo,
         cohort_learner_service=cohort_learner_service,
         cohort_facilitator_service=cohort_facilitator_service,
+        facilitator_scope_service=facilitator_scope_service,
     )
 
 
@@ -575,12 +613,14 @@ def get_curriculum_service(
     learner_service: LearnerServiceDep,
     cohort_content_repo: CohortContentRepoDep,
     cohort_learner_service: CohortLearnerServiceDep,
+    facilitator_scope_service: FacilitatorScopeServiceDep,
 ) -> CurriculumService:
     return CurriculumService(
         curriculum_repo=curriculum_repo,
         learner_service=learner_service,
         cohort_content_repo=cohort_content_repo,
         cohort_learner_service=cohort_learner_service,
+        facilitator_scope_service=facilitator_scope_service,
     )
 
 

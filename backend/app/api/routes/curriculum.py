@@ -1,12 +1,12 @@
 from typing import Annotated
 
 from app.schemas.curriculum import CurriculumResponse
-from fastapi import APIRouter, Depends, Path, Query
+from fastapi import APIRouter, Path, Query
 
 from ..deps import (
+    CurrentFacilitatorDep,
     CurrentLearnerDep,
     CurriculumServiceDep,
-    get_current_facilitator,
 )
 
 router = APIRouter(
@@ -14,13 +14,14 @@ router = APIRouter(
 )
 
 
-@router.get("/curriculum/{strand_id}", dependencies=[Depends(get_current_facilitator)])
+@router.get("/curriculum/{strand_id}")
 async def get_curriculum(
     strand_id: int,
+    current_user: CurrentFacilitatorDep,
     cohort_id: int | None = None,
     service: CurriculumServiceDep = ...,
 ) -> CurriculumResponse:
-    return await service.get_tree(strand_id, cohort_id)
+    return await service.get_tree(current_user, strand_id, cohort_id)
 
 
 @router.get("/me/curriculum/{strand_id}")

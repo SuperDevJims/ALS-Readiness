@@ -5,6 +5,7 @@ from app.schemas.cohort import (
     CohortListResponse,
     CohortResponse,
     CohortStatusUpdate,
+    CohortWithMembersResponse,
 )
 from app.schemas.cohort_facilitator import (
     CohortFacilitatorCreate,
@@ -118,9 +119,13 @@ shared_router = APIRouter(
     dependencies=[Depends(get_current_user)]
 )
 
-@shared_router.get("/{cohort_id}/members")
-async def get_cohort_with_members(cohort_id: int, cohort_service: CohortServiceDep):
-    return await cohort_service.get_cohort_with_members(cohort_id)
+@shared_router.get("/{cohort_id}/members", response_model=CohortWithMembersResponse)
+async def get_cohort_with_members(
+    cohort_id: int,
+    current_user: CurrentUserDep,
+    cohort_service: CohortServiceDep,
+):
+    return await cohort_service.get_cohort_with_members(current_user, cohort_id)
 
 
 me_router = APIRouter(

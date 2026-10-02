@@ -276,7 +276,18 @@ class CohortFacilitatorNotFoundError(NotFoundError):
     """Raised when a cohort facilitator does not exists."""
     message = "Cohort facilitator does not exists."
     code = "COHORT_FACILITATOR_NOT_FOUND"
-    
+
+
+class CohortAccessDeniedError(UnauthorizedError):
+    """Raised when the caller may not see a cohort or one of its learners.
+
+    The message is the same whether or not the cohort or learner exists, so a
+    denied caller learns nothing about what is there.
+    """
+
+    message = "You do not have access to this cohort or learner."
+    code = "COHORT_ACCESS_DENIED"
+
     
 class SelfPasswordResetNotAllowedError(UnauthorizedError):
     """Raised when an admin targets their own account with the admin password reset."""
@@ -327,3 +338,12 @@ class StorageUnavailableError(ServiceUnavailableError):
 
     message = "Storage service unavailable."
     code = "STORAGE_UNAVAILABLE"
+
+
+# ================ Curriculum Error ================
+
+class LearningStrandNotFoundError(NotFoundError):
+    """Raised when a learning strand does not exist."""
+
+    message = "Strand not found."
+    code = "LEARNING_STRAND_NOT_FOUND"

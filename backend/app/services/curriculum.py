@@ -1,5 +1,5 @@
-from fastapi import HTTPException
-
+from app.core.exceptions import LearningStrandNotFoundError
+from app.models.user import User
 from app.repositories.cohort_content import CohortContentRepository
 from app.repositories.curriculum import CurriculumRepository
 from app.schemas.curriculum import (
@@ -9,6 +9,7 @@ from app.schemas.curriculum import (
     ModuleNode,
 )
 from app.services.cohort_learner import CohortLearnerService
+from app.services.facilitator_scope import FacilitatorScopeService
 from app.services.learner import LearnerService
 
 
@@ -19,16 +20,23 @@ class CurriculumService:
         cohort_content_repo: CohortContentRepository,
         cohort_learner_service: CohortLearnerService,
         learner_service: LearnerService,
+        facilitator_scope_service: FacilitatorScopeService,
     ):
         self._curriculum_repo = curriculum_repo
         self._cohort_content_repo = cohort_content_repo
         self._learner_service = learner_service
         self._cohort_learner_service = cohort_learner_service
+        self._facilitator_scope_service = facilitator_scope_service
 
-    async def get_tree(self, strand_id: int, cohort_id: int | None) -> CurriculumResponse:
+    async def get_tree(self, user: User, strand_id: int, cohort_id: int | None) -> CurriculumResponse:
+        # Without a cohort_id the tree is the strand's full structure, which is
+        # not cohort-scoped. With one, the caller must have access to that cohort.
+        if cohort_id is not None:
+            await self._facilitator_scope_service.assert_cohort_access(user, cohort_id)
+
         strand = await self._curriculum_repo.get_strand_tree(strand_id)
         if strand is None:
-            raise HTTPException(404, "Strand not found")
+            raise LearningStrandNotFoundError()
 
         allowed_content_ids = None
         if cohort_id is not None:
@@ -43,7 +51,7 @@ class CurriculumService:
 
         strand = await self._curriculum_repo.get_strand_tree(strand_id)
         if strand is None:
-            raise HTTPException(404, "Strand not found")
+            raise LearningStrandNotFoundError()
 
         allowed_content_ids = await self._cohort_content_repo.get_content_ids(cohort_learner.cohort_id)
 

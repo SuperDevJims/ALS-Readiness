@@ -1,5 +1,6 @@
 from sqlalchemy import select
 
+from app.enums.cohort import CohortMemberStatus
 from app.models.cohort import CohortFacilitator
 from app.models.facilitator import Facilitator
 from app.models.user import User
@@ -37,3 +38,16 @@ class CohortFacilitatorRepository(BaseRepository[CohortFacilitator]):
         )
         result = await self._session.execute(statement)
         return result.all()
+
+    async def get_active_cohort_ids_by_user_id(self, user_id: int) -> list[int]:
+        """Ids of the cohorts the facilitator with this user id is actively assigned to."""
+        statement = (
+            select(CohortFacilitator.cohort_id)
+            .join(Facilitator, Facilitator.id == CohortFacilitator.facilitator_id)
+            .where(
+                Facilitator.user_id == user_id,
+                CohortFacilitator.status == CohortMemberStatus.ACTIVE,
+            )
+        )
+        result = await self._session.execute(statement)
+        return list(result.scalars().all())

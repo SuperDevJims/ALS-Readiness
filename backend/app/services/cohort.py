@@ -11,6 +11,7 @@ from app.schemas.cohort import (
 )
 from app.services.cohort_facilitator import CohortFacilitatorService
 from app.services.cohort_learner import CohortLearnerService
+from app.services.facilitator_scope import FacilitatorScopeService
 from app.models.user import User
 from app.enums.user import UserRole
 
@@ -23,10 +24,12 @@ class CohortService:
         cohort_repo: CohortRepository,
         cohort_learner_service: CohortLearnerService,
         cohort_facilitator_service: CohortFacilitatorService,
+        facilitator_scope_service: FacilitatorScopeService,
     ) -> None:
         self._cohort_repo = cohort_repo
         self._cohort_learner_service = cohort_learner_service
         self._cohort_facilitator_service = cohort_facilitator_service
+        self._facilitator_scope_service = facilitator_scope_service
 
     async def create(
         self,
@@ -119,7 +122,11 @@ class CohortService:
     
             return cohort_facilitator
 
-    async def get_cohort_with_members(self, cohort_id: int) -> CohortWithMembersResponse:
+    async def get_cohort_with_members(self, user: User, cohort_id: int) -> CohortWithMembersResponse:
+        # Checked before the cohort is looked up, so a denied caller gets the
+        # same 403 whether or not the cohort exists.
+        await self._facilitator_scope_service.assert_cohort_access(user, cohort_id)
+
         cohort = await self.get_by_id(cohort_id)
 
         cohort_facilitator_members = await (
@@ -173,6 +180,7 @@ class CohortService:
         
         elif user.role == UserRole.FACILITATOR:
             return await self._cohort_repo.get_cohort_by_facilitator_id(user.id)
-        
+
         else:
-            pass
+            # An admin is not a member of any cohort.
+            return []

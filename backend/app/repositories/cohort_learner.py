@@ -49,3 +49,19 @@ class CohortLearnerRepository(BaseRepository[CohortLearner]):
         )
         result = await self._session.execute(statement)
         return result.scalar_one_or_none()
+
+    async def exists_in_cohorts(self, learner_id: int, cohort_ids: list[int]) -> bool:
+        """Whether the learner has a membership, active or ended, in any of the cohorts."""
+        if not cohort_ids:
+            return False
+
+        statement = (
+            select(CohortLearner.id)
+            .where(
+                CohortLearner.learner_id == learner_id,
+                CohortLearner.cohort_id.in_(cohort_ids),
+            )
+            .limit(1)
+        )
+        result = await self._session.execute(statement)
+        return result.first() is not None
