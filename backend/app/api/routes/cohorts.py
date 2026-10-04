@@ -1,11 +1,11 @@
 from app.enums.cohort import CohortStatus
-from app.enums.user import UserRole
 from app.schemas.cohort import (
     CohortCreate,
     CohortListResponse,
     CohortResponse,
     CohortStatusUpdate,
     CohortWithMembersResponse,
+    SchoolYear,
 )
 from app.schemas.cohort_facilitator import (
     CohortFacilitatorCreate,
@@ -50,7 +50,7 @@ async def create_cohort(
 )
 async def get_cohorts(
     status: CohortStatus | None = None,
-    school_year: str | None = None,
+    school_year: SchoolYear | None = None,
     cohort_service: CohortServiceDep = ...,
 ):
     cohorts = await cohort_service.get_list(status, school_year)

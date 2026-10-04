@@ -1,14 +1,19 @@
+from collections.abc import Callable
+
 from app.core.exceptions import (
     CohortAccessDeniedError,
     CohortNotActiveError,
     CohortNotFoundError,
 )
 from app.enums.cohort import CohortStatus
+from app.enums.content import ContentVisibility
 from app.enums.user import UserRole
 from app.models.cohort import Cohort
+from app.models.content import Content
 from app.models.user import User
 from app.repositories.cohort import CohortRepository
 from app.repositories.cohort_learner import CohortLearnerRepository
+from app.repositories.facilitator import FacilitatorRepository
 
 # A facilitator can see a cohort in any of these states. An archived cohort is
 # hidden from facilitators even while their assignment to it is still active.
@@ -27,15 +32,20 @@ class FacilitatorScopeService:
     assignment to it is active and the cohort is not archived, and may see the
     learners in those cohorts. Anyone else is denied. Changes are allowed only
     while the cohort itself is active.
+
+    Content follows D9: a facilitator sees their own uploads plus other
+    facilitators' public content.
     """
 
     def __init__(
         self,
         cohort_repo: CohortRepository,
         cohort_learner_repo: CohortLearnerRepository,
+        facilitator_repo: FacilitatorRepository,
     ):
         self._cohort_repo = cohort_repo
         self._cohort_learner_repo = cohort_learner_repo
+        self._facilitator_repo = facilitator_repo
 
     async def get_visible_cohorts(self, user: User) -> list[Cohort]:
         if user.role != UserRole.FACILITATOR:
@@ -74,3 +84,28 @@ class FacilitatorScopeService:
         cohort_ids = await self.get_visible_cohort_ids(user)
         if not await self._cohort_learner_repo.exists_in_cohorts(learner_id, cohort_ids):
             raise CohortAccessDeniedError()
+
+    async def get_content_filter(self, user: User) -> Callable[[Content], bool]:
+        """A predicate telling whether the caller may see a content item (D9).
+
+        Built once per request, so a whole tree can be filtered with one lookup.
+        Status is not considered here; callers filter on it separately.
+        """
+        if user.role == UserRole.ADMIN:
+            return lambda content: True
+
+        if user.role != UserRole.FACILITATOR:
+            return lambda content: False
+
+        facilitator = await self._facilitator_repo.get_by_user_id(user.id)
+        facilitator_id = facilitator.id if facilitator is not None else None
+
+        def is_visible(content: Content) -> bool:
+            return content.visibility == ContentVisibility.PUBLIC or (
+                facilitator_id is not None and content.uploaded_by == facilitator_id
+            )
+
+        return is_visible
+
+    async def can_see_content(self, user: User, content: Content) -> bool:
+        return (await self.get_content_filter(user))(content)

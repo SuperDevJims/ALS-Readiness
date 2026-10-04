@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,6 +27,7 @@ from app.repositories.lesson import LessonRepository
 from app.repositories.lri_test import LRITestRepository
 from app.repositories.lri_test_attempt import LRITestAttemptRepository
 from app.repositories.lri_test_attempt_answer import LRITestAttemptAnswerRepository
+from app.repositories.module import ModuleRepository
 from app.repositories.participant_intake import ParticipantIntakeRepository
 from app.repositories.refresh_token import RefreshTokenRepository
 from app.repositories.strand_test import StrandTestRepository
@@ -40,6 +41,7 @@ from app.repositories.user_profile import UserProfileRepository
 from app.services.admin import AdminService
 from app.services.auth import AuthService
 from app.services.cohort import CohortService
+from app.services.cohort_content import CohortContentService
 from app.services.cohort_facilitator import CohortFacilitatorService
 from app.services.cohort_learner import CohortLearnerService
 from app.services.content import ContentService
@@ -52,6 +54,7 @@ from app.services.learning_strand import LearningStrandService
 from app.services.lesson import LessonService
 from app.services.lri_test import LRITestService
 from app.services.lri_test_attempt import LRITestAttemptService
+from app.services.module import ModuleService
 from app.services.participant_intake import ParticipantIntakeService
 from app.services.refresh_token import RefreshTokenService
 from app.services.strand_test import StrandTestService
@@ -502,10 +505,12 @@ CohortFacilitatorServiceDep = Annotated[
 def get_facilitator_scope_service(
     cohort_repo: CohortRepoDep,
     cohort_learner_repo: CohortLearnerRepoDep,
+    facilitator_repo: FacilitatorRepositoryDep,
 ) -> FacilitatorScopeService:
     return FacilitatorScopeService(
         cohort_repo=cohort_repo,
         cohort_learner_repo=cohort_learner_repo,
+        facilitator_repo=facilitator_repo,
     )
 
 
@@ -554,7 +559,14 @@ def get_cohort_service(
 CohortServiceDep = Annotated[CohortService, Depends(get_cohort_service)]
 
 
-# ============ Lessons ============
+# ============ Modules and Lessons ============
+
+
+def get_module_repo(session: SessionDep) -> ModuleRepository:
+    return ModuleRepository(session)
+
+
+ModuleRepoDep = Annotated[ModuleRepository, Depends(get_module_repo)]
 
 
 def get_lesson_repo(session: SessionDep) -> LessonRepository:
@@ -564,8 +576,8 @@ def get_lesson_repo(session: SessionDep) -> LessonRepository:
 LessonRepoDep = Annotated[LessonRepository, Depends(get_lesson_repo)]
 
 
-def get_lesson_service(lesson_repo: LessonRepoDep) -> LessonService:
-    return LessonService(lesson_repo)
+def get_lesson_service(lesson_repo: LessonRepoDep, module_repo: ModuleRepoDep) -> LessonService:
+    return LessonService(lesson_repo=lesson_repo, module_repo=module_repo)
 
 
 LessonServiceDep = Annotated[LessonService, Depends(get_lesson_service)]
@@ -616,6 +628,23 @@ def get_cohort_content_repo(session: SessionDep) -> CohortContentRepository:
 
 CohortContentRepoDep = Annotated[
     CohortContentRepository, Depends(get_cohort_content_repo)
+]
+
+
+def get_cohort_content_service(
+    cohort_content_repo: CohortContentRepoDep,
+    content_repo: ContentRepoDep,
+    facilitator_scope_service: FacilitatorScopeServiceDep,
+) -> CohortContentService:
+    return CohortContentService(
+        cohort_content_repo=cohort_content_repo,
+        content_repo=content_repo,
+        facilitator_scope_service=facilitator_scope_service,
+    )
+
+
+CohortContentServiceDep = Annotated[
+    CohortContentService, Depends(get_cohort_content_service)
 ]
 
 
@@ -672,3 +701,17 @@ def get_strand_service(
 
 
 StrandServiceDep = Annotated[LearningStrandService, Depends(get_strand_service)]
+
+
+# ============ Module Service ============
+# After the strand repository, which it uses to check the parent strand.
+
+
+def get_module_service(
+    module_repo: ModuleRepoDep,
+    strand_repo: StrandRepoDep,
+) -> ModuleService:
+    return ModuleService(module_repo=module_repo, strand_repo=strand_repo)
+
+
+ModuleServiceDep = Annotated[ModuleService, Depends(get_module_service)]

@@ -1,4 +1,5 @@
 from app.core.exceptions import LearningStrandNotFoundError
+from app.models.content import Content
 from app.models.user import User
 from app.repositories.cohort_content import CohortContentRepository
 from app.repositories.curriculum import CurriculumRepository
@@ -7,6 +8,12 @@ from app.schemas.curriculum import (
     CurriculumResponse,
     LessonNode,
     ModuleNode,
+)
+from app.schemas.facilitator_curriculum import (
+    FacilitatorContentNode,
+    FacilitatorCurriculumResponse,
+    FacilitatorLessonNode,
+    FacilitatorModuleNode,
 )
 from app.services.cohort_learner import CohortLearnerService
 from app.services.facilitator_scope import FacilitatorScopeService
@@ -28,9 +35,18 @@ class CurriculumService:
         self._cohort_learner_service = cohort_learner_service
         self._facilitator_scope_service = facilitator_scope_service
 
-    async def get_tree(self, user: User, strand_id: int, cohort_id: int | None) -> CurriculumResponse:
-        # Without a cohort_id the tree is the strand's full structure, which is
-        # not cohort-scoped. With one, the caller must have access to that cohort.
+    async def get_tree(
+        self,
+        user: User,
+        strand_id: int,
+        cohort_id: int | None,
+    ) -> FacilitatorCurriculumResponse:
+        """The facilitator's tree: active structure, and only content the caller may see (D9).
+
+        Without a cohort_id, each lesson lists all its visible content. With one,
+        the caller must have access to that cohort, and each lesson splits its
+        visible content into what is assigned to the cohort and what is available.
+        """
         if cohort_id is not None:
             await self._facilitator_scope_service.assert_cohort_access(user, cohort_id)
 
@@ -38,11 +54,57 @@ class CurriculumService:
         if strand is None:
             raise LearningStrandNotFoundError()
 
-        allowed_content_ids = None
-        if cohort_id is not None:
-            allowed_content_ids = await self._cohort_content_repo.get_content_ids(cohort_id)
+        is_visible = await self._facilitator_scope_service.get_content_filter(user)
+        assigned_ids = (
+            set(await self._cohort_content_repo.get_content_ids(cohort_id))
+            if cohort_id is not None
+            else None
+        )
 
-        return self._build_response(strand, progress_map={}, allowed_content_ids=allowed_content_ids)
+        def lesson_node(lesson) -> FacilitatorLessonNode:
+            visible = [content for content in lesson.contents if is_visible(content)]
+            if assigned_ids is None:
+                contents, available = visible, []
+            else:
+                contents = [content for content in visible if content.id in assigned_ids]
+                available = [content for content in visible if content.id not in assigned_ids]
+
+            return FacilitatorLessonNode(
+                lesson_id=lesson.id,
+                title=lesson.title,
+                description=lesson.description,
+                order_index=lesson.order_index,
+                contents=[self._content_node(content) for content in contents],
+                available_contents=[self._content_node(content) for content in available],
+            )
+
+        return FacilitatorCurriculumResponse(
+            strand_id=strand.id,
+            strand_code=strand.code,
+            strand_name=strand.name,
+            strand_description=strand.description,
+            cohort_id=cohort_id,
+            modules=[
+                FacilitatorModuleNode(
+                    module_id=module.id,
+                    title=module.title,
+                    description=module.description,
+                    order_index=module.order_index,
+                    lessons=[lesson_node(lesson) for lesson in module.lessons],
+                )
+                for module in strand.modules
+            ],
+        )
+
+    @staticmethod
+    def _content_node(content: Content) -> FacilitatorContentNode:
+        return FacilitatorContentNode(
+            content_id=content.id,
+            title=content.title,
+            content_type=content.type,
+            visibility=content.visibility,
+            has_evaluation=content.evaluation is not None,
+        )
 
     async def get_tree_with_progress(self, strand_id: int, user_id: int) -> CurriculumResponse:
         learner = await self._learner_service.get_by_user_id(user_id)

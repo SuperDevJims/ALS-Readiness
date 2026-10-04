@@ -2,7 +2,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.enums.content import ContentProgressStatus
+from app.enums.content import ContentProgressStatus, ContentStatus
+from app.enums.curriculum import StructureStatus
 from app.models.cohort_content import CohortContent
 from app.models.content import Content
 from app.models.learner_content_progress import LearnerContentProgress
@@ -16,13 +17,16 @@ class CurriculumRepository:
         self._session = session
 
     async def get_strand_tree(self, strand_id: int) -> LearningStrand | None:
+        """The strand with only its active modules, their active lessons, and those
+        lessons' active contents. An archived module hides its lessons whatever
+        their own status."""
         stmt = (
             select(LearningStrand)
             .where(LearningStrand.id == strand_id)
             .options(
-                selectinload(LearningStrand.modules)
-                .selectinload(Module.lessons)
-                .selectinload(Lesson.contents)
+                selectinload(LearningStrand.modules.and_(Module.status == StructureStatus.ACTIVE))
+                .selectinload(Module.lessons.and_(Lesson.status == StructureStatus.ACTIVE))
+                .selectinload(Lesson.contents.and_(Content.status == ContentStatus.ACTIVE))
                 .selectinload(Content.evaluation)
             )
         )

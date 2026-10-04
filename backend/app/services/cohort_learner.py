@@ -11,7 +11,6 @@ from app.core.exceptions import (
 )
 from app.enums.cohort import CohortMemberStatus
 from app.models.cohort import CohortLearner
-from app.models.learner import Learner
 from app.models.user_profile import UserProfile
 from app.repositories.cohort_learner import CohortLearnerRepository
 from app.services.learner import LearnerService
@@ -77,6 +76,18 @@ class CohortLearnerService:
         if cohort_learner is None:
             raise CohortLearnerNotFoundError()
 
+        reactivating = (
+            status == CohortMemberStatus.ACTIVE
+            and cohort_learner.status != CohortMemberStatus.ACTIVE
+        )
+        if reactivating:
+            # Same rule as assigning: one active cohort per learner.
+            active = await self._cohort_learner_repo.get_active_by_learner_id(
+                cohort_learner.learner_id
+            )
+            if active is not None:
+                raise LearnerAlreadyInActiveCohortError()
+
         fields: dict[str, Any] = {"status": status}
         if status == CohortMemberStatus.ENDED:
             # Keep the original time if the membership had already ended.
@@ -85,7 +96,12 @@ class CohortLearnerService:
         else:
             fields["completed_at"] = None
 
-        return await self._cohort_learner_repo.update(cohort_learner, fields)
+        try:
+            return await self._cohort_learner_repo.update(cohort_learner, fields)
+        except IntegrityError:
+            # A concurrent change got past the check above; the
+            # one_active_cohort_per_learner index rejected this one.
+            raise LearnerAlreadyInActiveCohortError() from None
 
     async def get_active_by_learner_id(self, learner_id: int) -> CohortLearner:
         cohort_learner = await self._cohort_learner_repo.get_active_by_learner_id(learner_id)

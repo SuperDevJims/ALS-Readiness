@@ -1,5 +1,4 @@
-from fastapi import HTTPException
-
+from app.models.learning_strand import LearningStrand
 from app.repositories.curriculum import CurriculumRepository
 from app.repositories.learning_strand import LearningStrandRepository
 from app.schemas.curriculum import StrandProgressResponse
@@ -19,6 +18,9 @@ class LearningStrandService:
         self._curriculum_repo = curriculum_repo
         self._learner_service = learner_service
         self._cohort_learner_service = cohort_learner_service
+
+    async def get_active_strands(self) -> list[LearningStrand]:
+        return await self._strand_repo.get_all_active()
 
     async def get_progress_list(self, user_id: int) -> list[StrandProgressResponse]:
         learner = await self._learner_service.get_by_user_id(user_id)

@@ -1,7 +1,8 @@
 import re
 from datetime import date, datetime
+from typing import Annotated, Self
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
 
 from app.enums.cohort import CohortStatus
 
@@ -15,22 +16,32 @@ from .user_profile import UserProfileResponse
 SCHOOL_YEAR_PATTERN = re.compile(r"([0-9]{4})-([0-9]{4})")
 
 
+def validate_school_year(value: str) -> str:
+    match = SCHOOL_YEAR_PATTERN.fullmatch(value)
+    if match is None or int(match.group(2)) != int(match.group(1)) + 1:
+        raise ValueError(
+            "School year must be two consecutive years in the form YYYY-YYYY, e.g. 2026-2027."
+        )
+
+    return value
+
+
+# Used for request bodies and query parameters alike.
+SchoolYear = Annotated[str, AfterValidator(validate_school_year)]
+
+
 class CohortCreate(BaseModel):
     name: str = Field(max_length=100)
-    school_year: str
+    school_year: SchoolYear
     start_date: date
     end_date: date
 
-    @field_validator("school_year")
-    @classmethod
-    def validate_school_year(cls, value: str) -> str:
-        match = SCHOOL_YEAR_PATTERN.fullmatch(value)
-        if match is None or int(match.group(2)) != int(match.group(1)) + 1:
-            raise ValueError(
-                "School year must be two consecutive years in the form YYYY-YYYY, e.g. 2026-2027."
-            )
+    @model_validator(mode="after")
+    def check_dates(self) -> Self:
+        if self.start_date and self.end_date and self.start_date >= self.end_date:
+            raise ValueError("start_date must be before end_date.")
 
-        return value
+        return self
 
 
 class CohortResponse(BaseModel):

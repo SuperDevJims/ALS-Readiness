@@ -1,7 +1,6 @@
-from typing import Annotated
-
 from app.schemas.curriculum import CurriculumResponse
-from fastapi import APIRouter, Path, Query
+from app.schemas.facilitator_curriculum import FacilitatorCurriculumResponse
+from fastapi import APIRouter
 
 from ..deps import (
     CurrentFacilitatorDep,
@@ -20,7 +19,7 @@ async def get_curriculum(
     current_user: CurrentFacilitatorDep,
     cohort_id: int | None = None,
     service: CurriculumServiceDep = ...,
-) -> CurriculumResponse:
+) -> FacilitatorCurriculumResponse:
     return await service.get_tree(current_user, strand_id, cohort_id)
 
 

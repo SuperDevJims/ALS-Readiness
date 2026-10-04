@@ -375,3 +375,41 @@ class LearningStrandNotFoundError(NotFoundError):
 
     message = "Strand not found."
     code = "LEARNING_STRAND_NOT_FOUND"
+
+
+class CurriculumModuleNotFoundError(NotFoundError):
+    """Raised when a curriculum module does not exist. (Not named ModuleNotFoundError,
+    which would shadow the Python built-in.)"""
+
+    message = "Module not found."
+    code = "MODULE_NOT_FOUND"
+
+
+class LessonNotFoundError(NotFoundError):
+    """Raised when a lesson does not exist."""
+
+    message = "Lesson not found."
+    code = "LESSON_NOT_FOUND"
+
+
+class InvalidReorderError(DomainValidationError):
+    """Raised when a reorder list is not exactly the parent's active children, each once."""
+
+    message = "The order must list every active item exactly once."
+    code = "INVALID_ORDER"
+
+
+# ================ Cohort Content Error ================
+
+class ContentAlreadyAssignedError(AlreadyExistsError):
+    """Raised when assigning a content that is already assigned to the cohort."""
+
+    message = "This content is already assigned to the cohort."
+    code = "CONTENT_ALREADY_ASSIGNED"
+
+
+class ContentNotAssignedError(NotFoundError):
+    """Raised when unassigning a content that is not assigned to the cohort."""
+
+    message = "This content is not assigned to the cohort."
+    code = "CONTENT_NOT_ASSIGNED"

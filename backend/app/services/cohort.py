@@ -181,7 +181,8 @@ class CohortService:
             return [cohort] if cohort else []
         
         elif user.role == UserRole.FACILITATOR:
-            return await self._cohort_repo.get_cohort_by_facilitator_id(user.id)
+            # Same rule as the facilitator endpoints: archived cohorts are hidden.
+            return await self._facilitator_scope_service.get_visible_cohorts(user)
 
         else:
             # An admin is not a member of any cohort.
