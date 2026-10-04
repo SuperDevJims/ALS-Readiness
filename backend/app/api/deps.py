@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import Annotated
 
 from fastapi import Depends
@@ -13,6 +14,7 @@ from app.core.jwt import decode_access_token
 from app.db.session import get_session
 from app.enums.user import UserRole
 from app.models.user import User
+from app.repositories.at_risk_flag import AtRiskFlagRepository
 from app.repositories.cohort import CohortRepository
 from app.repositories.cohort_content import CohortContentRepository
 from app.repositories.cohort_facilitator import CohortFacilitatorRepository
@@ -39,6 +41,7 @@ from app.repositories.strand_test_item_option import StrandTestItemOptionReposit
 from app.repositories.user import UserRepository
 from app.repositories.user_profile import UserProfileRepository
 from app.services.admin import AdminService
+from app.services.at_risk import AtRiskService
 from app.services.auth import AuthService
 from app.services.cohort import CohortService
 from app.services.cohort_content import CohortContentService
@@ -49,6 +52,7 @@ from app.services.content_library import ContentLibraryService
 from app.services.curriculum import CurriculumService
 from app.services.facilitator import FacilitatorService
 from app.services.facilitator_cohort import FacilitatorCohortService
+from app.services.facilitator_learner import FacilitatorLearnerService
 from app.services.facilitator_scope import FacilitatorScopeService
 from app.services.learner import LearnerService
 from app.services.learning_strand import LearningStrandService
@@ -737,3 +741,72 @@ def get_module_service(
 
 
 ModuleServiceDep = Annotated[ModuleService, Depends(get_module_service)]
+
+
+# ============ At-Risk Flags ============
+
+
+def get_now() -> datetime:
+    """The current time. At-risk rules never read the clock themselves; they
+    are handed this value, so a test can override it to move the clock."""
+    return datetime.now(timezone.utc)
+
+
+NowDep = Annotated[datetime, Depends(get_now)]
+
+
+def get_at_risk_flag_repo(session: SessionDep) -> AtRiskFlagRepository:
+    return AtRiskFlagRepository(session)
+
+
+AtRiskFlagRepoDep = Annotated[AtRiskFlagRepository, Depends(get_at_risk_flag_repo)]
+
+
+def get_at_risk_service(
+    flag_repo: AtRiskFlagRepoDep,
+    cohort_learner_repo: CohortLearnerRepoDep,
+    learner_repo: LearnerRepositoryDep,
+    strand_attempt_repo: StrandAttemptRepositoryDep,
+    facilitator_scope_service: FacilitatorScopeServiceDep,
+) -> AtRiskService:
+    return AtRiskService(
+        flag_repo=flag_repo,
+        cohort_learner_repo=cohort_learner_repo,
+        learner_repo=learner_repo,
+        strand_attempt_repo=strand_attempt_repo,
+        facilitator_scope_service=facilitator_scope_service,
+    )
+
+
+AtRiskServiceDep = Annotated[AtRiskService, Depends(get_at_risk_service)]
+
+
+# ============ Facilitator Learners ============
+# Last, because it reads across the strand, test, intake, and at-risk domains.
+
+
+def get_facilitator_learner_service(
+    cohort_learner_repo: CohortLearnerRepoDep,
+    learner_repo: LearnerRepositoryDep,
+    strand_attempt_repo: StrandAttemptRepositoryDep,
+    lri_attempt_repo: LRITestAttemptRepositoryDep,
+    participant_intake_repo: ParticipantIntakeRepositoryDep,
+    strand_service: StrandServiceDep,
+    at_risk_service: AtRiskServiceDep,
+    facilitator_scope_service: FacilitatorScopeServiceDep,
+) -> FacilitatorLearnerService:
+    return FacilitatorLearnerService(
+        cohort_learner_repo=cohort_learner_repo,
+        learner_repo=learner_repo,
+        strand_attempt_repo=strand_attempt_repo,
+        lri_attempt_repo=lri_attempt_repo,
+        participant_intake_repo=participant_intake_repo,
+        strand_service=strand_service,
+        at_risk_service=at_risk_service,
+        facilitator_scope_service=facilitator_scope_service,
+    )
+
+
+FacilitatorLearnerServiceDep = Annotated[
+    FacilitatorLearnerService, Depends(get_facilitator_learner_service)
+]

@@ -1,10 +1,14 @@
-from sqlalchemy import func, select
+from collections.abc import Collection
 
-from app.models.cohort import CohortLearner
+from sqlalchemy import ColumnElement, Row, Select, exists, func, or_, select
+
+from app.models.at_risk_flag import AtRiskFlag
+from app.models.cohort import Cohort, CohortLearner
 from app.models.learner import Learner
 from app.models.user import User
 from app.models.user_profile import UserProfile
-from app.enums.cohort import CohortMemberStatus
+from app.enums.at_risk import ACTIVE_FLAG_STATUSES
+from app.enums.cohort import CohortMemberStatus, CohortStatus
 
 from .base import BaseRepository
 
@@ -101,3 +105,156 @@ class CohortLearnerRepository(BaseRepository[CohortLearner]):
         )
         result = await self._session.execute(statement)
         return result.all()
+
+    async def get_active_in_active_cohorts(
+        self,
+        cohort_ids: Collection[int],
+    ) -> list[tuple[CohortLearner, Cohort]]:
+        """The active memberships of those of the given cohorts that are
+        themselves active, each with its cohort, in one query."""
+        if not cohort_ids:
+            return []
+
+        statement = (
+            select(CohortLearner, Cohort)
+            .join(Cohort, Cohort.id == CohortLearner.cohort_id)
+            .where(
+                CohortLearner.cohort_id.in_(cohort_ids),
+                CohortLearner.status == CohortMemberStatus.ACTIVE,
+                Cohort.status == CohortStatus.ACTIVE,
+            )
+            .order_by(CohortLearner.id)
+        )
+        result = await self._session.execute(statement)
+        return [tuple(row) for row in result.all()]
+
+    @staticmethod
+    def _membership_rows() -> Select:
+        """One row per membership with what a facilitator's learner views show:
+        the membership, its cohort, and the learner's user id, id number and
+        name. Nothing else of the profile is selected."""
+        return (
+            select(
+                CohortLearner,
+                Cohort,
+                Learner.user_id,
+                User.id_no,
+                UserProfile.first_name,
+                UserProfile.last_name,
+            )
+            .join(Cohort, Cohort.id == CohortLearner.cohort_id)
+            .join(Learner, Learner.id == CohortLearner.learner_id)
+            .join(User, User.id == Learner.user_id)
+            .outerjoin(UserProfile, UserProfile.user_id == User.id)
+        )
+
+    @staticmethod
+    def _membership_conditions(
+        cohort_ids: Collection[int],
+        status: CohortMemberStatus | None,
+        search: str | None,
+        at_risk_only: bool = False,
+    ) -> list[ColumnElement[bool]]:
+        conditions = [CohortLearner.cohort_id.in_(cohort_ids)]
+
+        if status is not None:
+            conditions.append(CohortLearner.status == status)
+        if search:
+            # The text is matched literally: % and _ are not wildcards.
+            escaped = search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            pattern = f"%{escaped}%"
+            conditions.append(
+                or_(
+                    UserProfile.first_name.ilike(pattern, escape="\\"),
+                    UserProfile.last_name.ilike(pattern, escape="\\"),
+                    User.id_no.ilike(pattern, escape="\\"),
+                    # The full name, in either order: "Ana Abad" and "Abad Ana".
+                    func.concat(UserProfile.first_name, " ", UserProfile.last_name).ilike(
+                        pattern, escape="\\"
+                    ),
+                    func.concat(UserProfile.last_name, " ", UserProfile.first_name).ilike(
+                        pattern, escape="\\"
+                    ),
+                )
+            )
+        if at_risk_only:
+            conditions.append(
+                exists().where(
+                    AtRiskFlag.learner_id == CohortLearner.learner_id,
+                    AtRiskFlag.cohort_id == CohortLearner.cohort_id,
+                    AtRiskFlag.status.in_(ACTIVE_FLAG_STATUSES),
+                )
+            )
+
+        return conditions
+
+    async def get_membership_page(
+        self,
+        cohort_ids: Collection[int],
+        status: CohortMemberStatus | None,
+        search: str | None,
+        offset: int,
+        limit: int,
+        at_risk_only: bool = False,
+    ) -> list[Row]:
+        """A page of the memberships in the given cohorts, by last name, first
+        name, then cohort name. `status` None means active and ended alike.
+        `at_risk_only` keeps the memberships with an active at-risk flag."""
+        if not cohort_ids:
+            return []
+
+        statement = (
+            self._membership_rows()
+            .where(*self._membership_conditions(cohort_ids, status, search, at_risk_only))
+            .order_by(
+                func.lower(UserProfile.last_name),
+                func.lower(UserProfile.first_name),
+                func.lower(Cohort.name),
+                CohortLearner.id,
+            )
+            .offset(offset)
+            .limit(limit)
+        )
+        result = await self._session.execute(statement)
+        return list(result.all())
+
+    async def count_memberships(
+        self,
+        cohort_ids: Collection[int],
+        status: CohortMemberStatus | None,
+        search: str | None,
+        at_risk_only: bool = False,
+    ) -> int:
+        if not cohort_ids:
+            return 0
+
+        statement = (
+            select(func.count(CohortLearner.id))
+            .join(Learner, Learner.id == CohortLearner.learner_id)
+            .join(User, User.id == Learner.user_id)
+            .outerjoin(UserProfile, UserProfile.user_id == User.id)
+            .where(*self._membership_conditions(cohort_ids, status, search, at_risk_only))
+        )
+        result = await self._session.execute(statement)
+        return result.scalar_one()
+
+    async def get_memberships_by_learner_id(
+        self,
+        learner_id: int,
+        cohort_ids: Collection[int],
+    ) -> list[Row]:
+        """The learner's memberships, active and ended, within the given
+        cohorts, most recently assigned first. Same rows as the page."""
+        if not cohort_ids:
+            return []
+
+        statement = (
+            self._membership_rows()
+            .where(
+                CohortLearner.learner_id == learner_id,
+                CohortLearner.cohort_id.in_(cohort_ids),
+            )
+            .order_by(CohortLearner.assigned_at.desc(), CohortLearner.id.desc())
+        )
+        result = await self._session.execute(statement)
+        return list(result.all())

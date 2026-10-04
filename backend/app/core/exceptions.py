@@ -338,6 +338,23 @@ class PasswordNotAllowedError(DomainValidationError):
     code = "PASSWORD_NOT_ALLOWED"
 
 
+# ================ At-Risk Flag Error ================
+
+class AtRiskFlagClosedError(ConflictError):
+    """Raised when changing a flag whose episode has ended: a resolved flag, or
+    a dismissed one whose condition has since cleared."""
+
+    message = "This flag is closed because its condition has cleared, so it cannot be changed."
+    code = "AT_RISK_FLAG_CLOSED"
+
+
+class InvalidAtRiskFlagTransitionError(ConflictError):
+    """Raised when a flag is set to the status it already has."""
+
+    message = "The flag already has this status."
+    code = "AT_RISK_FLAG_INVALID_TRANSITION"
+
+
 # ================ Content Error ================
 
 class ContentNotFoundError(NotFoundError):

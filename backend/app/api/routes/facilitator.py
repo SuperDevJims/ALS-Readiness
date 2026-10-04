@@ -1,6 +1,13 @@
 from typing import Annotated
 
+from app.enums.at_risk import AtRiskReason
 from app.enums.content import ContentStatus, ContentType
+from app.schemas.at_risk import (
+    AtRiskFlagItem,
+    AtRiskFlagListResponse,
+    AtRiskFlagUpdate,
+    AtRiskStatusFilter,
+)
 from app.schemas.cohort import SchoolYear
 from app.schemas.cohort_content import CohortContentCreate, CohortContentResponse
 from app.schemas.facilitator_cohort import (
@@ -28,15 +35,23 @@ from app.schemas.facilitator_curriculum import (
     StrandItem,
     StrandListResponse,
 )
+from app.schemas.facilitator_learner import (
+    FacilitatorLearnerDetailResponse,
+    FacilitatorLearnerListResponse,
+    MembershipStatusFilter,
+)
 from fastapi import APIRouter, Depends, Query, status
 
 from ..deps import (
+    AtRiskServiceDep,
     CohortContentServiceDep,
     ContentLibraryServiceDep,
     CurrentFacilitatorDep,
     FacilitatorCohortServiceDep,
+    FacilitatorLearnerServiceDep,
     LessonServiceDep,
     ModuleServiceDep,
+    NowDep,
     StrandServiceDep,
     get_current_facilitator,
 )
@@ -74,6 +89,83 @@ async def get_my_cohort(
     service: FacilitatorCohortServiceDep,
 ):
     return await service.get_cohort_detail(current_user, cohort_id)
+
+
+# ================ Learners ================
+
+@router.get("/learners", response_model=FacilitatorLearnerListResponse)
+async def get_my_learners(
+    current_user: CurrentFacilitatorDep,
+    service: FacilitatorLearnerServiceDep,
+    now: NowDep,
+    cohort_id: int | None = None,
+    school_year: SchoolYear | None = None,
+    membership_status: MembershipStatusFilter = "active",
+    search: str | None = None,
+    at_risk: bool = False,
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=100)] = 20,
+):
+    return await service.get_list(
+        current_user,
+        cohort_id=cohort_id,
+        school_year=school_year,
+        membership_status=membership_status,
+        search=search,
+        at_risk=at_risk,
+        page=page,
+        page_size=page_size,
+        now=now,
+    )
+
+
+@router.get("/learners/{learner_id}", response_model=FacilitatorLearnerDetailResponse)
+async def get_my_learner(
+    learner_id: int,
+    current_user: CurrentFacilitatorDep,
+    service: FacilitatorLearnerServiceDep,
+    now: NowDep,
+    cohort_id: int | None = None,
+):
+    return await service.get_detail(current_user, learner_id, cohort_id, now)
+
+
+# ================ At-risk flags ================
+# Flags are brought up to date when they are read; there is no scheduler (D5).
+
+@router.get("/at-risk", response_model=AtRiskFlagListResponse)
+async def get_at_risk_flags(
+    current_user: CurrentFacilitatorDep,
+    service: AtRiskServiceDep,
+    now: NowDep,
+    cohort_id: int | None = None,
+    school_year: SchoolYear | None = None,
+    status: AtRiskStatusFilter = "active",
+    reason: AtRiskReason | None = None,
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=100)] = 20,
+):
+    return await service.get_list(
+        current_user,
+        now,
+        cohort_id=cohort_id,
+        school_year=school_year,
+        status=status,
+        reason=reason,
+        page=page,
+        page_size=page_size,
+    )
+
+
+@router.patch("/at-risk/{flag_id}", response_model=AtRiskFlagItem)
+async def update_at_risk_flag(
+    flag_id: int,
+    data: AtRiskFlagUpdate,
+    current_user: CurrentFacilitatorDep,
+    service: AtRiskServiceDep,
+    now: NowDep,
+):
+    return await service.update(current_user, flag_id, data, now)
 
 
 # ================ Content assignment ================

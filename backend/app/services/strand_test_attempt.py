@@ -20,6 +20,7 @@ from app.schemas.strand_test_attempt import (
     StrandAttemptResultResponse,
 )
 from app.services.learner import LearnerService
+from app.services.scoring import compute_mps
 from sqlalchemy.exc import IntegrityError
 
 
@@ -152,8 +153,9 @@ class StrandTestAttemptService:
         if attempt is None:
             raise StrandTestAttemptNotFoundError()
 
-        # MPS is computed on read from the two stored values.
-        mps = round(attempt.total_score / attempt.item_count * 100, 2)
+        # MPS is computed on read from the two stored values. It is None for an
+        # attempt with no items.
+        mps = compute_mps(attempt.total_score, attempt.item_count)
 
         return StrandAttemptResultResponse(
             attempt_id=attempt.id,
