@@ -3,6 +3,8 @@ from typing import Any
 from sqlalchemy import func, select
 
 from app.enums.user import UserRole
+from app.models.facilitator import Facilitator
+from app.models.learner import Learner
 from app.models.user import User
 from app.models.user_profile import UserProfile
 
@@ -25,7 +27,9 @@ class UserRepository(BaseRepository[User]):
         page_size: int,
         role: UserRole | None = None,
         is_active: bool | None = None,
-    ) -> tuple[list[tuple[User, UserProfile | None]], int]:
+    ) -> tuple[list[tuple[User, UserProfile | None, int | None, int | None]], int]:
+        """A page of users. Rows are (user, profile, learner_id, facilitator_id);
+        each id is set only for a user of that role."""
         conditions = []
         if role is not None:
             conditions.append(User.role == role)
@@ -39,8 +43,10 @@ class UserRepository(BaseRepository[User]):
         total = (await self._session.execute(count_statement)).scalar_one()
 
         statement = (
-            select(User, UserProfile)
+            select(User, UserProfile, Learner.id, Facilitator.id)
             .outerjoin(UserProfile, UserProfile.user_id == User.id)
+            .outerjoin(Learner, Learner.user_id == User.id)
+            .outerjoin(Facilitator, Facilitator.user_id == User.id)
             .order_by(User.id)
             .offset((page - 1) * page_size)
             .limit(page_size)
@@ -49,7 +55,7 @@ class UserRepository(BaseRepository[User]):
             statement = statement.where(*conditions)
 
         result = await self._session.execute(statement)
-        rows = [(row[0], row[1]) for row in result.all()]
+        rows = [(row[0], row[1], row[2], row[3]) for row in result.all()]
 
         return rows, total
 

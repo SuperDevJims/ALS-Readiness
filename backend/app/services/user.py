@@ -72,7 +72,7 @@ class UserService:
         page_size: int,
         role: UserRole | None = None,
         is_active: bool | None = None,
-    ) -> tuple[list[tuple[User, UserProfile | None]], int]:
+    ) -> tuple[list[tuple[User, UserProfile | None, int | None, int | None]], int]:
         return await self._user_repository.list_with_profiles(
             page=page,
             page_size=page_size,

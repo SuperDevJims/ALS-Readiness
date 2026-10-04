@@ -12,13 +12,18 @@ from .base import BaseRepository
 class CohortRepository(BaseRepository[Cohort]):
     model = Cohort
 
-    async def get_by_status(self, status: CohortStatus) -> list[Cohort]:
-        statement = select(Cohort).where(Cohort.status == status)
-        result = await self._session.execute(statement)
-        return list(result.scalars().all())
+    async def get_list(
+        self,
+        status: CohortStatus | None = None,
+        school_year: str | None = None,
+    ) -> list[Cohort]:
+        statement = select(Cohort)
+        if status is not None:
+            statement = statement.where(Cohort.status == status)
+        if school_year is not None:
+            statement = statement.where(Cohort.school_year == school_year)
 
-    async def get_all(self) -> list[Cohort]:
-        result = await self._session.execute(select(Cohort))
+        result = await self._session.execute(statement)
         return list(result.scalars().all())
 
     async def get_cohort_by_learner_user_id(self, user_id: int) -> Cohort | None:

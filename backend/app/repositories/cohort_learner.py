@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.models.cohort import CohortLearner
 from app.models.learner import Learner
@@ -65,3 +65,39 @@ class CohortLearnerRepository(BaseRepository[CohortLearner]):
         )
         result = await self._session.execute(statement)
         return result.first() is not None
+
+    async def count_active_by_cohort_ids(self, cohort_ids: list[int]) -> dict[int, int]:
+        """Active membership count per cohort, in one query. Cohorts with none are absent."""
+        if not cohort_ids:
+            return {}
+
+        statement = (
+            select(CohortLearner.cohort_id, func.count(CohortLearner.id))
+            .where(
+                CohortLearner.cohort_id.in_(cohort_ids),
+                CohortLearner.status == CohortMemberStatus.ACTIVE,
+            )
+            .group_by(CohortLearner.cohort_id)
+        )
+        result = await self._session.execute(statement)
+        return {cohort_id: count for cohort_id, count in result.all()}
+
+    async def get_roster_by_cohort_id(
+        self,
+        cohort_id: int,
+    ) -> list[tuple[CohortLearner, str | None, str | None, str | None]]:
+        """Every membership of the cohort (active and ended) with the learner's
+        id number and name only, ordered by last name then first name.
+
+        Rows are (membership, id_no, first_name, last_name).
+        """
+        statement = (
+            select(CohortLearner, User.id_no, UserProfile.first_name, UserProfile.last_name)
+            .join(Learner, Learner.id == CohortLearner.learner_id)
+            .join(User, User.id == Learner.user_id)
+            .outerjoin(UserProfile, UserProfile.user_id == User.id)
+            .where(CohortLearner.cohort_id == cohort_id)
+            .order_by(UserProfile.last_name, UserProfile.first_name, CohortLearner.id)
+        )
+        result = await self._session.execute(statement)
+        return result.all()

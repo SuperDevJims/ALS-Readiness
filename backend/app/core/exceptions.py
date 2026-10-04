@@ -52,6 +52,13 @@ class ServiceUnavailableError(AppError):
     code = "SERVICE_UNAVAILABLE"
 
 
+class ConflictError(AppError):
+    """Base for requests the resource's current state does not allow."""
+
+    message = "The request conflicts with the current state of the resource."
+    code = "CONFLICT"
+
+
 # ================ Auth Errors ================
 
 class InvalidCredentialsError(UnauthenticatedError):
@@ -287,6 +294,27 @@ class CohortAccessDeniedError(UnauthorizedError):
 
     message = "You do not have access to this cohort or learner."
     code = "COHORT_ACCESS_DENIED"
+
+
+class CohortNotActiveError(ConflictError):
+    """Raised when a change is made to a cohort the caller can see but which is not active."""
+
+    message = "This cohort is not active, so it cannot be changed."
+    code = "COHORT_NOT_ACTIVE"
+
+
+class LearnerAlreadyInActiveCohortError(AlreadyExistsError):
+    """Raised when assigning a learner who already has an active membership in a cohort."""
+
+    message = "Learner already has an active cohort. End that membership first."
+    code = "LEARNER_ALREADY_IN_ACTIVE_COHORT"
+
+
+class LearnerNotInCohortError(NotFoundError):
+    """Raised when a learner has no active cohort membership."""
+
+    message = "Learner is not assigned to a cohort."
+    code = "LEARNER_NOT_IN_COHORT"
 
     
 class SelfPasswordResetNotAllowedError(UnauthorizedError):

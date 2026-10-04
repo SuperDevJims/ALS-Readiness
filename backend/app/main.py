@@ -12,6 +12,7 @@ from .api.router import router as api_router
 from .core.config import settings
 from .core.exceptions import (
     AlreadyExistsError,
+    ConflictError,
     DomainValidationError,
     NotFoundError,
     ServiceUnavailableError,
@@ -128,6 +129,15 @@ async def handle_unauthorized(_: Request, exc: UnauthorizedError):
 
 @app.exception_handler(AlreadyExistsError)
 async def handle_already_exists(_: Request, exc: AlreadyExistsError):
+    return error_response(
+        status_code=status.HTTP_409_CONFLICT,
+        error_code=exc.code,
+        message=exc.message,
+    )
+
+
+@app.exception_handler(ConflictError)
+async def handle_conflict(_: Request, exc: ConflictError):
     return error_response(
         status_code=status.HTTP_409_CONFLICT,
         error_code=exc.code,

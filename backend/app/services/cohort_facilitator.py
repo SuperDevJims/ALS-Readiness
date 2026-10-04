@@ -1,3 +1,6 @@
+from datetime import datetime, timezone
+from typing import Any
+
 from app.core.exceptions import (
     CohortFacilitatorAlreadyExistsError,
     CohortFacilitatorNotFoundError,
@@ -65,6 +68,12 @@ class CohortFacilitatorService:
         if cohort_facilitator is None:
             raise CohortFacilitatorNotFoundError()
 
-        return await self._cohort_facilitator_repo.update(cohort_facilitator, {"status": status})
+        fields: dict[str, Any] = {"status": status}
+        if status == CohortMemberStatus.ENDED:
+            # Keep the original time if the assignment had already ended.
+            if cohort_facilitator.status != CohortMemberStatus.ENDED:
+                fields["ended_at"] = datetime.now(timezone.utc)
+        else:
+            fields["ended_at"] = None
 
-    
+        return await self._cohort_facilitator_repo.update(cohort_facilitator, fields)

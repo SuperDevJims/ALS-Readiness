@@ -53,7 +53,7 @@ class AdminService:
         )
 
         # Create learner entity
-        _ = await self._learner_service.create(LearnerCreate(user_id=user.id))
+        learner = await self._learner_service.create(LearnerCreate(user_id=user.id))
 
         profile = await self._profile_service.create(
             user_id=user.id,
@@ -77,6 +77,7 @@ class AdminService:
             ),
             created_at=user.created_at,
             updated_at=user.updated_at,
+            learner_id=learner.id,
         )
 
     async def create_facilitator(self, facilitator_create: AdminFacilitatorCreate) -> AdminUserCreateResponse:
@@ -86,7 +87,7 @@ class AdminService:
         )
 
         # Create facilitator entity
-        _ = await self._facilitator_service.create(FacilitatorCreate(user_id=user.id))
+        facilitator = await self._facilitator_service.create(FacilitatorCreate(user_id=user.id))
 
         # Create profile entity
         profile = await self._profile_service.create(
@@ -110,6 +111,7 @@ class AdminService:
             ),
             created_at=user.created_at,
             updated_at=user.updated_at,
+            facilitator_id=facilitator.id,
         )
 
     async def create_admin(self, admin_create: AdminAdminCreate) -> AdminUserCreateResponse:
@@ -166,8 +168,10 @@ class AdminService:
                 first_name=profile.first_name if profile else None,
                 last_name=profile.last_name if profile else None,
                 created_at=user.created_at,
+                learner_id=learner_id,
+                facilitator_id=facilitator_id,
             )
-            for user, profile in rows
+            for user, profile, learner_id, facilitator_id in rows
         ]
 
         return AdminUserListResponse(

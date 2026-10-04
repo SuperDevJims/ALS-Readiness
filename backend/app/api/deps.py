@@ -45,6 +45,7 @@ from app.services.cohort_learner import CohortLearnerService
 from app.services.content import ContentService
 from app.services.curriculum import CurriculumService
 from app.services.facilitator import FacilitatorService
+from app.services.facilitator_cohort import FacilitatorCohortService
 from app.services.facilitator_scope import FacilitatorScopeService
 from app.services.learner import LearnerService
 from app.services.learning_strand import LearningStrandService
@@ -438,6 +439,13 @@ LRITestAttemptServiceDep = Annotated[
 # ================ Cohorts ===============
 
 
+def get_cohort_repo(session: SessionDep) -> CohortRepository:
+    return CohortRepository(session)
+
+
+CohortRepoDep = Annotated[CohortRepository, Depends(get_cohort_repo)]
+
+
 def get_cohort_learner_repo(session: SessionDep) -> CohortLearnerRepository:
     return CohortLearnerRepository(session)
 
@@ -492,11 +500,11 @@ CohortFacilitatorServiceDep = Annotated[
 
 
 def get_facilitator_scope_service(
-    cohort_facilitator_repo: CohortFacilitatorRepoDep,
+    cohort_repo: CohortRepoDep,
     cohort_learner_repo: CohortLearnerRepoDep,
 ) -> FacilitatorScopeService:
     return FacilitatorScopeService(
-        cohort_facilitator_repo=cohort_facilitator_repo,
+        cohort_repo=cohort_repo,
         cohort_learner_repo=cohort_learner_repo,
     )
 
@@ -506,14 +514,27 @@ FacilitatorScopeServiceDep = Annotated[
 ]
 
 
+# ============ Facilitator Cohorts ============
+
+
+def get_facilitator_cohort_service(
+    cohort_repo: CohortRepoDep,
+    cohort_learner_repo: CohortLearnerRepoDep,
+    facilitator_scope_service: FacilitatorScopeServiceDep,
+) -> FacilitatorCohortService:
+    return FacilitatorCohortService(
+        cohort_repo=cohort_repo,
+        cohort_learner_repo=cohort_learner_repo,
+        facilitator_scope_service=facilitator_scope_service,
+    )
+
+
+FacilitatorCohortServiceDep = Annotated[
+    FacilitatorCohortService, Depends(get_facilitator_cohort_service)
+]
+
+
 # ============ Cohort Service ============
-
-
-def get_cohort_repo(session: SessionDep) -> CohortRepository:
-    return CohortRepository(session)
-
-
-CohortRepoDep = Annotated[CohortRepository, Depends(get_cohort_repo)]
 
 
 def get_cohort_service(

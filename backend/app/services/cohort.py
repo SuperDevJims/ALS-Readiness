@@ -52,11 +52,12 @@ class CohortService:
 
         return created_cohort
 
-    async def get_list(self, status: CohortStatus | None = None) -> list[Cohort]:
-        if status is not None:
-            return await self._cohort_repo.get_by_status(status)
-
-        return await self._cohort_repo.get_all()
+    async def get_list(
+        self,
+        status: CohortStatus | None = None,
+        school_year: str | None = None,
+    ) -> list[Cohort]:
+        return await self._cohort_repo.get_list(status=status, school_year=school_year)
 
     async def update_status(self, cohort_id: int, status: CohortStatus) -> Cohort:
         cohort = await self._cohort_repo.get_by_id(cohort_id)
@@ -123,8 +124,9 @@ class CohortService:
             return cohort_facilitator
 
     async def get_cohort_with_members(self, user: User, cohort_id: int) -> CohortWithMembersResponse:
-        # Checked before the cohort is looked up, so a denied caller gets the
-        # same 403 whether or not the cohort exists.
+        # This roster carries full profiles, so its route is admin-only. The
+        # scope check stays as a second line of defence, and runs before the
+        # cohort is looked up so a denied caller cannot tell whether it exists.
         await self._facilitator_scope_service.assert_cohort_access(user, cohort_id)
 
         cohort = await self.get_by_id(cohort_id)

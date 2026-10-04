@@ -28,6 +28,9 @@ class AdminUserCreateResponse(BaseModel):
     profile: UserProfileResponse
     created_at: datetime
     updated_at: datetime
+    # The ids the cohort assign endpoints take. Each is set only for that role.
+    learner_id: int | None = None
+    facilitator_id: int | None = None
 
 
 class AdminUserListItem(BaseModel):
@@ -38,6 +41,9 @@ class AdminUserListItem(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
     created_at: datetime
+    # The ids the cohort assign endpoints take. Each is set only for that role.
+    learner_id: int | None = None
+    facilitator_id: int | None = None
 
 
 class AdminUserListResponse(BaseModel):
