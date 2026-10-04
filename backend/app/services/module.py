@@ -1,4 +1,8 @@
-from app.core.exceptions import CurriculumModuleNotFoundError, LearningStrandNotFoundError
+from app.core.exceptions import (
+    CurriculumModuleNotFoundError,
+    LearningStrandNotFoundError,
+    StrandNotActiveError,
+)
 from app.enums.curriculum import StructureStatus
 from app.models.module import Module
 from app.models.user import User
@@ -28,7 +32,11 @@ class ModuleService:
         return module
 
     async def create(self, user: User, strand_id: int, module_create: ModuleCreate) -> Module:
-        await self._ensure_strand(strand_id)
+        strand = await self._strand_repo.get_by_id(strand_id)
+        if strand is None:
+            raise LearningStrandNotFoundError()
+        if strand.status != StructureStatus.ACTIVE:
+            raise StrandNotActiveError()
 
         # Placed last: after every existing module, archived ones included.
         order_index = await self._module_repo.get_max_order_index(strand_id) + 1

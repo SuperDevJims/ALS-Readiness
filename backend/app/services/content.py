@@ -1,13 +1,14 @@
-from botocore.exceptions import ClientError
 from fastapi import UploadFile
+from sqlalchemy.exc import IntegrityError
 
 from app.core.exceptions import (
+    ContentEvaluationAlreadyExistsError,
     ContentFileNotFoundError,
     ContentNotFoundError,
     InvalidContentFileError,
     StorageUnavailableError,
 )
-from app.enums.content import ContentType, StimulusLevel
+from app.enums.content import ContentStatus, ContentType, StimulusLevel
 from app.models.content import Content
 from app.models.content_evaluation import ContentEvaluation
 from app.repositories.content import ContentRepository
@@ -15,7 +16,7 @@ from app.repositories.content_evaluation import ContentEvaluationRepository
 from app.schemas.content import ContentCreate
 from app.services.facilitator import FacilitatorService
 from app.services.lesson import LessonService
-from app.storage import build_key, file_exists, get_upload_url
+from app.storage import STORAGE_ERRORS, build_key, file_exists, get_upload_url
 
 
 class ContentService:
@@ -68,7 +69,10 @@ class ContentService:
         self._validate_extension(filename)
 
         key = build_key("learning-contents", filename)
-        upload_url = get_upload_url(key)
+        try:
+            upload_url = get_upload_url(key)
+        except STORAGE_ERRORS:
+            raise StorageUnavailableError() from None
 
         return key, upload_url
 
@@ -78,11 +82,11 @@ class ContentService:
         content_create: ContentCreate,
     ) -> Content:
         facilitator = await self._facilitator_service.get_by_user_id(user_id)
-        _ = await self._lesson_service.get_by_id(content_create.lesson_id)
+        await self._lesson_service.get_active_by_id(content_create.lesson_id)
 
         try:
             exists = file_exists(content_create.file_key)
-        except ClientError:
+        except STORAGE_ERRORS:
             raise StorageUnavailableError() from None
 
         if not exists:
@@ -93,6 +97,7 @@ class ContentService:
         content = Content(
             **content_create.model_dump(),
             type=content_type,
+            status=ContentStatus.ACTIVE,
             uploaded_by=facilitator.id,
         )
 
@@ -119,10 +124,19 @@ class ContentService:
     ) -> ContentEvaluation:
         content = await self.get_content_by_id(content_id)
 
+        # The unique constraint is the backstop; this check is what makes the
+        # failure a clean 409.
+        if await self._content_eval_repo.get_by_content_id(content.id) is not None:
+            raise ContentEvaluationAlreadyExistsError()
+
         content_eval = ContentEvaluation(
             content_id=content.id,
             stimulus_level=stimulus_level,
             cognitive_sustainability_rating=cognitive_sustainability_rating,
         )
 
-        return await self._content_eval_repo.create(content_eval)
+        try:
+            return await self._content_eval_repo.create(content_eval)
+        except IntegrityError:
+            # A concurrent save got past the check above.
+            raise ContentEvaluationAlreadyExistsError() from None

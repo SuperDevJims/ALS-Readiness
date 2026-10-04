@@ -3,11 +3,16 @@ from uuid import uuid4
 
 import boto3
 from botocore.config import Config
-from botocore.exceptions import ClientError
+from botocore.exceptions import BotoCoreError, ClientError
 
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
+
+# Everything a storage call can raise. ClientError is an error response from
+# B2; BotoCoreError covers failures before a response exists: missing
+# credentials, an unreachable endpoint, a timeout, invalid parameters.
+STORAGE_ERRORS = (BotoCoreError, ClientError)
 
 # Log the "B2 not configured" warning once, not once per asset.
 _warned_unconfigured = False

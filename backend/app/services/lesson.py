@@ -1,4 +1,9 @@
-from app.core.exceptions import CurriculumModuleNotFoundError, LessonNotFoundError
+from app.core.exceptions import (
+    CurriculumModuleNotFoundError,
+    LessonNotActiveError,
+    LessonNotFoundError,
+    ModuleNotActiveError,
+)
 from app.enums.curriculum import StructureStatus
 from app.models.lesson import Lesson
 from app.models.user import User
@@ -23,8 +28,25 @@ class LessonService:
 
         return lesson
 
+    async def get_active_by_id(self, lesson_id: int) -> Lesson:
+        """The lesson, if it and its module are both active. Content can only be
+        added to, moved to, or assigned from such a lesson."""
+        lesson = await self.get_by_id(lesson_id)
+        if lesson.status != StructureStatus.ACTIVE:
+            raise LessonNotActiveError()
+
+        module = await self._module_repo.get_by_id(lesson.module_id)
+        if module is None or module.status != StructureStatus.ACTIVE:
+            raise ModuleNotActiveError()
+
+        return lesson
+
     async def create(self, user: User, module_id: int, lesson_create: LessonCreate) -> Lesson:
-        await self._ensure_module(module_id)
+        module = await self._module_repo.get_by_id(module_id)
+        if module is None:
+            raise CurriculumModuleNotFoundError()
+        if module.status != StructureStatus.ACTIVE:
+            raise ModuleNotActiveError()
 
         # Placed last: after every existing lesson, archived ones included.
         order_index = await self._lesson_repo.get_max_order_index(module_id) + 1

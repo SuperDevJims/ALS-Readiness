@@ -45,6 +45,7 @@ from app.services.cohort_content import CohortContentService
 from app.services.cohort_facilitator import CohortFacilitatorService
 from app.services.cohort_learner import CohortLearnerService
 from app.services.content import ContentService
+from app.services.content_library import ContentLibraryService
 from app.services.curriculum import CurriculumService
 from app.services.facilitator import FacilitatorService
 from app.services.facilitator_cohort import FacilitatorCohortService
@@ -502,14 +503,25 @@ CohortFacilitatorServiceDep = Annotated[
 # depend on it (cohort, curriculum).
 
 
+def get_cohort_content_repo(session: SessionDep) -> CohortContentRepository:
+    return CohortContentRepository(session)
+
+
+CohortContentRepoDep = Annotated[
+    CohortContentRepository, Depends(get_cohort_content_repo)
+]
+
+
 def get_facilitator_scope_service(
     cohort_repo: CohortRepoDep,
     cohort_learner_repo: CohortLearnerRepoDep,
+    cohort_content_repo: CohortContentRepoDep,
     facilitator_repo: FacilitatorRepositoryDep,
 ) -> FacilitatorScopeService:
     return FacilitatorScopeService(
         cohort_repo=cohort_repo,
         cohort_learner_repo=cohort_learner_repo,
+        cohort_content_repo=cohort_content_repo,
         facilitator_repo=facilitator_repo,
     )
 
@@ -619,26 +631,36 @@ def get_content_service(
 ContentServiceDep = Annotated[ContentService, Depends(get_content_service)]
 
 
-# =========== Cohort Content =============
+def get_content_library_service(
+    content_repo: ContentRepoDep,
+    lesson_service: LessonServiceDep,
+    facilitator_scope_service: FacilitatorScopeServiceDep,
+) -> ContentLibraryService:
+    return ContentLibraryService(
+        content_repo=content_repo,
+        lesson_service=lesson_service,
+        facilitator_scope_service=facilitator_scope_service,
+    )
 
 
-def get_cohort_content_repo(session: SessionDep) -> CohortContentRepository:
-    return CohortContentRepository(session)
-
-
-CohortContentRepoDep = Annotated[
-    CohortContentRepository, Depends(get_cohort_content_repo)
+ContentLibraryServiceDep = Annotated[
+    ContentLibraryService, Depends(get_content_library_service)
 ]
+
+
+# =========== Cohort Content =============
 
 
 def get_cohort_content_service(
     cohort_content_repo: CohortContentRepoDep,
     content_repo: ContentRepoDep,
+    lesson_service: LessonServiceDep,
     facilitator_scope_service: FacilitatorScopeServiceDep,
 ) -> CohortContentService:
     return CohortContentService(
         cohort_content_repo=cohort_content_repo,
         content_repo=content_repo,
+        lesson_service=lesson_service,
         facilitator_scope_service=facilitator_scope_service,
     )
 

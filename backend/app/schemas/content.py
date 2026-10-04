@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 
 from app.enums.content import (
     ContentStatus,
@@ -22,7 +22,6 @@ class ContentCreate(BaseModel):
     file_key: str
     title: str
     description: str | None = None
-    status: ContentStatus = ContentStatus.ACTIVE
     visibility: ContentVisibility = ContentVisibility.PRIVATE
 
 

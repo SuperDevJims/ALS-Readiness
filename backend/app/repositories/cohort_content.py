@@ -13,6 +13,18 @@ class CohortContentRepository(BaseRepository[CohortContent]):
         result = await self._session.execute(stmt)
         return list(result.scalars())
 
+    async def get_content_ids_for_cohorts(self, cohort_ids: list[int]) -> list[int]:
+        """The ids of the content assigned to any of the given cohorts."""
+        if not cohort_ids:
+            return []
+        stmt = (
+            select(CohortContent.content_id)
+            .where(CohortContent.cohort_id.in_(cohort_ids))
+            .distinct()
+        )
+        result = await self._session.execute(stmt)
+        return list(result.scalars())
+
     async def get_by_cohort_id_and_content_id(
         self,
         cohort_id: int,

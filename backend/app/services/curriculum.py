@@ -1,4 +1,5 @@
 from app.core.exceptions import LearningStrandNotFoundError
+from app.enums.curriculum import StructureStatus
 from app.models.content import Content
 from app.models.user import User
 from app.repositories.cohort_content import CohortContentRepository
@@ -41,41 +42,59 @@ class CurriculumService:
         strand_id: int,
         cohort_id: int | None,
     ) -> FacilitatorCurriculumResponse:
-        """The facilitator's tree: active structure, and only content the caller may see (D9).
+        """The facilitator's tree: active structure, and only content the caller may see.
 
         Without a cohort_id, each lesson lists all its visible content. With one,
-        the caller must have access to that cohort, and each lesson splits its
-        visible content into what is assigned to the cohort and what is available.
+        the caller must have access to that cohort, and each lesson lists what is
+        assigned to the cohort and, separately, what the caller may still assign.
         """
         if cohort_id is not None:
             await self._facilitator_scope_service.assert_cohort_access(user, cohort_id)
 
+        # An archived strand is not on the facilitator's tab bar, so its tree
+        # is not found either.
         strand = await self._curriculum_repo.get_strand_tree(strand_id)
-        if strand is None:
+        if strand is None or strand.status != StructureStatus.ACTIVE:
             raise LearningStrandNotFoundError()
 
-        is_visible = await self._facilitator_scope_service.get_content_filter(user)
+        access =await self._facilitator_scope_service.get_content_access(user)
         assigned_ids = (
             set(await self._cohort_content_repo.get_content_ids(cohort_id))
             if cohort_id is not None
             else None
         )
 
+        def content_node(content: Content) -> FacilitatorContentNode:
+            return FacilitatorContentNode(
+                content_id=content.id,
+                title=content.title,
+                content_type=content.type,
+                visibility=content.visibility,
+                has_evaluation=content.evaluation is not None,
+                is_own=access.is_own(content),
+            )
+
         def lesson_node(lesson) -> FacilitatorLessonNode:
-            visible = [content for content in lesson.contents if is_visible(content)]
+            visible = [content for content in lesson.contents if access.can_see(content)]
             if assigned_ids is None:
                 contents, available = visible, []
             else:
+                # Everything assigned to this cohort is visible to the caller,
+                # who has access to it. Only what they may assign is offered.
                 contents = [content for content in visible if content.id in assigned_ids]
-                available = [content for content in visible if content.id not in assigned_ids]
+                available = [
+                    content
+                    for content in visible
+                    if content.id not in assigned_ids and access.can_assign(content)
+                ]
 
             return FacilitatorLessonNode(
                 lesson_id=lesson.id,
                 title=lesson.title,
                 description=lesson.description,
                 order_index=lesson.order_index,
-                contents=[self._content_node(content) for content in contents],
-                available_contents=[self._content_node(content) for content in available],
+                contents=[content_node(content) for content in contents],
+                available_contents=[content_node(content) for content in available],
             )
 
         return FacilitatorCurriculumResponse(
@@ -94,16 +113,6 @@ class CurriculumService:
                 )
                 for module in strand.modules
             ],
-        )
-
-    @staticmethod
-    def _content_node(content: Content) -> FacilitatorContentNode:
-        return FacilitatorContentNode(
-            content_id=content.id,
-            title=content.title,
-            content_type=content.type,
-            visibility=content.visibility,
-            has_evaluation=content.evaluation is not None,
         )
 
     async def get_tree_with_progress(self, strand_id: int, user_id: int) -> CurriculumResponse:

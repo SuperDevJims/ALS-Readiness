@@ -33,6 +33,8 @@ class FacilitatorContentNode(BaseModel):
     visibility: ContentVisibility
     # Whether an evaluation row exists. Nothing is computed here.
     has_evaluation: bool
+    # Whether the caller uploaded it. False for content shared by someone else.
+    is_own: bool
 
 
 class FacilitatorLessonNode(BaseModel):
@@ -40,10 +42,10 @@ class FacilitatorLessonNode(BaseModel):
     title: str
     description: str | None
     order_index: int
-    # With a cohort_id: the contents assigned to that cohort. Without one: every
-    # content the caller can see.
+    # With a cohort_id: the contents assigned to that cohort, including other
+    # facilitators' private ones. Without one: every content the caller can see.
     contents: list[FacilitatorContentNode]
-    # With a cohort_id: the contents the caller can see that are not yet
+    # With a cohort_id: the contents the caller may assign that are not yet
     # assigned to that cohort. Without one: always empty.
     available_contents: list[FacilitatorContentNode]
 

@@ -1,8 +1,19 @@
+from typing import Annotated
+
+from app.enums.content import ContentStatus, ContentType
+from app.schemas.cohort import SchoolYear
 from app.schemas.cohort_content import CohortContentCreate, CohortContentResponse
 from app.schemas.facilitator_cohort import (
     FacilitatorCohortDetailResponse,
     FacilitatorCohortListResponse,
     FacilitatorSchoolYearsResponse,
+)
+from app.schemas.facilitator_content import (
+    ContentLibraryDetailResponse,
+    ContentLibraryItem,
+    ContentLibraryListResponse,
+    ContentLibraryStatus,
+    ContentUpdate,
 )
 from app.schemas.facilitator_curriculum import (
     LessonCreate,
@@ -17,10 +28,11 @@ from app.schemas.facilitator_curriculum import (
     StrandItem,
     StrandListResponse,
 )
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 
 from ..deps import (
     CohortContentServiceDep,
+    ContentLibraryServiceDep,
     CurrentFacilitatorDep,
     FacilitatorCohortServiceDep,
     LessonServiceDep,
@@ -50,7 +62,7 @@ async def get_my_school_years(
 async def get_my_cohorts(
     current_user: CurrentFacilitatorDep,
     service: FacilitatorCohortServiceDep,
-    school_year: str | None = None,
+    school_year: SchoolYear | None = None,
 ):
     return await service.get_cohorts(current_user, school_year)
 
@@ -91,6 +103,57 @@ async def unassign_content(
     service: CohortContentServiceDep,
 ):
     await service.unassign(current_user, cohort_id, content_id)
+
+
+# ================ Content library ================
+
+@router.get("/contents", response_model=ContentLibraryListResponse)
+async def get_library_contents(
+    current_user: CurrentFacilitatorDep,
+    service: ContentLibraryServiceDep,
+    strand_id: int | None = None,
+    module_id: int | None = None,
+    lesson_id: int | None = None,
+    type: ContentType | None = None,
+    evaluated: bool | None = None,
+    mine: bool = False,
+    status: ContentLibraryStatus = "active",
+    search: str | None = None,
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=100)] = 20,
+):
+    return await service.get_list(
+        current_user,
+        status=ContentStatus(status),
+        mine=mine,
+        strand_id=strand_id,
+        module_id=module_id,
+        lesson_id=lesson_id,
+        type=type,
+        evaluated=evaluated,
+        search=search,
+        page=page,
+        page_size=page_size,
+    )
+
+
+@router.get("/contents/{content_id}", response_model=ContentLibraryDetailResponse)
+async def get_library_content(
+    content_id: int,
+    current_user: CurrentFacilitatorDep,
+    service: ContentLibraryServiceDep,
+):
+    return await service.get_detail(current_user, content_id)
+
+
+@router.patch("/contents/{content_id}", response_model=ContentLibraryItem)
+async def update_library_content(
+    content_id: int,
+    data: ContentUpdate,
+    current_user: CurrentFacilitatorDep,
+    service: ContentLibraryServiceDep,
+):
+    return await service.update(current_user, content_id, data)
 
 
 # ================ Strands and structure ================

@@ -368,6 +368,20 @@ class StorageUnavailableError(ServiceUnavailableError):
     code = "STORAGE_UNAVAILABLE"
 
 
+class ContentEditDeniedError(UnauthorizedError):
+    """Raised when a caller who can see a content tries to edit one they did not upload."""
+
+    message = "Only the uploader can edit this content."
+    code = "CONTENT_EDIT_DENIED"
+
+
+class ContentEvaluationAlreadyExistsError(AlreadyExistsError):
+    """Raised when saving an evaluation for a content that already has one."""
+
+    message = "This content already has an evaluation."
+    code = "CONTENT_EVALUATION_ALREADY_EXISTS"
+
+
 # ================ Curriculum Error ================
 
 class LearningStrandNotFoundError(NotFoundError):
@@ -390,6 +404,27 @@ class LessonNotFoundError(NotFoundError):
 
     message = "Lesson not found."
     code = "LESSON_NOT_FOUND"
+
+
+class StrandNotActiveError(ConflictError):
+    """Raised when adding to a strand that is archived or deleted."""
+
+    message = "This strand is not active, so nothing can be added to it."
+    code = "STRAND_NOT_ACTIVE"
+
+
+class ModuleNotActiveError(ConflictError):
+    """Raised when adding to, or using content under, a module that is archived or deleted."""
+
+    message = "This module is not active."
+    code = "MODULE_NOT_ACTIVE"
+
+
+class LessonNotActiveError(ConflictError):
+    """Raised when adding or using content under a lesson that is archived or deleted."""
+
+    message = "This lesson is not active."
+    code = "LESSON_NOT_ACTIVE"
 
 
 class InvalidReorderError(DomainValidationError):

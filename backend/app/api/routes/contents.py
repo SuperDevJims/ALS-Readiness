@@ -1,6 +1,5 @@
 from typing import Annotated
 
-from app.enums.content import ContentStatus, ContentVisibility
 from app.schemas.content import (
     ContentCreate,
     ContentEvaluationCreate,
@@ -10,15 +9,7 @@ from app.schemas.content import (
     UploadUrlRequest,
     UploadUrlResponse,
 )
-from fastapi import (
-    APIRouter,
-    BackgroundTasks,
-    Depends,
-    File,
-    HTTPException,
-    UploadFile,
-    status,
-)
+from fastapi import APIRouter, Depends, File, UploadFile, status
 
 from ..deps import ContentServiceDep, CurrentFacilitatorDep, get_current_facilitator
 
@@ -42,7 +33,7 @@ async def create_upload_url(data: UploadUrlRequest, service: ContentServiceDep):
 @router.post(
     "",
     status_code=status.HTTP_201_CREATED,
-    response_model=ContentResponse | None,
+    response_model=ContentResponse,
 )
 async def create_content(
     data: ContentCreate,

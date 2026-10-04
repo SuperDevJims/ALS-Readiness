@@ -1,4 +1,6 @@
-from collections.abc import Callable
+from dataclasses import dataclass
+
+from sqlalchemy import ColumnElement, false, or_, true
 
 from app.core.exceptions import (
     CohortAccessDeniedError,
@@ -12,6 +14,7 @@ from app.models.cohort import Cohort
 from app.models.content import Content
 from app.models.user import User
 from app.repositories.cohort import CohortRepository
+from app.repositories.cohort_content import CohortContentRepository
 from app.repositories.cohort_learner import CohortLearnerRepository
 from app.repositories.facilitator import FacilitatorRepository
 
@@ -24,6 +27,71 @@ VISIBLE_COHORT_STATUSES = (
 )
 
 
+@dataclass(frozen=True)
+class ContentAccess:
+    """What one caller may do with content. The content rules live here only.
+
+    A facilitator may assign a content item when any of these holds:
+      1. they uploaded it;
+      2. its visibility is public (D9);
+      3. it has no uploader, as with seeded or legacy content (D20).
+    They may see it when any of those holds, or when:
+      4. it is assigned to a cohort they can see (D19).
+
+    Rule 4 lets a facilitator see another facilitator's private item in a
+    shared cohort, but not assign it elsewhere. An admin may see and assign
+    everything. Status is not considered here; callers filter on it separately.
+    """
+
+    sees_all: bool = False
+    facilitator_id: int | None = None
+    # Ids of the content assigned to any cohort the caller can see (rule 4).
+    shared_content_ids: frozenset[int] = frozenset()
+
+    def is_own(self, content: Content) -> bool:
+        return self.facilitator_id is not None and content.uploaded_by == self.facilitator_id
+
+    def can_assign(self, content: Content) -> bool:
+        if self.sees_all:
+            return True
+        if self.facilitator_id is None:
+            return False
+
+        return (
+            self.is_own(content)
+            or content.visibility == ContentVisibility.PUBLIC
+            or content.uploaded_by is None
+        )
+
+    def can_see(self, content: Content) -> bool:
+        if self.facilitator_id is None and not self.sees_all:
+            return False
+
+        return self.can_assign(content) or content.id in self.shared_content_ids
+
+    # The same rules as query conditions, for listings that page in the
+    # database. Keep them in step with the checks above.
+
+    def own_clause(self) -> ColumnElement[bool]:
+        if self.facilitator_id is None:
+            return false()
+
+        return Content.uploaded_by == self.facilitator_id
+
+    def visible_clause(self) -> ColumnElement[bool]:
+        if self.sees_all:
+            return true()
+        if self.facilitator_id is None:
+            return false()
+
+        return or_(
+            self.own_clause(),
+            Content.visibility == ContentVisibility.PUBLIC,
+            Content.uploaded_by.is_(None),
+            Content.id.in_(self.shared_content_ids),
+        )
+
+
 class FacilitatorScopeService:
     """Decides which cohorts and learners a caller may see, and which cohorts
     they may change.
@@ -33,18 +101,19 @@ class FacilitatorScopeService:
     learners in those cohorts. Anyone else is denied. Changes are allowed only
     while the cohort itself is active.
 
-    Content follows D9: a facilitator sees their own uploads plus other
-    facilitators' public content.
+    Content follows the rules in ContentAccess.
     """
 
     def __init__(
         self,
         cohort_repo: CohortRepository,
         cohort_learner_repo: CohortLearnerRepository,
+        cohort_content_repo: CohortContentRepository,
         facilitator_repo: FacilitatorRepository,
     ):
         self._cohort_repo = cohort_repo
         self._cohort_learner_repo = cohort_learner_repo
+        self._cohort_content_repo = cohort_content_repo
         self._facilitator_repo = facilitator_repo
 
     async def get_visible_cohorts(self, user: User) -> list[Cohort]:
@@ -85,27 +154,40 @@ class FacilitatorScopeService:
         if not await self._cohort_learner_repo.exists_in_cohorts(learner_id, cohort_ids):
             raise CohortAccessDeniedError()
 
-    async def get_content_filter(self, user: User) -> Callable[[Content], bool]:
-        """A predicate telling whether the caller may see a content item (D9).
+    async def get_content_access(self, user: User) -> ContentAccess:
+        """The caller's content rules (D9, D19, D20).
 
-        Built once per request, so a whole tree can be filtered with one lookup.
-        Status is not considered here; callers filter on it separately.
+        Built once per request, so a whole tree can be checked with a fixed
+        number of lookups.
         """
+        return await self._build_content_access(user, include_shared=True)
+
+    async def can_see_content(self, user: User, content: Content) -> bool:
+        return (await self.get_content_access(user)).can_see(content)
+
+    async def can_assign_content(self, user: User, content: Content) -> bool:
+        # Assigning does not depend on what is shared, so that lookup is skipped.
+        access = await self._build_content_access(user, include_shared=False)
+        return access.can_assign(content)
+
+    async def _build_content_access(self, user: User, include_shared: bool) -> ContentAccess:
         if user.role == UserRole.ADMIN:
-            return lambda content: True
+            return ContentAccess(sees_all=True)
 
         if user.role != UserRole.FACILITATOR:
-            return lambda content: False
+            return ContentAccess()
 
         facilitator = await self._facilitator_repo.get_by_user_id(user.id)
         facilitator_id = facilitator.id if facilitator is not None else None
 
-        def is_visible(content: Content) -> bool:
-            return content.visibility == ContentVisibility.PUBLIC or (
-                facilitator_id is not None and content.uploaded_by == facilitator_id
+        shared_content_ids: frozenset[int] = frozenset()
+        if include_shared:
+            cohort_ids = await self.get_visible_cohort_ids(user)
+            shared_content_ids = frozenset(
+                await self._cohort_content_repo.get_content_ids_for_cohorts(cohort_ids)
             )
 
-        return is_visible
-
-    async def can_see_content(self, user: User, content: Content) -> bool:
-        return (await self.get_content_filter(user))(content)
+        return ContentAccess(
+            facilitator_id=facilitator_id,
+            shared_content_ids=shared_content_ids,
+        )
