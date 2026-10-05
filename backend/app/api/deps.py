@@ -53,6 +53,7 @@ from app.services.curriculum import CurriculumService
 from app.services.facilitator import FacilitatorService
 from app.services.facilitator_cohort import FacilitatorCohortService
 from app.services.facilitator_learner import FacilitatorLearnerService
+from app.services.facilitator_report import FacilitatorReportService
 from app.services.facilitator_scope import FacilitatorScopeService
 from app.services.learner import LearnerService
 from app.services.learning_strand import LearningStrandService
@@ -64,6 +65,7 @@ from app.services.participant_intake import ParticipantIntakeService
 from app.services.refresh_token import RefreshTokenService
 from app.services.strand_test import StrandTestService
 from app.services.strand_test_attempt import StrandTestAttemptService
+from app.services.strand_test_viewer import StrandTestViewerService
 from app.services.user import UserService
 from app.services.user_profile import UserProfileService
 
@@ -330,6 +332,17 @@ def get_strand_test_service(
 
 
 StrandTestServiceDep = Annotated[StrandTestService, Depends(get_strand_test_service)]
+
+
+def get_strand_test_viewer_service(
+    test_repository: StrandTestRepositoryDep,
+) -> StrandTestViewerService:
+    return StrandTestViewerService(test_repository)
+
+
+StrandTestViewerServiceDep = Annotated[
+    StrandTestViewerService, Depends(get_strand_test_viewer_service)
+]
 
 
 def get_strand_test_item_option_repository(
@@ -766,14 +779,12 @@ def get_at_risk_service(
     flag_repo: AtRiskFlagRepoDep,
     cohort_learner_repo: CohortLearnerRepoDep,
     learner_repo: LearnerRepositoryDep,
-    strand_attempt_repo: StrandAttemptRepositoryDep,
     facilitator_scope_service: FacilitatorScopeServiceDep,
 ) -> AtRiskService:
     return AtRiskService(
         flag_repo=flag_repo,
         cohort_learner_repo=cohort_learner_repo,
         learner_repo=learner_repo,
-        strand_attempt_repo=strand_attempt_repo,
         facilitator_scope_service=facilitator_scope_service,
     )
 
@@ -809,4 +820,39 @@ def get_facilitator_learner_service(
 
 FacilitatorLearnerServiceDep = Annotated[
     FacilitatorLearnerService, Depends(get_facilitator_learner_service)
+]
+
+
+# ============ Facilitator Dashboard and Reports ============
+# Totals over what the services above work out.
+
+
+def get_facilitator_report_service(
+    cohort_repo: CohortRepoDep,
+    cohort_learner_repo: CohortLearnerRepoDep,
+    learner_repo: LearnerRepositoryDep,
+    strand_attempt_repo: StrandAttemptRepositoryDep,
+    lri_attempt_repo: LRITestAttemptRepositoryDep,
+    content_repo: ContentRepoDep,
+    curriculum_repo: CurriculumRepoDep,
+    strand_service: StrandServiceDep,
+    at_risk_service: AtRiskServiceDep,
+    facilitator_scope_service: FacilitatorScopeServiceDep,
+) -> FacilitatorReportService:
+    return FacilitatorReportService(
+        cohort_repo=cohort_repo,
+        cohort_learner_repo=cohort_learner_repo,
+        learner_repo=learner_repo,
+        strand_attempt_repo=strand_attempt_repo,
+        lri_attempt_repo=lri_attempt_repo,
+        content_repo=content_repo,
+        curriculum_repo=curriculum_repo,
+        strand_service=strand_service,
+        at_risk_service=at_risk_service,
+        facilitator_scope_service=facilitator_scope_service,
+    )
+
+
+FacilitatorReportServiceDep = Annotated[
+    FacilitatorReportService, Depends(get_facilitator_report_service)
 ]

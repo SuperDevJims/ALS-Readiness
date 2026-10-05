@@ -9,6 +9,7 @@ from .routes import (
     contents,
     curriculum,
     facilitator,
+    facilitator_strand_tests,
     learning_strands,
     lri_test,
     lri_test_attempt,
@@ -35,3 +36,4 @@ router.include_router(contents.router)
 router.include_router(curriculum.router)
 router.include_router(learning_strands.router)
 router.include_router(facilitator.router)
+router.include_router(facilitator_strand_tests.router)

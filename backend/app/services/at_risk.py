@@ -22,7 +22,6 @@ from app.models.user import User
 from app.repositories.at_risk_flag import AtRiskFlagRepository
 from app.repositories.cohort_learner import CohortLearnerRepository
 from app.repositories.learner import LearnerRepository
-from app.repositories.strand_test_attempt import StrandTestAttemptRepository
 from app.schemas.at_risk import (
     AtRiskCohort,
     AtRiskFlagItem,
@@ -179,13 +178,11 @@ class AtRiskService:
         flag_repo: AtRiskFlagRepository,
         cohort_learner_repo: CohortLearnerRepository,
         learner_repo: LearnerRepository,
-        strand_attempt_repo: StrandTestAttemptRepository,
         facilitator_scope_service: FacilitatorScopeService,
     ):
         self._flag_repo = flag_repo
         self._cohort_learner_repo = cohort_learner_repo
         self._learner_repo = learner_repo
-        self._strand_attempt_repo = strand_attempt_repo
         self._facilitator_scope_service = facilitator_scope_service
 
     async def refresh(self, cohort_ids: Collection[int], now: datetime) -> None:
@@ -356,6 +353,14 @@ class AtRiskService:
             key: [reason for reason in AtRiskReason if reason in found]
             for key, found in reasons.items()
         }
+
+    async def get_active_flags(self, cohort_id: int) -> list[AtRiskFlagItem]:
+        """Every active (open or reviewed) flag of the cohort, in one query, in
+        the order the list endpoint shows them. Does not refresh."""
+        rows = await self._flag_repo.get_page(
+            [cohort_id], ACTIVE_FLAG_STATUSES, None, offset=0, limit=None
+        )
+        return [self._to_item(row) for row in rows]
 
     async def get_learner_flags(self, learner_id: int, cohort_id: int) -> list[AtRiskFlagSummary]:
         """Every flag of the learner in the cohort, newest first."""

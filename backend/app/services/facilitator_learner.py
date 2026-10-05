@@ -30,7 +30,7 @@ from app.schemas.facilitator_learner import (
 from app.services.at_risk import AtRiskService
 from app.services.facilitator_scope import FacilitatorScopeService
 from app.services.learning_strand import LearningStrandService
-from app.services.scoring import compute_mps
+from app.services.scoring import compute_mps, latest_attempts
 
 
 class FacilitatorLearnerService:
@@ -179,11 +179,7 @@ class FacilitatorLearnerService:
         await self._at_risk_service.refresh([cohort.id], now)
         at_risk_flags = await self._at_risk_service.get_learner_flags(learner_id, cohort.id)
 
-        # Rows come oldest first, so where a strand has more than one test of a
-        # type, the latest attempt is the one kept.
-        results: dict[tuple[int, StrandTestType], StrandTestAttempt] = {}
-        for attempt, test_type, strand_id in attempts:
-            results[(strand_id, test_type)] = attempt
+        results = latest_attempts(attempts)
 
         return FacilitatorLearnerDetailResponse(
             learner=LearnerIdentity(
@@ -205,10 +201,10 @@ class FacilitatorLearnerService:
                     strand_code=item.strand.code,
                     strand_name=item.strand.name,
                     pretest=self._to_test_result(
-                        results.get((item.strand.id, StrandTestType.PRETEST))
+                        results.get((learner_id, item.strand.id, StrandTestType.PRETEST))
                     ),
                     posttest=self._to_test_result(
-                        results.get((item.strand.id, StrandTestType.POSTTEST))
+                        results.get((learner_id, item.strand.id, StrandTestType.POSTTEST))
                     ),
                     progress=LearnerProgress(
                         completed_lessons=item.completed_lessons,

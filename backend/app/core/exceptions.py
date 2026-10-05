@@ -349,7 +349,8 @@ class AtRiskFlagClosedError(ConflictError):
 
 
 class InvalidAtRiskFlagTransitionError(ConflictError):
-    """Raised when a flag is set to the status it already has."""
+    """Raised when a flag is set to the status it already has and no note is
+    sent. With a note, the same status is allowed: it edits the note."""
 
     message = "The flag already has this status."
     code = "AT_RISK_FLAG_INVALID_TRANSITION"

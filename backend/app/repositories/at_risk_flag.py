@@ -155,11 +155,11 @@ class AtRiskFlagRepository(BaseRepository[AtRiskFlag]):
         statuses: Collection[AtRiskFlagStatus] | None,
         reason: AtRiskReason | None,
         offset: int,
-        limit: int,
+        limit: int | None,
     ) -> list[Row]:
         """A page of the flags in the given cohorts: open first, then reviewed,
         then the rest, newest detected first within each. `statuses` None means
-        every status."""
+        every status, and `limit` None means every flag from the offset on."""
         if not cohort_ids:
             return []
 

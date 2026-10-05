@@ -218,6 +218,26 @@ class CohortLearnerRepository(BaseRepository[CohortLearner]):
         result = await self._session.execute(statement)
         return list(result.all())
 
+    async def get_memberships_by_cohort_id(
+        self,
+        cohort_id: int,
+        status: CohortMemberStatus | None,
+    ) -> list[Row]:
+        """Every membership of the cohort, not a page of them, for views that
+        total over the whole cohort. Same rows and order as the page. `status`
+        None means active and ended alike."""
+        statement = (
+            self._membership_rows()
+            .where(*self._membership_conditions([cohort_id], status, None))
+            .order_by(
+                func.lower(UserProfile.last_name),
+                func.lower(UserProfile.first_name),
+                CohortLearner.id,
+            )
+        )
+        result = await self._session.execute(statement)
+        return list(result.all())
+
     async def count_memberships(
         self,
         cohort_ids: Collection[int],

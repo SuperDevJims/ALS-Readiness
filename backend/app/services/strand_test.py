@@ -10,8 +10,19 @@ from app.schemas.strand_test import (
     StrandTestWithAttemptStatusResponse,
     StrandTestWithItemsResponse,
 )
+from app.models.test_item_asset import TestItemAsset
 from app.services.learner import LearnerService
 from app.storage import get_read_url
+
+
+def get_item_asset_url(asset: TestItemAsset) -> str | None:
+    """The link a test item's asset is served through: a presigned read URL
+    good for an hour, or None when storage is not configured.
+
+    The only place it is built. The learner's test and the facilitator's
+    viewer both call it, so they cannot differ.
+    """
+    return get_read_url(asset.file_key, 3600)
 
 
 class StrandTestService:
@@ -108,7 +119,7 @@ class StrandTestService:
                 )
 
                 if asset is not None:
-                    items_with_options_dict[item.id]["asset_url"] = get_read_url(asset.file_key, 3600)
+                    items_with_options_dict[item.id]["asset_url"] = get_item_asset_url(asset)
 
             # Iterate through the temporary item dictionary values and create an item object for each item.
             items = []

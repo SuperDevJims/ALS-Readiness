@@ -40,7 +40,13 @@ from app.schemas.facilitator_learner import (
     FacilitatorLearnerListResponse,
     MembershipStatusFilter,
 )
-from fastapi import APIRouter, Depends, Query, status
+from app.schemas.facilitator_report import (
+    CohortSummaryResponse,
+    DashboardResponse,
+    ReportFormat,
+)
+from app.services.facilitator_report import cohort_summary_csv, cohort_summary_filename
+from fastapi import APIRouter, Depends, Query, Response, status
 
 from ..deps import (
     AtRiskServiceDep,
@@ -49,6 +55,7 @@ from ..deps import (
     CurrentFacilitatorDep,
     FacilitatorCohortServiceDep,
     FacilitatorLearnerServiceDep,
+    FacilitatorReportServiceDep,
     LessonServiceDep,
     ModuleServiceDep,
     NowDep,
@@ -166,6 +173,73 @@ async def update_at_risk_flag(
     now: NowDep,
 ):
     return await service.update(current_user, flag_id, data, now)
+
+
+# ================ Dashboard and reports ================
+
+@router.get("/dashboard", response_model=DashboardResponse)
+async def get_dashboard(
+    cohort_id: int,
+    current_user: CurrentFacilitatorDep,
+    service: FacilitatorReportServiceDep,
+    now: NowDep,
+):
+    return await service.get_dashboard(current_user, cohort_id, now)
+
+
+@router.get(
+    "/reports/cohort-summary",
+    response_model=CohortSummaryResponse,
+    responses={
+        200: {
+            "description": (
+                "The cohort summary. JSON by default. With `format=csv`, a UTF-8 CSV "
+                "file (with a byte order mark) sent as an attachment: one row per "
+                "learner in the same order as the JSON `learners`, and no totals."
+            ),
+            "content": {
+                "text/csv": {
+                    "schema": {"type": "string"},
+                    "example": (
+                        "ID Number,Last Name,First Name,Membership Status,Overall Progress (%),"
+                        "LS1-EN Progress (%),LS1-EN Pretest MPS,LS1-EN Posttest MPS,LS1-EN Gain,"
+                        "LS1-EN Mastered,LRI Score,Last Active (PHT),At-Risk Reasons\r\n"
+                        "2026-00001,Abad,Ana,active,50.0,50.0,40.0,80.0,40.0,Yes,3.25,"
+                        "2026-10-05 09:30,\r\n"
+                    ),
+                }
+            },
+            "headers": {
+                "Content-Disposition": {
+                    "description": (
+                        "Sent with `format=csv`: `attachment`, with a filename built from "
+                        "the cohort code (or id) and the date in Manila."
+                    ),
+                    "schema": {"type": "string"},
+                }
+            },
+        }
+    },
+)
+async def get_cohort_summary(
+    cohort_id: int,
+    current_user: CurrentFacilitatorDep,
+    service: FacilitatorReportServiceDep,
+    now: NowDep,
+    membership_status: MembershipStatusFilter = "active",
+    format: ReportFormat = "json",
+):
+    summary = await service.get_cohort_summary(current_user, cohort_id, membership_status, now)
+
+    if format == "csv":
+        filename = cohort_summary_filename(summary)
+        return Response(
+            content=cohort_summary_csv(summary),
+            media_type="text/csv; charset=utf-8",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+
+    return summary
 
 
 # ================ Content assignment ================
