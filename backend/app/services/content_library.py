@@ -6,6 +6,7 @@ from app.core.exceptions import (
     StorageUnavailableError,
 )
 from app.enums.content import ContentStatus, ContentType
+from app.models.content import Content
 from app.models.user import User
 from app.repositories.content import ContentLibraryFilters, ContentRepository
 from app.schemas.facilitator_content import (
@@ -105,11 +106,7 @@ class ContentLibraryService:
     ) -> ContentLibraryItem:
         access = await self._facilitator_scope_service.get_content_access(user)
         content = (await self._get_visible_row(access, content_id))[0]
-
-        # Seeing an item does not allow editing it. Content with no uploader
-        # has no owner here, so only an admin could change it (D20).
-        if not access.is_own(content):
-            raise ContentEditDeniedError()
+        self._ensure_own(access, content)
 
         fields = content_update.model_dump(exclude_unset=True)
         if "lesson_id" in fields and fields["lesson_id"] != content.lesson_id:
@@ -121,6 +118,27 @@ class ContentLibraryService:
 
         row = await self._content_repo.get_library_row(content_id)
         return self._to_item(row, access)
+
+    async def get_visible(self, user: User, content_id: int) -> Content:
+        """The content if the caller can see it, else the library's 404."""
+        access = await self._facilitator_scope_service.get_content_access(user)
+        return (await self._get_visible_row(access, content_id))[0]
+
+    async def get_editable(self, user: User, content_id: int) -> Content:
+        """The content if the caller uploaded it. The library's 404 when they
+        cannot see it; 403 when they can see it but did not upload it."""
+        access = await self._facilitator_scope_service.get_content_access(user)
+        content = (await self._get_visible_row(access, content_id))[0]
+        self._ensure_own(access, content)
+
+        return content
+
+    @staticmethod
+    def _ensure_own(access: ContentAccess, content: Content) -> None:
+        # Seeing an item does not allow editing it. Content with no uploader
+        # has no owner here, so only an admin could change it (D20).
+        if not access.is_own(content):
+            raise ContentEditDeniedError()
 
     async def _get_visible_row(self, access: ContentAccess, content_id: int) -> Row:
         """The library row, or the same 404 whether the content is missing,

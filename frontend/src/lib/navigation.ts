@@ -26,6 +26,11 @@ export function redirect(path: string) {
  * defined at the matching path (`/some-page-key`), so this is a pure
  * translation layer - it lets every page keep calling navigate() exactly as
  * before while it's actually real router navigation underneath.
+ *
+ * A page key may carry a URL parameter after a slash - "facilitator-learners/12"
+ * becomes "/facilitator-learners/12", which matches the route
+ * "/facilitator-learners/:learnerId". Build those keys with the helpers below
+ * rather than by hand.
  */
 export function toPath(page: string): string {
   return page === "landing" ? "/" : `/${page}`;
@@ -35,6 +40,16 @@ export function toPath(page: string): string {
 export function useLegacyNavigate() {
   const navigate = useNavigate();
   return (page: string) => navigate(toPath(page));
+}
+
+/** Page key for one learner's detail page, for navigate(). */
+export function learnerDetailPage(learnerId: number): string {
+  return `facilitator-learners/${learnerId}`;
+}
+
+/** Page key for one strand test's detail page, for navigate(). */
+export function strandTestDetailPage(testId: number): string {
+  return `facilitator-tests/${testId}`;
 }
 
 /** The forced-password-change page. Deliberately outside ProtectedPage - see App.tsx. */

@@ -605,8 +605,23 @@ def get_lesson_repo(session: SessionDep) -> LessonRepository:
 LessonRepoDep = Annotated[LessonRepository, Depends(get_lesson_repo)]
 
 
-def get_lesson_service(lesson_repo: LessonRepoDep, module_repo: ModuleRepoDep) -> LessonService:
-    return LessonService(lesson_repo=lesson_repo, module_repo=module_repo)
+def get_strand_repo(session: SessionDep) -> LearningStrandRepository:
+    return LearningStrandRepository(session)
+
+
+StrandRepoDep = Annotated[LearningStrandRepository, Depends(get_strand_repo)]
+
+
+def get_lesson_service(
+    lesson_repo: LessonRepoDep,
+    module_repo: ModuleRepoDep,
+    strand_repo: StrandRepoDep,
+) -> LessonService:
+    return LessonService(
+        lesson_repo=lesson_repo,
+        module_repo=module_repo,
+        strand_repo=strand_repo,
+    )
 
 
 LessonServiceDep = Annotated[LessonService, Depends(get_lesson_service)]
@@ -631,23 +646,6 @@ ContentEvalRepoDep = Annotated[
 ]
 
 
-def get_content_service(
-    content_repo: ContentRepoDep,
-    content_eval_repo: ContentEvalRepoDep,
-    lesson_service: LessonServiceDep,
-    facilitator_service: FacilitatorServiceDep,
-) -> ContentService:
-    return ContentService(
-        content_repo=content_repo,
-        content_eval_repo=content_eval_repo,
-        lesson_service=lesson_service,
-        facilitator_service=facilitator_service,
-    )
-
-
-ContentServiceDep = Annotated[ContentService, Depends(get_content_service)]
-
-
 def get_content_library_service(
     content_repo: ContentRepoDep,
     lesson_service: LessonServiceDep,
@@ -663,6 +661,26 @@ def get_content_library_service(
 ContentLibraryServiceDep = Annotated[
     ContentLibraryService, Depends(get_content_library_service)
 ]
+
+
+def get_content_service(
+    content_repo: ContentRepoDep,
+    content_eval_repo: ContentEvalRepoDep,
+    lesson_service: LessonServiceDep,
+    facilitator_service: FacilitatorServiceDep,
+    content_library_service: ContentLibraryServiceDep,
+) -> ContentService:
+    return ContentService(
+        content_repo=content_repo,
+        content_eval_repo=content_eval_repo,
+        lesson_service=lesson_service,
+        facilitator_service=facilitator_service,
+        content_library_service=content_library_service,
+    )
+
+
+ContentServiceDep = Annotated[ContentService, Depends(get_content_service)]
+
 
 
 # =========== Cohort Content =============
@@ -717,13 +735,6 @@ CurriculumServiceDep = Annotated[CurriculumService, Depends(get_curriculum_servi
 
 
 # ============ Learning Strand ============
-
-def get_strand_repo(session: SessionDep) -> LearningStrandRepository:
-    return LearningStrandRepository(session)
-
-
-StrandRepoDep = Annotated[LearningStrandRepository, Depends(get_strand_repo)]
-
 
 def get_strand_service(
     strand_repo: StrandRepoDep,

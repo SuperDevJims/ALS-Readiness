@@ -3,10 +3,13 @@ from app.core.exceptions import (
     LessonNotActiveError,
     LessonNotFoundError,
     ModuleNotActiveError,
+    StrandNotActiveError,
 )
 from app.enums.curriculum import StructureStatus
 from app.models.lesson import Lesson
+from app.models.module import Module
 from app.models.user import User
+from app.repositories.learning_strand import LearningStrandRepository
 from app.repositories.lesson import LessonRepository
 from app.repositories.module import ModuleRepository
 from app.schemas.facilitator_curriculum import LessonCreate, LessonUpdate
@@ -16,9 +19,15 @@ from app.services.ordering import order_by_ids
 class LessonService:
     """Lookup and authoring of a module's lessons. Structure is global per strand (D4)."""
 
-    def __init__(self, lesson_repo: LessonRepository, module_repo: ModuleRepository):
+    def __init__(
+        self,
+        lesson_repo: LessonRepository,
+        module_repo: ModuleRepository,
+        strand_repo: LearningStrandRepository,
+    ):
         self._lesson_repo = lesson_repo
         self._module_repo = module_repo
+        self._strand_repo = strand_repo
 
     async def get_by_id(self, lesson_id: int) -> Lesson:
         lesson = await self._lesson_repo.get_by_id(lesson_id)
@@ -45,8 +54,7 @@ class LessonService:
         module = await self._module_repo.get_by_id(module_id)
         if module is None:
             raise CurriculumModuleNotFoundError()
-        if module.status != StructureStatus.ACTIVE:
-            raise ModuleNotActiveError()
+        await self._ensure_active_parents(module)
 
         # Placed last: after every existing lesson, archived ones included.
         order_index = await self._lesson_repo.get_max_order_index(module_id) + 1
@@ -67,8 +75,12 @@ class LessonService:
         lesson = await self.get_by_id(lesson_id)
         fields = lesson_update.model_dump(exclude_unset=True)
 
-        # A restored lesson goes to the end of the list.
         if fields.get("status") == StructureStatus.ACTIVE and lesson.status != StructureStatus.ACTIVE:
+            # A lesson can only be restored into an active module of an active
+            # strand. Archiving is never refused.
+            await self._ensure_active_parents(await self._module_repo.get_by_id(lesson.module_id))
+
+            # A restored lesson goes to the end of the list.
             fields["order_index"] = await self._lesson_repo.get_max_order_index(lesson.module_id) + 1
 
         return await self._lesson_repo.update(lesson, fields)
@@ -83,6 +95,16 @@ class LessonService:
         ]
 
         return await self._lesson_repo.set_order(order_by_ids(active, lesson_ids))
+
+    async def _ensure_active_parents(self, module: Module | None) -> None:
+        """A lesson can be added to, or restored in, only an active module
+        whose strand is active too."""
+        if module is None or module.status != StructureStatus.ACTIVE:
+            raise ModuleNotActiveError()
+
+        strand = await self._strand_repo.get_by_id(module.strand_id)
+        if strand is None or strand.status != StructureStatus.ACTIVE:
+            raise StrandNotActiveError()
 
     async def _ensure_module(self, module_id: int) -> None:
         if await self._module_repo.get_by_id(module_id) is None:

@@ -4,16 +4,17 @@ from sqlalchemy.exc import IntegrityError
 from app.core.exceptions import (
     ContentEvaluationAlreadyExistsError,
     ContentFileNotFoundError,
-    ContentNotFoundError,
     InvalidContentFileError,
     StorageUnavailableError,
 )
 from app.enums.content import ContentStatus, ContentType, StimulusLevel
 from app.models.content import Content
 from app.models.content_evaluation import ContentEvaluation
+from app.models.user import User
 from app.repositories.content import ContentRepository
 from app.repositories.content_evaluation import ContentEvaluationRepository
 from app.schemas.content import ContentCreate
+from app.services.content_library import ContentLibraryService
 from app.services.facilitator import FacilitatorService
 from app.services.lesson import LessonService
 from app.storage import STORAGE_ERRORS, build_key, file_exists, get_upload_url
@@ -38,11 +39,13 @@ class ContentService:
         content_eval_repo: ContentEvaluationRepository,
         lesson_service: LessonService,
         facilitator_service: FacilitatorService,
+        content_library_service: ContentLibraryService,
     ):
         self._content_repo = content_repo
         self._content_eval_repo = content_eval_repo
         self._lesson_service = lesson_service
         self._facilitator_service = facilitator_service
+        self._content_library_service = content_library_service
 
     def _validate_extension(self, filename: str) -> None:
         if "." not in filename:
@@ -103,26 +106,29 @@ class ContentService:
 
         return await self._content_repo.create(content)
 
-    async def evaluate_content(self, file: UploadFile) -> tuple[StimulusLevel, float]:
+    async def evaluate_content(
+        self,
+        user: User,
+        content_id: int,
+        file: UploadFile,
+    ) -> tuple[StimulusLevel, float]:
+        # The content must exist and be visible to the caller, as in the library.
+        await self._content_library_service.get_visible(user, content_id)
+
         # Placeholder pending the TRIBE decision: the file is not read or
         # evaluated, and every call returns the same fixed result.
         return StimulusLevel.LOW, 0.5
 
-    async def get_content_by_id(self, content_id: int) -> Content:
-        content = await self._content_repo.get_by_id(content_id)
-
-        if content is None:
-            raise ContentNotFoundError()
-
-        return content
-
     async def create_content_evaluation(
         self,
+        user: User,
         content_id: int,
         stimulus_level: StimulusLevel,
         cognitive_sustainability_rating: float,
     ) -> ContentEvaluation:
-        content = await self.get_content_by_id(content_id)
+        # Only the uploader may save an evaluation: 404 if the caller cannot
+        # see the content, 403 if they can see it but did not upload it.
+        content = await self._content_library_service.get_editable(user, content_id)
 
         # The unique constraint is the backstop; this check is what makes the
         # failure a clean 409.

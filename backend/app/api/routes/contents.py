@@ -50,10 +50,14 @@ async def create_content(
     response_model=ContentEvaluationResultResponse,
 )
 async def evaluate_content(
+    content_id: int,
     file: Annotated[UploadFile, File()],
     service: ContentServiceDep,
+    current_user: CurrentFacilitatorDep,
 ):
-    stimulus_level, cognitive_sustainability_rating = await service.evaluate_content(file)
+    stimulus_level, cognitive_sustainability_rating = await service.evaluate_content(
+        current_user, content_id, file
+    )
 
     return ContentEvaluationResultResponse(
         stimulus_level=stimulus_level,
@@ -70,6 +74,9 @@ async def save_content_evaluation(
     content_id: int,
     data: ContentEvaluationCreate,
     service: ContentServiceDep,
+    current_user: CurrentFacilitatorDep,
 ):
-    content_eval = await service.create_content_evaluation(content_id, **data.model_dump())
+    content_eval = await service.create_content_evaluation(
+        current_user, content_id, **data.model_dump()
+    )
     return ContentEvaluationResponse.model_validate(content_eval)

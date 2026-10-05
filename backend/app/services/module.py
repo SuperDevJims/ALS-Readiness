@@ -57,9 +57,15 @@ class ModuleService:
         module = await self.get_by_id(module_id)
         fields = module_update.model_dump(exclude_unset=True)
 
-        # A restored module goes to the end of the list, so it cannot collide
-        # with an order the facilitator set while it was archived.
         if fields.get("status") == StructureStatus.ACTIVE and module.status != StructureStatus.ACTIVE:
+            # A module can only be restored into an active strand. Archiving
+            # is never refused.
+            strand = await self._strand_repo.get_by_id(module.strand_id)
+            if strand is None or strand.status != StructureStatus.ACTIVE:
+                raise StrandNotActiveError()
+
+            # A restored module goes to the end of the list, so it cannot collide
+            # with an order the facilitator set while it was archived.
             fields["order_index"] = await self._module_repo.get_max_order_index(module.strand_id) + 1
 
         return await self._module_repo.update(module, fields)

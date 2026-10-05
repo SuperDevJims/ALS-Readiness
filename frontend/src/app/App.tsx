@@ -17,8 +17,15 @@ import { LearnerSchedule } from "./components/learner/LearnerSchedule";
 import { FacilitatorDashboard } from "./components/facilitator/FacilitatorDashboard";
 import { FacilitatorCohort } from "./components/facilitator/FacilitatorCohort";
 import { FacilitatorContent } from "./components/facilitator/FacilitatorContent";
-import { FacilitatorAnalytics } from "./components/facilitator/FacilitatorAnalytics";
+// FacilitatorAnalytics is parked: the file is kept but has no route (see its header comment).
 import { FacilitatorReports } from "./components/facilitator/FacilitatorReports";
+import {
+  FacilitatorCohorts,
+  FacilitatorCurriculum,
+  FacilitatorLearnerDetail,
+  FacilitatorTestDetail,
+  FacilitatorTests,
+} from "./components/facilitator/FacilitatorPlaceholders";
 // Admin
 import { AdminDashboard } from "./components/admin/AdminDashboard";
 import { AdminUsers } from "./components/admin/AdminUsers";
@@ -121,10 +128,15 @@ function AppRoutes() {
 
         {/* Facilitator */}
         <Route path="/facilitator-dashboard" element={<ProtectedPage allowed={["facilitator"]} Component={FacilitatorDashboard} />} />
-        <Route path="/facilitator-cohort" element={<ProtectedPage allowed={["facilitator"]} Component={FacilitatorCohort} />} />
+        <Route path="/facilitator-curriculum" element={<ProtectedPage allowed={["facilitator"]} Component={FacilitatorCurriculum} />} />
         <Route path="/facilitator-content" element={<ProtectedPage allowed={["facilitator"]} Component={FacilitatorContent} />} />
-        <Route path="/facilitator-analytics" element={<ProtectedPage allowed={["facilitator"]} Component={FacilitatorAnalytics} />} />
+        {/* Learners still renders the old cohort mockup; it is revised in place in phase F2. */}
+        <Route path="/facilitator-learners" element={<ProtectedPage allowed={["facilitator"]} Component={FacilitatorCohort} />} />
+        <Route path="/facilitator-learners/:learnerId" element={<ProtectedPage allowed={["facilitator"]} Component={FacilitatorLearnerDetail} />} />
         <Route path="/facilitator-reports" element={<ProtectedPage allowed={["facilitator"]} Component={FacilitatorReports} />} />
+        <Route path="/facilitator-tests" element={<ProtectedPage allowed={["facilitator"]} Component={FacilitatorTests} />} />
+        <Route path="/facilitator-tests/:testId" element={<ProtectedPage allowed={["facilitator"]} Component={FacilitatorTestDetail} />} />
+        <Route path="/facilitator-cohorts" element={<ProtectedPage allowed={["facilitator"]} Component={FacilitatorCohorts} />} />
 
         {/* Admin / Coordinator */}
         <Route path="/admin-dashboard" element={<ProtectedPage allowed={["admin"]} Component={AdminDashboard} />} />

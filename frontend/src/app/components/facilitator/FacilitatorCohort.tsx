@@ -209,7 +209,7 @@ export function FacilitatorCohort({ navigate, user, onLogout }) {
   );
 
   return (
-    <AppLayout navigate={navigate} user={user} onLogout={onLogout} currentPage="facilitator-cohort">
+    <AppLayout navigate={navigate} user={user} onLogout={onLogout} currentPage="facilitator-learners" allowAllCohorts>
       {selectedLearner && <LearnerModal learner={selectedLearner} onClose={() => setSelectedLearner(null)} />}
       {showAdd         && <AddLearnerModal onClose={() => setShowAdd(false)} />}
       {assignTarget    && <AssignContentModal learner={assignTarget} onClose={() => setAssignTarget(null)} />}

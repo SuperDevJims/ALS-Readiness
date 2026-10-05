@@ -7,6 +7,7 @@ import {
   Brain, Play, Target, ShieldCheck
 } from "lucide-react";
 import { ALSenseLogo } from "./ALSenseLogo";
+import { CohortControls } from "../facilitator/shared/CohortControls";
 
 /* ── Nav definitions ── */
 const learnerNav = [
@@ -24,12 +25,16 @@ const learnerNav = [
   { page:"learner-schedule",    icon:CalendarDays,    label:"Schedule",           group:"track" },
 ];
 
+// Detail pages (facilitator-learners/:learnerId, facilitator-tests/:testId) pass
+// their list page's key as currentPage, so that entry stays highlighted.
 const facilitatorNav = [
-  { page:"facilitator-dashboard", icon:LayoutDashboard, label:"Overview",    group:"main"   },
-  { page:"facilitator-cohort",    icon:Users,           label:"Cohort",      group:"main"   },
-  { page:"facilitator-content",   icon:Cpu,             label:"Content",     group:"manage" },
-  { page:"facilitator-analytics", icon:BarChart3,       label:"Analytics",   group:"manage" },
-  { page:"facilitator-reports",   icon:FileText,        label:"Reports",     group:"manage" },
+  { page:"facilitator-dashboard",  icon:LayoutDashboard, label:"Dashboard",       group:"main"   },
+  { page:"facilitator-curriculum", icon:BookOpen,        label:"Curriculum",      group:"manage" },
+  { page:"facilitator-content",    icon:Cpu,             label:"Content Library", group:"manage" },
+  { page:"facilitator-learners",   icon:Users,           label:"Learners",        group:"manage" },
+  { page:"facilitator-reports",    icon:FileText,        label:"Reports",         group:"manage" },
+  { page:"facilitator-tests",      icon:ClipboardList,   label:"Strand Tests",    group:"manage" },
+  { page:"facilitator-cohorts",    icon:CalendarDays,    label:"My Cohorts",      group:"manage" },
 ];
 
 const adminNav = [
@@ -69,7 +74,8 @@ function SectionLabel({ label, open }) {
   return <p className="px-3 pt-3 pb-1 text-[10px] text-blue-500/80 font-semibold uppercase tracking-widest">{label}</p>;
 }
 
-export function AppLayout({ children, navigate, user, onLogout, currentPage }) {
+// allowAllCohorts: facilitator pages only - whether the top bar's cohort dropdown offers "All cohorts".
+export function AppLayout({ children, navigate, user, onLogout, currentPage, allowAllCohorts = false }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showNotif,    setShowNotif]   = useState(false);
   const [showSettings, setShowSettings]= useState(false);
@@ -196,6 +202,9 @@ export function AppLayout({ children, navigate, user, onLogout, currentPage }) {
           </div>
 
           <div className="flex items-center gap-1.5">
+            {/* School year + cohort (facilitator only) */}
+            {role === "facilitator" && <CohortControls allowAll={allowAllCohorts} />}
+
             {/* Notifications */}
             <div className="relative" ref={notifRef}>
               <button onClick={() => { setShowNotif(!showNotif); setShowSettings(false); setShowProfile(false); }}
