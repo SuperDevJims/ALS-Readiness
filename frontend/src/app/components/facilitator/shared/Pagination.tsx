@@ -1,4 +1,5 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { showingRange } from "../../../../lib/learnersText";
 
 interface PaginationProps {
   /** 1-based, as the API sends it. */
@@ -10,16 +11,19 @@ interface PaginationProps {
   noun?: string;
   /** Disables both buttons while a page is loading. */
   disabled?: boolean;
+  /** "pages" (default): "Page 2 of 5 — 93 learners". "range": "Showing 21 to 40 of 93". */
+  summary?: "pages" | "range";
 }
 
 /** The footer under a paginated table: "Page 2 of 5 — 93 learners" and previous / next buttons. */
-export function Pagination({ page, pageSize, total, onPageChange, noun = "items", disabled = false }: PaginationProps) {
+export function Pagination({ page, pageSize, total, onPageChange, noun = "items", disabled = false, summary = "pages" }: PaginationProps) {
   const totalPages = Math.max(1, Math.ceil(total / Math.max(1, pageSize)));
+  const pagesText = total === 0 ? `0 ${noun}` : `Page ${page} of ${totalPages} — ${total} ${noun}`;
 
   return (
     <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
       <span className="text-gray-400 text-xs">
-        {total === 0 ? `0 ${noun}` : `Page ${page} of ${totalPages} — ${total} ${noun}`}
+        {summary === "range" ? showingRange(page, pageSize, total) : pagesText}
       </span>
       <div className="flex items-center gap-2">
         <button

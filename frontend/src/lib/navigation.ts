@@ -42,9 +42,18 @@ export function useLegacyNavigate() {
   return (page: string) => navigate(toPath(page));
 }
 
-/** Page key for one learner's detail page, for navigate(). */
-export function learnerDetailPage(learnerId: number): string {
-  return `facilitator-learners/${learnerId}`;
+/** The query parameter that carries the cohort on the learner detail page. */
+export const LEARNER_COHORT_PARAM = "cohort";
+
+/**
+ * Page key for one learner's detail page, for navigate(). With a cohort the
+ * key carries it as a query parameter ("facilitator-learners/12?cohort=5"), so
+ * a reload or a shared link shows the same membership; without one the backend
+ * chooses which of the learner's cohorts to show.
+ */
+export function learnerDetailPage(learnerId: number, cohortId?: number | null): string {
+  const key = `facilitator-learners/${learnerId}`;
+  return cohortId === undefined || cohortId === null ? key : `${key}?${LEARNER_COHORT_PARAM}=${cohortId}`;
 }
 
 /** Page key for one strand test's detail page, for navigate(). */

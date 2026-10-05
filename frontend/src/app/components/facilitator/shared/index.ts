@@ -16,3 +16,5 @@ export { Button, type ButtonVariant } from "./Button";
 export { Notice, type NoticeTone } from "./Notice";
 export { ReadinessPill, NOT_YET_PROFILED } from "./ReadinessPill";
 export { AtRiskReviewDialog } from "./AtRiskReviewDialog";
+export { SearchInput } from "./SearchInput";
+export { Chip, ChipGroup } from "./Chip";

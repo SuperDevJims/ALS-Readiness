@@ -96,3 +96,6 @@ export function noteForRequest(text: string): string | null {
 export function shouldReloadAfterFailure(httpStatus: number | null): boolean {
   return httpStatus === 409 || httpStatus === 422;
 }
+
+/** Shown beside a cohort's flags when the cohort is not active: the backend only re-evaluates flags for active cohorts. */
+export const FLAGS_NOT_UPDATED_TEXT = "Flags are only updated for active cohorts.";
