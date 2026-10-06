@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useId, useRef, type KeyboardEvent, type ReactNode, type RefObject } from "react";
 import { X } from "lucide-react";
 
 interface ModalProps {
@@ -13,6 +13,8 @@ interface ModalProps {
   busy?: boolean;
   /** Default: "md" (the width of the existing mockup dialogs). */
   size?: "md" | "lg";
+  /** The element to focus when the dialog opens, e.g. a form's first field. Default: the dialog itself. */
+  initialFocusRef?: RefObject<HTMLElement | null>;
 }
 
 const SIZE = { md: "max-w-lg", lg: "max-w-2xl" } as const;
@@ -25,14 +27,16 @@ const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select
  * labels the dialog, focus moves into it when it opens and returns to where it
  * was when it closes, Tab stays inside, and Escape closes it.
  */
-export function Modal({ title, subtitle, onClose, children, footer, busy = false, size = "md" }: ModalProps) {
+export function Modal({ title, subtitle, onClose, children, footer, busy = false, size = "md", initialFocusRef }: ModalProps) {
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    panelRef.current?.focus();
+    (initialFocusRef?.current ?? panelRef.current)?.focus();
     return () => previouslyFocused?.focus();
+    // Focus moves once, when the dialog opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const close = () => {

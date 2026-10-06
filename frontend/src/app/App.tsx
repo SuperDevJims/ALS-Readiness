@@ -20,9 +20,9 @@ import { FacilitatorContent } from "./components/facilitator/FacilitatorContent"
 // FacilitatorAnalytics is parked: the file is kept but has no route (see its header comment).
 import { FacilitatorReports } from "./components/facilitator/FacilitatorReports";
 import { FacilitatorLearnerDetail } from "./components/facilitator/FacilitatorLearnerDetail";
+import { FacilitatorCurriculum } from "./components/facilitator/FacilitatorCurriculum";
 import {
   FacilitatorCohorts,
-  FacilitatorCurriculum,
   FacilitatorTestDetail,
   FacilitatorTests,
 } from "./components/facilitator/FacilitatorPlaceholders";

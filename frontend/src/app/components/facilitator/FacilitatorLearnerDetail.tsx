@@ -3,7 +3,8 @@ import { useParams, useSearchParams } from "react-router";
 import { Activity, ClipboardList, Clock, UserX } from "lucide-react";
 import { AppLayout } from "../shared/AppLayout";
 import type { PageProps } from "../../routes/ProtectedPage";
-import { getLearner } from "../../../lib/api/facilitator";
+import { getErrorMessage, getErrorStatus } from "../../../lib/api/errors";
+import { getLearner, updateAtRiskFlag } from "../../../lib/api/facilitator";
 import type {
   AtRiskFlagStatus,
   AtRiskFlagSummary,
@@ -12,12 +13,20 @@ import type {
   LearnerStrandDetail,
   StrandTestResult,
 } from "../../../lib/api/types";
-import { FLAGS_NOT_UPDATED_TEXT, flagActions, flagReasonText, flagStatusLabel } from "../../../lib/atRisk";
+import {
+  FLAGS_NOT_UPDATED_TEXT,
+  REOPEN,
+  flagReasonText,
+  flagRowAction,
+  flagStatusLabel,
+  shouldReloadAfterFailure,
+} from "../../../lib/atRisk";
 import { formatDate, formatDateTime, formatLastActive } from "../../../lib/dates";
 import { useFetch } from "../../../lib/hooks/useFetch";
 import { DASH, cohortStatusLabel, memberStatusLabel, orDash, personName } from "../../../lib/labels";
 import { detailFailureText, intakeRows, lriTile, parseIdParam, progressCell, testCell } from "../../../lib/learnersText";
 import { LEARNER_COHORT_PARAM, learnerDetailPage } from "../../../lib/navigation";
+import { toast } from "../../../lib/toast";
 import {
   AtRiskReviewDialog,
   Button,
@@ -96,10 +105,13 @@ function MembershipPills({ membership }: { membership: Pick<LearnerMembership, "
 interface LoadedProps {
   data: FacilitatorLearnerDetailResponse;
   onReview: () => void;
+  onReopen: (flag: AtRiskFlagSummary) => void;
+  /** The dismissed flag being reopened, or null. */
+  reopeningFlagId: number | null;
   onOpenCohort: (cohortId: number) => void;
 }
 
-function LoadedDetail({ data, onReview, onOpenCohort }: LoadedProps) {
+function LoadedDetail({ data, onReview, onReopen, reopeningFlagId, onOpenCohort }: LoadedProps) {
   const lri = lriTile(data.lri);
 
   const flagColumns: DataTableColumn<AtRiskFlagSummary>[] = [
@@ -112,7 +124,18 @@ function LoadedDetail({ data, onReview, onOpenCohort }: LoadedProps) {
     {
       key: "review",
       header: "Review",
-      render: (flag) => (flagActions(flag.status).length > 0 ? <Button variant="link" onClick={onReview}>Review</Button> : null),
+      render: (flag) => {
+        const action = flagRowAction(flag);
+        if (action === "review") return <Button variant="link" onClick={onReview}>Review</Button>;
+        if (action === "reopen") {
+          return (
+            <Button variant="link" onClick={() => onReopen(flag)} disabled={reopeningFlagId !== null}>
+              {reopeningFlagId === flag.id ? "Reopening…" : REOPEN.label}
+            </Button>
+          );
+        }
+        return null;
+      },
     },
   ];
 
@@ -213,6 +236,24 @@ export function FacilitatorLearnerDetail({ navigate, user, onLogout }: PageProps
   const data = detail.data;
 
   const [reviewing, setReviewing] = useState(false);
+  const [reopeningFlagId, setReopeningFlagId] = useState<number | null>(null);
+
+  // A dismissed flag is reopened straight from its row. Only the status is
+  // sent, so the flag keeps its note.
+  const reopen = async (flag: AtRiskFlagSummary) => {
+    setReopeningFlagId(flag.id);
+    try {
+      await updateAtRiskFlag(flag.id, { status: REOPEN.status });
+      toast.success(REOPEN.done);
+      detail.reload();
+    } catch (requestError) {
+      toast.error(getErrorMessage(requestError, "The flag could not be reopened."));
+      // The flag is no longer what the row shows (e.g. it closed meanwhile).
+      if (shouldReloadAfterFailure(getErrorStatus(requestError))) detail.reload();
+    } finally {
+      setReopeningFlagId(null);
+    }
+  };
 
   let body;
   if (learnerId === null) {
@@ -231,6 +272,8 @@ export function FacilitatorLearnerDetail({ navigate, user, onLogout }: PageProps
       <LoadedDetail
         data={data}
         onReview={() => setReviewing(true)}
+        onReopen={(flag) => void reopen(flag)}
+        reopeningFlagId={reopeningFlagId}
         onOpenCohort={(otherCohortId) => navigate(learnerDetailPage(data.learner.learner_id, otherCohortId))}
       />
     );

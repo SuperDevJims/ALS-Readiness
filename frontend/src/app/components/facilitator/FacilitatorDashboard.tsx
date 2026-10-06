@@ -223,7 +223,7 @@ export function FacilitatorDashboard({ navigate, user, onLogout }: PageProps) {
         <AtRiskSection
           atRisk={data.at_risk}
           cohortIsActive={data.cohort.status === "active"}
-          onOpenLearner={(learnerId) => navigate(learnerDetailPage(learnerId))}
+          onOpenLearner={(learnerId) => navigate(learnerDetailPage(learnerId, data.cohort.id))}
           onReview={setReviewLearner}
         />
       </>

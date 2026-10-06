@@ -1,72 +1,99 @@
-// PARKED (M05 frontend plan, F2): moved here unchanged from FacilitatorCohort.tsx
-// when that page became the Learners list. Nothing imports it and it has no
-// route. It is kept for Phase F3 (Curriculum), which reuses it as the picker
-// for assigning content to a cohort. It still uses mock data: the
-// contentLibrary array below, and "assigning" only shows a message.
 import { useState } from "react";
-import { CheckCircle, Send, X } from "lucide-react";
+import { Send } from "lucide-react";
+import { getErrorCode, getErrorMessage, getErrorStatus } from "../../../lib/api/errors";
+import { assignContent } from "../../../lib/api/facilitatorCurriculum";
+import type { FacilitatorCohortItem, FacilitatorContentNode, FacilitatorLessonNode } from "../../../lib/api/types";
+import { curriculumErrorMessage, pickerFailureEffect } from "../../../lib/curriculumText";
+import { contentTypeLabel } from "../../../lib/labels";
+import { toast } from "../../../lib/toast";
+import { Button, EmptyState, Modal, Pill } from "./shared";
 
-const contentLibrary = [
-  { id:1, title:"Basic Operations & Word Problems", type:"auditory", subject:"Math",    strand:"LS3" },
-  { id:2, title:"Philippine History Video Series",   type:"visual",   subject:"AP",     strand:"LS6" },
-  { id:3, title:"English Grammar Guide",            type:"reading",  subject:"English", strand:"LS1" },
-  { id:4, title:"Photosynthesis Explained",         type:"visual",   subject:"Science", strand:"LS4" },
-  { id:5, title:"Filipino Literature: Balagtasan",  type:"auditory", subject:"Filipino",strand:"LS1" },
-];
+interface AssignContentModalProps {
+  /** The lesson whose content is being assigned. */
+  lesson: Pick<FacilitatorLessonNode, "lesson_id" | "title">;
+  /** The cohort the content is assigned to. It must be active. */
+  cohort: Pick<FacilitatorCohortItem, "id" | "name">;
+  /** The lesson's `available_contents` from the curriculum tree: what the caller may assign and has not yet. */
+  availableContents: FacilitatorContentNode[];
+  /** `changed` is true when the tree behind is out of date: something was assigned, or a refusal showed it is stale. */
+  onClose: (changed: boolean) => void;
+  /** Opens the Content Library, where content is uploaded. */
+  onOpenLibrary: () => void;
+}
 
-export function AssignContentModal({ learner, onClose }) {
-  const [selected, setSelected] = useState([]);
-  const [sent,     setSent]     = useState(false);
+/**
+ * The picker behind a lesson's "+ Assign": lists the content available for the
+ * lesson and assigns it to the cohort one item at a time. An assigned item
+ * leaves the list, so several can be assigned without reopening; the tree
+ * reloads when the picker closes.
+ */
+export function AssignContentModal({ lesson, cohort, availableContents, onClose, onOpenLibrary }: AssignContentModalProps) {
+  const [contents, setContents] = useState(availableContents);
+  const [assigningId, setAssigningId] = useState<number | null>(null);
+  const [changed, setChanged] = useState(false);
+  const assigning = assigningId !== null;
 
-  const toggle = (id) => setSelected(p => p.includes(id) ? p.filter(i => i !== id) : [...p, id]);
-  const handleAssign = () => { setSent(true); setTimeout(onClose, 1500); };
+  const removeRow = (contentId: number) => setContents((current) => current.filter((item) => item.content_id !== contentId));
+
+  const assign = async (content: FacilitatorContentNode) => {
+    setAssigningId(content.content_id);
+    try {
+      await assignContent(cohort.id, content.content_id);
+      toast.success(`"${content.title}" assigned to ${cohort.name}.`);
+      setChanged(true);
+      removeRow(content.content_id);
+    } catch (requestError) {
+      const code = getErrorCode(requestError);
+      toast.error(
+        curriculumErrorMessage(code, getErrorStatus(requestError), getErrorMessage(requestError, "The content could not be assigned.")),
+      );
+      const effect = pickerFailureEffect(code);
+      if (effect === "close") {
+        onClose(true);
+        return;
+      }
+      if (effect === "remove-row") {
+        // The list this picker was opened with is stale: the item is assigned already, or gone.
+        setChanged(true);
+        removeRow(content.content_id);
+      }
+    }
+    setAssigningId(null);
+  };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between p-5 border-b border-gray-100">
-          <div>
-            <h3 className="text-gray-800 font-bold">Assign Content</h3>
-            <p className="text-gray-500 text-xs mt-0.5">Assigning to: <span className="font-medium text-gray-700">{learner?.name}</span></p>
-          </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-lg"><X className="w-4 h-4 text-gray-500" /></button>
-        </div>
-        <div className="p-5">
-          <p className="text-gray-500 text-xs mb-3">Select content to assign. Stimulus type matches learner's <span className="text-[#3535C5] font-medium">{learner?.stimulus}</span> profile.</p>
-          <div className="space-y-2 mb-4">
-            {contentLibrary.map(c => {
-              const isSel = selected.includes(c.id);
-              const isMatch = c.type === learner?.stimulus?.toLowerCase();
-              return (
-                <button key={c.id} onClick={() => toggle(c.id)}
-                  className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all ${isSel ? "border-[#3535C5] bg-blue-50" : "border-gray-200 hover:border-gray-300"}`}>
-                  <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 ${isSel ? "border-[#3535C5] bg-[#3535C5]" : "border-gray-300"}`}>
-                    {isSel && <CheckCircle className="w-3.5 h-3.5 text-white" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-gray-700 text-sm font-medium truncate">{c.title}</div>
-                    <div className="flex items-center gap-2 text-xs text-gray-400"><span>{c.subject}</span><span>·</span><span>{c.type}</span></div>
-                  </div>
-                  {isMatch && <span className="text-[10px] text-[#3535C5] bg-blue-50 px-1.5 py-0.5 rounded-full border border-blue-200 flex-shrink-0">Best Match</span>}
-                </button>
-              );
-            })}
-          </div>
-          {sent ? (
-            <div className="p-3 bg-green-50 border border-green-200 rounded-xl flex items-center gap-2 text-green-700 text-sm">
-              <CheckCircle className="w-4 h-4" /> Content assigned! Learner will see it in their feed.
-            </div>
-          ) : (
-            <div className="flex gap-3">
-              <button onClick={onClose} className="flex-1 py-2.5 bg-gray-100 text-gray-600 rounded-xl text-sm hover:bg-gray-200 transition-colors">Cancel</button>
-              <button onClick={handleAssign} disabled={selected.length === 0}
-                className="flex-1 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-sm font-medium disabled:opacity-40 transition-colors flex items-center justify-center gap-2">
-                <Send className="w-3.5 h-3.5" /> Assign {selected.length > 0 ? `(${selected.length})` : ""}
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+    <Modal
+      title="Assign Content"
+      subtitle={<>Assigning to: <span className="font-medium text-gray-700">{cohort.name}</span> · {lesson.title}</>}
+      onClose={() => onClose(changed)}
+      busy={assigning}
+      footer={<Button onClick={() => onClose(changed)} disabled={assigning} className="flex-1">Done</Button>}
+    >
+      {contents.length === 0 ? (
+        <EmptyState
+          title="No content is available for this lesson"
+          description="Content is uploaded in the Content Library. Content uploaded to this lesson appears here."
+          action={<Button variant="link" onClick={onOpenLibrary}>Go to the Content Library</Button>}
+        />
+      ) : (
+        <ul className="space-y-2">
+          {contents.map((content) => (
+            <li key={content.content_id} className="flex items-center gap-3 p-3 rounded-xl border-2 border-gray-200">
+              <div className="flex-1 min-w-0">
+                <div className="text-gray-700 text-sm font-medium truncate">{content.title}</div>
+                <div className="flex items-center gap-2 flex-wrap text-xs text-gray-400 mt-0.5">
+                  <span>{contentTypeLabel(content.content_type)}</span>
+                  <Pill tone={content.has_evaluation ? "success" : "muted"}>{content.has_evaluation ? "Evaluated" : "Not evaluated"}</Pill>
+                  {!content.is_own && <Pill tone="neutral">Shared</Pill>}
+                </div>
+              </div>
+              <Button variant="accent" size="sm" onClick={() => void assign(content)} disabled={assigning} className="flex-shrink-0">
+                <Send className="w-3.5 h-3.5" /> {assigningId === content.content_id ? "Assigning…" : "Assign"}
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Modal>
   );
 }

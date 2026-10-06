@@ -2,7 +2,9 @@ import type {
   FacilitatorLearnerRow,
   LearnerIntakeSummary,
   LearnerProgress,
+  LearnerStrandProgress,
   MembershipStatusFilter,
+  StrandItem,
   StrandTestResult,
 } from "./api/types";
 import type { ListLearnersParams } from "./api/facilitator";
@@ -95,21 +97,17 @@ export interface StrandColumn {
 }
 
 /**
- * One progress column per strand, in the order the API returns them. Taken
- * from the rows themselves (every strand any row carries, first seen first),
- * so nothing about which strands exist is assumed here.
+ * One progress column per strand, in the order GET /api/facilitator/strands
+ * returns them. Taken from the strand list, not from the rows, so the columns
+ * and their headings are there even when no learner is listed.
  */
-export function strandColumns(rows: readonly Pick<FacilitatorLearnerRow, "progress">[]): StrandColumn[] {
-  const columns: StrandColumn[] = [];
-  const seen = new Set<number>();
-  for (const row of rows) {
-    for (const entry of row.progress) {
-      if (seen.has(entry.strand_id)) continue;
-      seen.add(entry.strand_id);
-      columns.push({ strand_id: entry.strand_id, strand_code: entry.strand_code });
-    }
-  }
-  return columns;
+export function strandColumns(strands: readonly Pick<StrandItem, "id" | "code">[]): StrandColumn[] {
+  return strands.map((strand) => ({ strand_id: strand.id, strand_code: strand.code }));
+}
+
+/** The row's progress entry for a strand column, matched by strand_id; undefined when the row has none. */
+export function progressForStrand(row: Pick<FacilitatorLearnerRow, "progress">, strandId: number): LearnerStrandProgress | undefined {
+  return row.progress.find((entry) => entry.strand_id === strandId);
 }
 
 export interface ProgressCell {

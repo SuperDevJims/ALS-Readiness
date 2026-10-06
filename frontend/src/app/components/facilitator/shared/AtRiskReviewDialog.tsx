@@ -129,7 +129,7 @@ export function AtRiskReviewDialog({ learner, cohortId, onClose, onChanged }: At
                 <div className="text-gray-400 text-xs text-right">{note.length} / {FLAG_NOTE_MAX_LENGTH}</div>
 
                 <div className="flex gap-2 mt-2">
-                  {flagActions(flag.status).map((action) => (
+                  {flagActions(flag.status, flag.resolved_at).map((action) => (
                     <Button
                       key={action.status}
                       size="sm"

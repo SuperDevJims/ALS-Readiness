@@ -1,12 +1,14 @@
 import type { ReactNode } from "react";
 
-export type ButtonVariant = "primary" | "accent" | "secondary" | "link";
+export type ButtonVariant = "primary" | "accent" | "secondary" | "outline" | "link";
 
 // The button looks the mockup dialogs and tables already use.
 const VARIANT: Record<ButtonVariant, string> = {
   primary: "bg-[#0B1F3A] hover:bg-[#152e56] text-white",
   accent: "bg-orange-500 hover:bg-orange-600 text-white font-medium",
   secondary: "bg-gray-100 hover:bg-gray-200 text-gray-700",
+  // The small white bordered button on a row ("+ Assign", "Unassign").
+  outline: "bg-white hover:bg-gray-50 text-gray-700 border border-gray-200",
   // The inline text action used in table rows ("View", "Assign").
   link: "text-orange-500 hover:text-orange-700 font-medium",
 };

@@ -1,10 +1,11 @@
 // The Learners list. The file keeps the name of the "Cohort" mockup it was
 // revised from, so its history is preserved; everything it shows says "Learners".
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { AlertCircle } from "lucide-react";
 import { AppLayout } from "../shared/AppLayout";
 import type { PageProps } from "../../routes/ProtectedPage";
 import { getLearners } from "../../../lib/api/facilitator";
+import { getStrands } from "../../../lib/api/facilitatorCurriculum";
 import type { FacilitatorLearnerRow, MembershipStatusFilter } from "../../../lib/api/types";
 import { formatLastActive } from "../../../lib/dates";
 import { useDebouncedValue } from "../../../lib/hooks/useDebouncedValue";
@@ -18,8 +19,8 @@ import {
   learnersSubtitle,
   listFailureText,
   progressCell,
+  progressForStrand,
   strandColumns,
-  type StrandColumn,
 } from "../../../lib/learnersText";
 import { learnerDetailPage } from "../../../lib/navigation";
 import { useCohortSelection } from "../../../lib/store/cohortStore";
@@ -91,20 +92,21 @@ export function FacilitatorCohort({ navigate, user, onLogout }: PageProps) {
   const data = list.data;
   const rows = data?.items ?? [];
 
-  // The strand columns come from the rows. Keep the last ones seen while the
-  // next page loads or a search finds nobody, so the table's frame holds still.
-  const lastStrands = useRef<StrandColumn[]>([]);
-  if (rows.length > 0) lastStrands.current = strandColumns(rows);
+  // The strand columns come from the strand list, not from the rows, so they
+  // and their headings are there even when the result is empty.
+  const strands = useFetch(getStrands, [], { fallbackError: "Unable to load the learning strands." });
+  const strandCols = strandColumns(strands.data?.items ?? []);
 
   const columns: DataTableColumn<FacilitatorLearnerRow>[] = [
     { key: "learner", header: "Learner", render: (row) => <LearnerCell row={row} /> },
     { key: "cohort", header: "Cohort", className: "text-gray-500", render: (row) => row.cohort_name },
     { key: "readiness", header: "Readiness", render: (row) => <ReadinessPill readiness={row.readiness} /> },
-    ...lastStrands.current.map((strand): DataTableColumn<FacilitatorLearnerRow> => ({
+    ...strandCols.map((strand): DataTableColumn<FacilitatorLearnerRow> => ({
       key: `strand-${strand.strand_id}`,
       header: `${strand.strand_code} Progress`,
       render: (row) => {
-        const cell = progressCell(row.progress.find((entry) => entry.strand_id === strand.strand_id));
+        // A row with no entry for this strand shows a dash.
+        const cell = progressCell(progressForStrand(row, strand.strand_id));
         return <ProgressBar value={cell.barValue} widthClass="w-16" label={`${strand.strand_code} progress`} />;
       },
     })),
@@ -132,13 +134,15 @@ export function FacilitatorCohort({ navigate, user, onLogout }: PageProps) {
 
         {failure ? (
           <ErrorState title={failure.title} message={failure.message} onRetry={failure.canRetry ? list.reload : undefined} />
+        ) : strands.error ? (
+          <ErrorState title="The learning strands could not be loaded" message={strands.error} onRetry={strands.reload} />
         ) : (
           <DataTable
             columns={columns}
             rows={rows}
             rowKey={(row) => `${row.learner_id}-${row.cohort_id}`}
             onRowClick={(row) => navigate(learnerDetailPage(row.learner_id, row.cohort_id))}
-            loading={!data}
+            loading={!data || !strands.data}
             loadingLabel="Loading learners…"
             emptyMessage={emptyListMessage(hasActiveFilters(filters), selection.isAllCohorts)}
             footer={

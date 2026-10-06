@@ -18,3 +18,6 @@ export { ReadinessPill, NOT_YET_PROFILED } from "./ReadinessPill";
 export { AtRiskReviewDialog } from "./AtRiskReviewDialog";
 export { SearchInput } from "./SearchInput";
 export { Chip, ChipGroup } from "./Chip";
+export { ActionMenu, type ActionMenuItem } from "./ActionMenu";
+export { ConfirmDialog } from "./ConfirmDialog";
+export { Tabs } from "./Tabs";

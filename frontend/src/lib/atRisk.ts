@@ -66,17 +66,31 @@ export interface FlagAction {
 
 const MARK_REVIEWED: FlagAction = { status: "reviewed", label: "Mark reviewed", done: "Flag marked as reviewed." };
 const DISMISS: FlagAction = { status: "dismissed", label: "Dismiss", done: "Flag dismissed." };
-const REOPEN: FlagAction = { status: "open", label: "Reopen", done: "Flag reopened." };
+export const REOPEN: FlagAction = { status: "open", label: "Reopen", done: "Flag reopened." };
 
 /**
- * What a facilitator can do with a flag in each status: an open flag can be
- * marked reviewed or dismissed; a reviewed flag can be dismissed or reopened.
- * Nothing is offered for a dismissed or resolved flag.
+ * What a facilitator can do with a flag: an open flag can be marked reviewed
+ * or dismissed; a reviewed flag can be dismissed or reopened; a dismissed flag
+ * can be reopened. Nothing is offered for a closed flag - a resolved one, or
+ * any flag with a `resolved_at`, since the backend refuses every change once
+ * the condition has cleared.
  */
-export function flagActions(status: AtRiskFlagStatus): FlagAction[] {
+export function flagActions(status: AtRiskFlagStatus, resolvedAt: string | null): FlagAction[] {
+  if (resolvedAt !== null) return [];
   if (status === "open") return [MARK_REVIEWED, DISMISS];
   if (status === "reviewed") return [DISMISS, REOPEN];
+  if (status === "dismissed") return [REOPEN];
   return [];
+}
+
+/**
+ * The action offered on a flag's row in the at-risk history: "review" opens
+ * the review dialog (open and reviewed flags), "reopen" reopens a dismissed
+ * flag straight from the row, null offers nothing (closed flags).
+ */
+export function flagRowAction(flag: { status: AtRiskFlagStatus; resolved_at: string | null }): "review" | "reopen" | null {
+  if (flagActions(flag.status, flag.resolved_at).length === 0) return null;
+  return flag.status === "dismissed" ? "reopen" : "review";
 }
 
 /** The longest note the API accepts. */
