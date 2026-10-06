@@ -21,3 +21,7 @@ export { Chip, ChipGroup } from "./Chip";
 export { ActionMenu, type ActionMenuItem } from "./ActionMenu";
 export { ConfirmDialog } from "./ConfirmDialog";
 export { Tabs } from "./Tabs";
+export { Field, FIELD_CLASS } from "./Field";
+export { FileDrop } from "./FileDrop";
+export { Steps } from "./Steps";
+export { LessonPicker } from "./LessonPicker";
