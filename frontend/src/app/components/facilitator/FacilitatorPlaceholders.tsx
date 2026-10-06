@@ -7,9 +7,9 @@ import { Card, EmptyState, PageHeader } from "./shared";
 
 // Titled stand-ins for the facilitator screens that have no mockup yet
 // (M05 frontend plan, Phase F0). Each is replaced by the real page in its own
-// phase: My Cohorts in F5, Strand Tests in F6. (Learner Detail was replaced in
-// F2 by FacilitatorLearnerDetail.tsx, Curriculum in F3 by
-// FacilitatorCurriculum.tsx.) They hold no data, real or mock.
+// phase: Strand Tests in F6. (Learner Detail was replaced in F2 by
+// FacilitatorLearnerDetail.tsx, Curriculum in F3 by FacilitatorCurriculum.tsx,
+// My Cohorts in F5 by FacilitatorMyCohorts.tsx.) They hold no data, real or mock.
 
 interface PlaceholderProps extends PageProps {
   /** The sidebar entry to highlight and the top bar title to show. */
@@ -62,20 +62,6 @@ export function FacilitatorTestDetail(props: PageProps) {
       subtitle={`Test ${testId}`}
       eyebrow="Strand Tests"
       phase="F6"
-    />
-  );
-}
-
-/** `/facilitator-cohorts` */
-export function FacilitatorCohorts(props: PageProps) {
-  return (
-    <Placeholder
-      {...props}
-      currentPage="facilitator-cohorts"
-      title="My Cohorts"
-      subtitle="The cohorts you are assigned to, with their rosters."
-      eyebrow="My Cohorts"
-      phase="F5"
     />
   );
 }

@@ -163,9 +163,9 @@ export function filenameFromContentDisposition(header: string | null | undefined
  * auth token is attached. Returns the file and the server's filename.
  *
  * A browser only lets a script read Content-Disposition cross-origin when the
- * server lists it in Access-Control-Expose-Headers, which the backend doesn't
- * do today - so with VITE_API_BASE_URL on another origin the header is
- * unreadable and the filename falls back to `cohort-summary_<cohortId>.csv`.
+ * server lists it in Access-Control-Expose-Headers, which the backend does
+ * (backend/app/main.py), so the server's filename is used. If the header is
+ * ever missing or has no filename, it falls back to `cohort-summary_<cohortId>.csv`.
  */
 export async function downloadCohortSummaryCsv(
   cohortId: number,

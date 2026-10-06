@@ -9,6 +9,14 @@ export interface DataTableColumn<T> {
   align?: "left" | "right" | "center";
   /** Extra classes for this column's cells, e.g. "w-40" or "text-gray-500 text-xs". */
   className?: string;
+  /**
+   * A shared heading over this column and its neighbours with the same group,
+   * e.g. a strand code over Progress, Pretest and Posttest. Columns of one
+   * group must be next to each other. Columns without a group span both header rows.
+   */
+  group?: string;
+  /** Keeps the column in view while a wide table scrolls sideways. Meant for the first column. */
+  pinned?: boolean;
 }
 
 interface DataTableProps<T> {
@@ -51,6 +59,16 @@ export function DataTable<T>({
     </tr>
   );
 
+  const grouped = columns.some((column) => column.group !== undefined);
+  const startsGroup = (index: number) => columns[index].group !== undefined && columns[index - 1]?.group !== columns[index].group;
+  // A pinned cell needs its own background so the cells scrolling under it do not show through;
+  // the first cell of a group gets a hairline on its left. Nothing is added to a plain column.
+  const edgeClass = (index: number, background: string) => {
+    const column = columns[index];
+    if (column.pinned) return `sticky left-0 z-10 ${background} border-r border-gray-100`;
+    return startsGroup(index) || (grouped && column.group === undefined && columns[index - 1]?.group !== undefined) ? "border-l border-gray-100" : "";
+  };
+
   const onRowKeyDown = (event: KeyboardEvent<HTMLTableRowElement>, row: T) => {
     if (event.target !== event.currentTarget) return; // a button inside the row handles its own keys
     if (event.key === "Enter" || event.key === " ") {
@@ -64,13 +82,45 @@ export function DataTable<T>({
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead className="bg-gray-50 border-b border-gray-100">
-            <tr>
-              {columns.map((column) => (
-                <th key={column.key} scope="col" className={`${ALIGN[column.align ?? "left"]} px-4 py-3 text-xs text-gray-500 font-semibold`}>
-                  {column.header}
-                </th>
-              ))}
-            </tr>
+            {grouped ? (
+              <>
+                <tr>
+                  {columns.map((column, index) => {
+                    if (column.group === undefined) {
+                      return (
+                        <th key={column.key} scope="col" rowSpan={2} className={`${ALIGN[column.align ?? "left"]} px-4 py-3 text-xs text-gray-500 font-semibold ${edgeClass(index, "bg-gray-50")}`}>
+                          {column.header}
+                        </th>
+                      );
+                    }
+                    if (!startsGroup(index)) return null;
+                    const span = columns.filter((other) => other.group === column.group).length;
+                    return (
+                      <th key={`group-${column.group}`} scope="colgroup" colSpan={span} className="text-center px-4 pt-3 pb-1 text-xs text-gray-700 font-semibold border-l border-gray-100">
+                        {column.group}
+                      </th>
+                    );
+                  })}
+                </tr>
+                <tr>
+                  {columns.map((column, index) =>
+                    column.group === undefined ? null : (
+                      <th key={column.key} scope="col" className={`${ALIGN[column.align ?? "left"]} px-4 pt-1 pb-3 text-xs text-gray-500 font-semibold whitespace-nowrap ${edgeClass(index, "bg-gray-50")}`}>
+                        {column.header}
+                      </th>
+                    ),
+                  )}
+                </tr>
+              </>
+            ) : (
+              <tr>
+                {columns.map((column, index) => (
+                  <th key={column.key} scope="col" className={`${ALIGN[column.align ?? "left"]} px-4 py-3 text-xs text-gray-500 font-semibold ${edgeClass(index, "bg-gray-50")}`}>
+                    {column.header}
+                  </th>
+                ))}
+              </tr>
+            )}
           </thead>
           <tbody className="divide-y divide-gray-50" aria-busy={loading}>
             {loading && message(loadingLabel, "text-gray-400")}
@@ -84,8 +134,8 @@ export function DataTable<T>({
                 onKeyDown={onRowClick ? (event) => onRowKeyDown(event, row) : undefined}
                 tabIndex={onRowClick ? 0 : undefined}
               >
-                {columns.map((column) => (
-                  <td key={column.key} className={`px-4 py-3 text-sm text-gray-700 ${ALIGN[column.align ?? "left"]} ${column.className ?? ""}`}>
+                {columns.map((column, index) => (
+                  <td key={column.key} className={`px-4 py-3 text-sm text-gray-700 ${ALIGN[column.align ?? "left"]} ${column.className ?? ""} ${edgeClass(index, "bg-white")}`}>
                     {column.render(row)}
                   </td>
                 ))}
