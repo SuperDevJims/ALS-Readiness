@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BookOpen, ChevronRight, CircleAlert, ExternalLink, FileText, LoaderCircle, Sparkles } from "lucide-react";
+import { BookOpen, ChevronRight, CircleAlert, FileText, LoaderCircle, Sparkles } from "lucide-react";
 import { getMyCohorts, getMyCurriculum, getMyStrands } from "../../../lib/api/learningContents";
 import type { LearningStrandProgress, MyCohort, MyCurriculumResponse } from "../../../lib/api/types";
 import { getErrorMessage } from "../../../lib/api/errors";
@@ -85,7 +85,6 @@ export function StimulusContent({ navigate, user, onLogout }) {
               <Info label="School Year" value={cohort.school_year} />
               <Info label="Start Date" value={formatDate(cohort.start_date)} />
               <Info label="End Date" value={formatDate(cohort.end_date)} />
-              <div><dt className="text-gray-500">Roster Link</dt><dd className="mt-1"><a href={`/api/cohorts/${cohort.id}/members`} className="inline-flex items-center gap-1 text-green-700 hover:underline font-medium">View cohort roster <ExternalLink className="w-3.5 h-3.5" /></a></dd></div>
             </dl>
           ) : <Empty message="No cohort information is available." />}
         </section>

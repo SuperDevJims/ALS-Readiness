@@ -40,6 +40,7 @@ const facilitatorNav = [
 const adminNav = [
   { page:"admin-dashboard",  icon:LayoutDashboard, label:"Overview",       group:"main"   },
   { page:"admin-users",      icon:Users,           label:"User Accounts",  group:"main"   },
+  { page:"admin-cohorts",    icon:CalendarDays,    label:"Cohorts",        group:"main"   },
   { page:"admin-analytics",  icon:BarChart3,       label:"Analytics",      group:"reports"},
   { page:"admin-reports",    icon:FileText,        label:"DepEd Reports",  group:"reports"},
 ];

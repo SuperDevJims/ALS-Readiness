@@ -27,6 +27,7 @@ import { FacilitatorTestDetail } from "./components/facilitator/FacilitatorTestD
 // Admin
 import { AdminDashboard } from "./components/admin/AdminDashboard";
 import { AdminUsers } from "./components/admin/AdminUsers";
+import { AdminCohorts } from "./components/admin/AdminCohorts";
 import { AdminAnalytics } from "./components/admin/AdminAnalytics";
 import { AdminReports } from "./components/admin/AdminReports";
 // Shared
@@ -139,6 +140,7 @@ function AppRoutes() {
         {/* Admin / Coordinator */}
         <Route path="/admin-dashboard" element={<ProtectedPage allowed={["admin"]} Component={AdminDashboard} />} />
         <Route path="/admin-users" element={<ProtectedPage allowed={["admin"]} Component={AdminUsers} />} />
+        <Route path="/admin-cohorts" element={<ProtectedPage allowed={["admin"]} Component={AdminCohorts} />} />
         <Route path="/admin-analytics" element={<ProtectedPage allowed={["admin"]} Component={AdminAnalytics} />} />
         <Route path="/admin-reports" element={<ProtectedPage allowed={["admin"]} Component={AdminReports} />} />
 
