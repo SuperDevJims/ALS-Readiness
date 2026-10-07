@@ -151,9 +151,11 @@ class CohortService:
                 status=cohort_facilitator.status,
                 assigned_by=cohort_facilitator.assigned_by,
                 assigned_at=cohort_facilitator.assigned_at,
-                profile=UserProfile.model_validate(profile)
+                profile=UserProfile.model_validate(profile),
+                id_no=id_no,
+                ended_at=cohort_facilitator.ended_at,
             )
-            for cohort_facilitator, profile in cohort_facilitator_members
+            for cohort_facilitator, profile, id_no in cohort_facilitator_members
         ]
 
         cohort_learner_members_response = [
@@ -164,9 +166,12 @@ class CohortService:
                 status=cohort_learner.status,
                 assigned_by=cohort_learner.assigned_by,
                 assigned_at=cohort_learner.assigned_at,
-                profile=UserProfile.model_validate(profile)
+                profile=UserProfile.model_validate(profile),
+                id_no=id_no,
+                # A membership's end is stored as completed_at.
+                ended_at=cohort_learner.completed_at,
             )
-            for cohort_learner, profile in cohort_learner_members
+            for cohort_learner, profile, id_no in cohort_learner_members
         ]
 
         return CohortWithMembersResponse(

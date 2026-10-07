@@ -1,6 +1,6 @@
 from collections.abc import Collection
 
-from sqlalchemy import ColumnElement, Row, Select, exists, func, or_, select
+from sqlalchemy import ColumnElement, Row, Select, exists, func, select
 
 from app.models.at_risk_flag import AtRiskFlag
 from app.models.cohort import Cohort, CohortLearner
@@ -11,6 +11,7 @@ from app.enums.at_risk import ACTIVE_FLAG_STATUSES
 from app.enums.cohort import CohortMemberStatus, CohortStatus
 
 from .base import BaseRepository
+from .search import person_search_condition
 
 
 class CohortLearnerRepository(BaseRepository[CohortLearner]):
@@ -30,11 +31,12 @@ class CohortLearnerRepository(BaseRepository[CohortLearner]):
         return result.scalar_one_or_none()
 
     async def get_all_by_cohort_id_with_profile(
-        self, 
+        self,
         cohort_id: int
-    ) -> list[tuple[CohortLearner, UserProfile]]:
+    ) -> list[tuple[CohortLearner, UserProfile, str | None]]:
+        """Rows are (membership, profile, id_no), all from the one query."""
         statement = (
-            select(CohortLearner, UserProfile)
+            select(CohortLearner, UserProfile, User.id_no)
             .join(Learner, Learner.id == CohortLearner.learner_id)
             .join(User, User.id == Learner.user_id)
             .join(UserProfile, UserProfile.user_id == User.id)
@@ -160,21 +162,12 @@ class CohortLearnerRepository(BaseRepository[CohortLearner]):
         if status is not None:
             conditions.append(CohortLearner.status == status)
         if search:
-            # The text is matched literally: % and _ are not wildcards.
-            escaped = search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-            pattern = f"%{escaped}%"
             conditions.append(
-                or_(
-                    UserProfile.first_name.ilike(pattern, escape="\\"),
-                    UserProfile.last_name.ilike(pattern, escape="\\"),
-                    User.id_no.ilike(pattern, escape="\\"),
-                    # The full name, in either order: "Ana Abad" and "Abad Ana".
-                    func.concat(UserProfile.first_name, " ", UserProfile.last_name).ilike(
-                        pattern, escape="\\"
-                    ),
-                    func.concat(UserProfile.last_name, " ", UserProfile.first_name).ilike(
-                        pattern, escape="\\"
-                    ),
+                person_search_condition(
+                    search,
+                    first_name=UserProfile.first_name,
+                    last_name=UserProfile.last_name,
+                    id_no=User.id_no,
                 )
             )
         if at_risk_only:

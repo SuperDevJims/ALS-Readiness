@@ -42,6 +42,9 @@ class FacilitatorLessonNode(BaseModel):
     title: str
     description: str | None
     order_index: int
+    # The lesson's own status. Always "active" unless include_archived was
+    # asked for; an active lesson can still sit under an archived module.
+    status: StructureStatus
     # With a cohort_id: the contents assigned to that cohort, including other
     # facilitators' private ones. Without one: every content the caller can see.
     contents: list[FacilitatorContentNode]
@@ -55,6 +58,8 @@ class FacilitatorModuleNode(BaseModel):
     title: str
     description: str | None
     order_index: int
+    # Always "active" unless include_archived was asked for.
+    status: StructureStatus
     lessons: list[FacilitatorLessonNode]
 
 

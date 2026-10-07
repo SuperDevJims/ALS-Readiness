@@ -1,10 +1,6 @@
 from sqlalchemy import Row, and_
 
-from app.core.exceptions import (
-    ContentEditDeniedError,
-    ContentNotFoundError,
-    StorageUnavailableError,
-)
+from app.core.exceptions import ContentEditDeniedError, ContentNotFoundError
 from app.enums.content import ContentStatus, ContentType
 from app.models.content import Content
 from app.models.user import User
@@ -90,10 +86,12 @@ class ContentLibraryService:
         access = await self._facilitator_scope_service.get_content_access(user)
         row = await self._get_visible_row(access, content_id)
 
+        # A storage failure costs the link, not the whole view: the same
+        # null read_url as when storage is not configured.
         try:
             read_url = get_read_url(row[0].file_key)
         except STORAGE_ERRORS:
-            raise StorageUnavailableError() from None
+            read_url = None
 
         item = self._to_item(row, access)
         return ContentLibraryDetailResponse(**item.model_dump(), read_url=read_url)
@@ -109,8 +107,19 @@ class ContentLibraryService:
         self._ensure_own(access, content)
 
         fields = content_update.model_dump(exclude_unset=True)
-        if "lesson_id" in fields and fields["lesson_id"] != content.lesson_id:
-            await self._lesson_service.get_active_by_id(fields["lesson_id"])
+        moving = "lesson_id" in fields and fields["lesson_id"] != content.lesson_id
+        restoring = (
+            fields.get("status") == ContentStatus.ACTIVE
+            and content.status != ContentStatus.ACTIVE
+        )
+        # Content can only be moved to, or restored in, an active lesson under
+        # an active module and strand. A restore is checked against the lesson
+        # it will end up in. Archiving, and editing an archived item's other
+        # fields, are never refused.
+        if moving or restoring:
+            await self._lesson_service.get_active_by_id(
+                fields.get("lesson_id", content.lesson_id)
+            )
 
         # Archiving leaves the cohort assignments in place; the item just stops
         # appearing in trees until it is restored.

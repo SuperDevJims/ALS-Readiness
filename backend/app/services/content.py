@@ -3,6 +3,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.core.exceptions import (
     ContentEvaluationAlreadyExistsError,
+    ContentFileKeyAlreadyUsedError,
     ContentFileNotFoundError,
     InvalidContentFileError,
     StorageUnavailableError,
@@ -21,6 +22,10 @@ from app.storage import STORAGE_ERRORS, build_key, file_exists, get_upload_url
 
 
 class ContentService:
+    # The folder every content upload goes to. The upload URL is issued for a
+    # key inside it, and a content record is only ever made from such a key.
+    UPLOAD_FOLDER = "learning-contents"
+
     ALLOWED_EXTENSIONS = {  # noqa: RUF012
         "mp4",
         "mov",
@@ -71,7 +76,7 @@ class ContentService:
     def create_upload_url(self, filename: str) -> tuple[str, str]:
         self._validate_extension(filename)
 
-        key = build_key("learning-contents", filename)
+        key = build_key(self.UPLOAD_FOLDER, filename)
         try:
             upload_url = get_upload_url(key)
         except STORAGE_ERRORS:
@@ -86,6 +91,17 @@ class ContentService:
     ) -> Content:
         facilitator = await self._facilitator_service.get_by_user_id(user_id)
         await self._lesson_service.get_active_by_id(content_create.lesson_id)
+
+        # A key outside the upload folder is answered exactly like a file that
+        # does not exist, and storage is not asked about it, so the response
+        # says nothing about what else is in the bucket.
+        if not content_create.file_key.startswith(f"{self.UPLOAD_FOLDER}/"):
+            raise ContentFileNotFoundError()
+
+        # One content per uploaded file. This is a check, not a constraint:
+        # two requests at the same moment could both pass it.
+        if await self._content_repo.exists_by_file_key(content_create.file_key):
+            raise ContentFileKeyAlreadyUsedError()
 
         try:
             exists = file_exists(content_create.file_key)

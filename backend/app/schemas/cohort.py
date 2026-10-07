@@ -69,10 +69,18 @@ class CohortListResponse(BaseModel):
 
 class CohortFacilitatorMemberResponse(CohortFacilitatorResponse):
     profile: UserProfileResponse
+    # The facilitator's ID number, so a roster row can be read without a second lookup.
+    id_no: str | None = None
+    # When the assignment ended. Null while it is active.
+    ended_at: datetime | None = None
 
 
 class CohortLearnerMemberResponse(CohortLearnerResponse):
     profile: UserProfileResponse
+    # The learner's ID number, so a roster row can be read without a second lookup.
+    id_no: str | None = None
+    # When the membership ended. Null while it is active.
+    ended_at: datetime | None = None
 
 
 class CohortWithMembersResponse(CohortResponse):

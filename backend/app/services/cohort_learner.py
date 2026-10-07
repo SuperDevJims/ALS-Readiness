@@ -64,7 +64,7 @@ class CohortLearnerService:
     async def get_all_by_cohort_id_with_profile(
         self,
         cohort_id: int,
-    ) -> list[tuple[CohortLearner, UserProfile]]:
+    ) -> list[tuple[CohortLearner, UserProfile, str | None]]:
         return await (
             self._cohort_learner_repo
             .get_all_by_cohort_id_with_profile(cohort_id)

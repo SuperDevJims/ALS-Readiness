@@ -18,16 +18,28 @@ class CurriculumRepository:
     def __init__(self, session: AsyncSession):
         self._session = session
 
-    async def get_strand_tree(self, strand_id: int) -> LearningStrand | None:
+    async def get_strand_tree(
+        self,
+        strand_id: int,
+        include_archived: bool = False,
+    ) -> LearningStrand | None:
         """The strand with only its active modules, their active lessons, and those
         lessons' active contents. An archived module hides its lessons whatever
-        their own status."""
+        their own status.
+
+        With `include_archived`, archived modules and lessons are loaded too,
+        in their normal order, each under its parent whatever the parent's
+        status. Deleted ones never are, and contents stay active-only."""
+        statuses = [StructureStatus.ACTIVE]
+        if include_archived:
+            statuses.append(StructureStatus.ARCHIVED)
+
         stmt = (
             select(LearningStrand)
             .where(LearningStrand.id == strand_id)
             .options(
-                selectinload(LearningStrand.modules.and_(Module.status == StructureStatus.ACTIVE))
-                .selectinload(Module.lessons.and_(Lesson.status == StructureStatus.ACTIVE))
+                selectinload(LearningStrand.modules.and_(Module.status.in_(statuses)))
+                .selectinload(Module.lessons.and_(Lesson.status.in_(statuses)))
                 .selectinload(Lesson.contents.and_(Content.status == ContentStatus.ACTIVE))
                 .selectinload(Content.evaluation)
             )

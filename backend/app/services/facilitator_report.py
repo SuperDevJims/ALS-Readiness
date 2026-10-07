@@ -11,7 +11,7 @@ from app.core.constants import (
     MANILA_UTC_OFFSET,
 )
 from app.core.exceptions import CohortNotFoundError
-from app.enums.at_risk import AtRiskReason
+from app.enums.at_risk import AT_RISK_REASON_LABELS, AtRiskReason
 from app.enums.cohort import CohortMemberStatus, CohortStatus
 from app.enums.strand_test import StrandTestType
 from app.models.cohort import Cohort, CohortLearner
@@ -485,7 +485,7 @@ def cohort_summary_csv(summary: CohortSummaryResponse) -> bytes:
                 if learner.last_active_at is not None
                 else ""
             ),
-            csv_text("; ".join(reason.value for reason in learner.at_risk_reasons)),
+            csv_text("; ".join(AT_RISK_REASON_LABELS[reason] for reason in learner.at_risk_reasons)),
         ]
         writer.writerow(row)
 

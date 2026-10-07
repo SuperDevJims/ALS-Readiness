@@ -18,9 +18,10 @@ async def get_curriculum(
     strand_id: int,
     current_user: CurrentFacilitatorDep,
     cohort_id: int | None = None,
+    include_archived: bool = False,
     service: CurriculumServiceDep = ...,
 ) -> FacilitatorCurriculumResponse:
-    return await service.get_tree(current_user, strand_id, cohort_id)
+    return await service.get_tree(current_user, strand_id, cohort_id, include_archived)
 
 
 @router.get("/me/curriculum/{strand_id}")

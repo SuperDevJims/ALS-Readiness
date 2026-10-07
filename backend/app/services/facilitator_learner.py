@@ -12,6 +12,7 @@ from app.repositories.cohort_learner import CohortLearnerRepository
 from app.repositories.learner import LearnerRepository
 from app.repositories.lri_test_attempt import LRITestAttemptRepository
 from app.repositories.participant_intake import ParticipantIntakeRepository
+from app.repositories.search import normalize_search
 from app.repositories.strand_test_attempt import StrandTestAttemptRepository
 from app.schemas.facilitator_learner import (
     FacilitatorLearnerDetailResponse,
@@ -86,7 +87,7 @@ class FacilitatorLearnerService:
 
         status = None if membership_status == "all" else CohortMemberStatus(membership_status)
         # Runs of spaces are collapsed so a full name matches however it is typed.
-        search = " ".join(search.split()) if search else None
+        search = normalize_search(search)
 
         # The at-risk filter reads the flags, so they are brought up to date
         # for every cohort in scope before the page is chosen.

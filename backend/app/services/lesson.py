@@ -38,8 +38,9 @@ class LessonService:
         return lesson
 
     async def get_active_by_id(self, lesson_id: int) -> Lesson:
-        """The lesson, if it and its module are both active. Content can only be
-        added to, moved to, or assigned from such a lesson."""
+        """The lesson, if it, its module, and its strand are all active. Content
+        can only be added to, moved to, restored in, or assigned from such a
+        lesson."""
         lesson = await self.get_by_id(lesson_id)
         if lesson.status != StructureStatus.ACTIVE:
             raise LessonNotActiveError()
@@ -47,6 +48,10 @@ class LessonService:
         module = await self._module_repo.get_by_id(lesson.module_id)
         if module is None or module.status != StructureStatus.ACTIVE:
             raise ModuleNotActiveError()
+
+        strand = await self._strand_repo.get_by_id(module.strand_id)
+        if strand is None or strand.status != StructureStatus.ACTIVE:
+            raise StrandNotActiveError()
 
         return lesson
 

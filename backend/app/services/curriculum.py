@@ -41,8 +41,11 @@ class CurriculumService:
         user: User,
         strand_id: int,
         cohort_id: int | None,
+        include_archived: bool = False,
     ) -> FacilitatorCurriculumResponse:
         """The facilitator's tree: active structure, and only content the caller may see.
+        With `include_archived`, archived modules and lessons are listed too,
+        so they can be found and restored; contents are active-only either way.
 
         Without a cohort_id, each lesson lists all its visible content. With one,
         the caller must have access to that cohort, and each lesson lists what is
@@ -53,7 +56,7 @@ class CurriculumService:
 
         # An archived strand is not on the facilitator's tab bar, so its tree
         # is not found either.
-        strand = await self._curriculum_repo.get_strand_tree(strand_id)
+        strand = await self._curriculum_repo.get_strand_tree(strand_id, include_archived)
         if strand is None or strand.status != StructureStatus.ACTIVE:
             raise LearningStrandNotFoundError()
 
@@ -93,6 +96,7 @@ class CurriculumService:
                 title=lesson.title,
                 description=lesson.description,
                 order_index=lesson.order_index,
+                status=lesson.status,
                 contents=[content_node(content) for content in contents],
                 available_contents=[content_node(content) for content in available],
             )
@@ -109,6 +113,7 @@ class CurriculumService:
                     title=module.title,
                     description=module.description,
                     order_index=module.order_index,
+                    status=module.status,
                     lessons=[lesson_node(lesson) for lesson in module.lessons],
                 )
                 for module in strand.modules

@@ -28,6 +28,12 @@ class ContentLibraryFilters:
 class ContentRepository(BaseRepository[Content]):
     model = Content
 
+    async def exists_by_file_key(self, file_key: str) -> bool:
+        """Whether any content row, whatever its status, already uses the key."""
+        statement = select(Content.id).where(Content.file_key == file_key).limit(1)
+        result = await self._session.execute(statement)
+        return result.first() is not None
+
     @staticmethod
     def _library_rows() -> Select:
         """One row per content with everything a library item shows: the content,

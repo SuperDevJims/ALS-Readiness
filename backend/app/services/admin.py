@@ -11,6 +11,7 @@ from app.core.exceptions import (
 )
 from app.enums.user import UserRole
 from app.models.user import User
+from app.repositories.search import normalize_search
 from app.schemas.admin import (
     AdminAdminCreate,
     AdminFacilitatorCreate,
@@ -151,12 +152,15 @@ class AdminService:
         is_active: bool | None,
         page: int,
         page_size: int,
+        search: str | None = None,
     ) -> AdminUserListResponse:
         rows, total = await self._user_service.list_with_profiles(
             page=page,
             page_size=page_size,
             role=role,
             is_active=is_active,
+            # Runs of spaces are collapsed so a full name matches however it is typed.
+            search=normalize_search(search),
         )
 
         items = [

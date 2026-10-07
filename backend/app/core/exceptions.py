@@ -372,6 +372,13 @@ class ContentFileNotFoundError(NotFoundError):
     code = "CONTENT_FILE_NOT_FOUND"
 
 
+class ContentFileKeyAlreadyUsedError(AlreadyExistsError):
+    """Raised when creating content from a file key another content already uses."""
+
+    message = "This uploaded file is already used by another content item."
+    code = "CONTENT_FILE_KEY_ALREADY_USED"
+
+
 class InvalidContentFileError(DomainValidationError):
     """Raised when a content filename or file key has a missing or unsupported extension."""
 
