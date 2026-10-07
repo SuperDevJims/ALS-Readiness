@@ -9,6 +9,7 @@ import type {
   ReportLearnerStrand,
   ReportThresholds,
 } from "./api/types";
+import { learnerCountLabel } from "./dashboardText";
 import { formatCalendarDate, formatDateTime } from "./dates";
 import { DASH, atRiskReasonLabel, formatMps } from "./labels";
 
@@ -53,10 +54,6 @@ export function atRiskBreakdownText(byReason: ReportAtRiskByReason): string | nu
 
 // ── Reports: cells ───────────────────────────────────────────────────────────
 
-function learnersText(count: number): string {
-  return `${count} ${count === 1 ? "learner" : "learners"}`;
-}
-
 export interface AverageCell {
   /** The average, or a dash when there is none. */
   main: string;
@@ -66,7 +63,7 @@ export interface AverageCell {
 
 /** An average MPS with the number of learners it covers. A null average is a dash, not 0 (FD8). */
 export function averageCell(average: number | null, count: number): AverageCell {
-  return { main: formatMps(average), detail: learnersText(count) };
+  return { main: formatMps(average), detail: learnerCountLabel(count) };
 }
 
 /** A gain with its sign: "+12.5", "-3", "0"; a dash when there is none. */
@@ -84,7 +81,7 @@ export function masteredText(mastered: boolean | null | undefined): string {
 
 /** "2 learners" in the strand table's Mastered column. */
 export function masteryCountText(count: number): string {
-  return learnersText(count);
+  return learnerCountLabel(count);
 }
 
 /** The reason labels, joined; a dash when the learner has no flag. */

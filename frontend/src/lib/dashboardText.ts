@@ -19,13 +19,22 @@ export function averageProgressTile(averageProgress: number | null): TileText {
   return { value: formatPercent(averageProgress), hint: "across all strands" };
 }
 
-/** Content evaluated tile: "3 of 10" with "7 not yet evaluated"; a dash with "No content assigned" when there is none. */
+/**
+ * Content evaluation coverage tile, as the wireframe draws it: "3 / 10" over
+ * "items evaluated · 7 not yet evaluated"; a dash with "No content assigned"
+ * when there is none.
+ */
 export function evaluationTile(coverage: EvaluationCoverage): TileText {
   if (coverage.total === 0) return { value: DASH, hint: "No content assigned" };
   return {
-    value: `${coverage.evaluated} of ${coverage.total}`,
-    hint: `${coverage.total - coverage.evaluated} not yet evaluated`,
+    value: `${coverage.evaluated} / ${coverage.total}`,
+    hint: `items evaluated · ${coverage.total - coverage.evaluated} not yet evaluated`,
   };
+}
+
+/** A strand card's heading, as on the Curriculum tabs: "CODE · Name". */
+export function strandCardTitle(strand: Pick<DashboardStrand, "strand_code" | "strand_name">): string {
+  return `${strand.strand_code} · ${strand.strand_name}`;
 }
 
 export interface StrandProgressText {
@@ -57,9 +66,9 @@ export function masteryText(masteryCount: number): string {
   return `${masteryCount} at mastery`;
 }
 
-/** The amber notice above the at-risk table: "1 learner at risk", "4 learners at risk". */
+/** The amber notice above the at-risk table, in the wireframe's words: "1 learner flagged at-risk", "4 learners flagged at-risk". */
 export function atRiskNoticeTitle(learnerCount: number): string {
-  return `${learnerCountLabel(learnerCount)} at risk`;
+  return `${learnerCountLabel(learnerCount)} flagged at-risk`;
 }
 
 /** The rule in plain words, without the thresholds (which the dashboard response does not carry). */

@@ -19,6 +19,7 @@ import {
   loadFailureText,
   masteryText,
   mpsAverageText,
+  strandCardTitle,
   strandProgress,
 } from "../../../lib/dashboardText";
 import { formatLastActive } from "../../../lib/dates";
@@ -59,7 +60,7 @@ function StrandCard({ strand, learnerCount }: { strand: DashboardStrand; learner
   const progress = strandProgress(strand);
   return (
     <Card
-      title={strand.strand_name}
+      title={strandCardTitle(strand)}
       action={<span className="text-gray-400 text-xs flex-shrink-0">{learnerCountLabel(learnerCount)}</span>}
     >
       {progress.barValue !== null && (
@@ -204,7 +205,7 @@ export function FacilitatorDashboard({ navigate, user, onLogout }: PageProps) {
             hint="Readiness appears once EEG profiling is available."
           />
           <StatTile label="Average progress" icon={TrendingUp} tone="blue" value={progressTile.value} hint={progressTile.hint} />
-          <StatTile label="Content evaluated" icon={CheckCircle} tone="green" value={contentTile.value} hint={contentTile.hint} />
+          <StatTile label="Content evaluation coverage" icon={CheckCircle} tone="green" value={contentTile.value} hint={contentTile.hint} />
         </div>
 
         <section className="space-y-3">

@@ -33,7 +33,15 @@ interface DataTableProps<T> {
   emptyMessage?: ReactNode;
   /** Rendered under the table inside the same panel - normally a <Pagination />. */
   footer?: ReactNode;
+  /** The tint of the row hover: "orange" on facilitator pages (the default), "purple" in the admin area. */
+  accent?: "orange" | "purple";
 }
+
+// The hover on any row, and the keyboard-focus tint on a clickable one.
+const ROW_ACCENT = {
+  orange: { hover: "hover:bg-orange-50/30", focus: "focus-visible:bg-orange-50/60" },
+  purple: { hover: "hover:bg-purple-50/20", focus: "focus-visible:bg-purple-50/50" },
+} as const;
 
 const ALIGN = { left: "text-left", right: "text-right", center: "text-center" } as const;
 
@@ -52,6 +60,7 @@ export function DataTable<T>({
   error = null,
   emptyMessage = "Nothing to show.",
   footer,
+  accent = "orange",
 }: DataTableProps<T>) {
   const message = (text: ReactNode, tone: string) => (
     <tr>
@@ -129,7 +138,7 @@ export function DataTable<T>({
             {!loading && !error && rows.map((row) => (
               <tr
                 key={rowKey(row)}
-                className={onRowClick ? "hover:bg-orange-50/30 transition-colors cursor-pointer focus:outline-none focus-visible:bg-orange-50/60" : "hover:bg-orange-50/30 transition-colors"}
+                className={onRowClick ? `${ROW_ACCENT[accent].hover} transition-colors cursor-pointer focus:outline-none ${ROW_ACCENT[accent].focus}` : `${ROW_ACCENT[accent].hover} transition-colors`}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
                 onKeyDown={onRowClick ? (event) => onRowKeyDown(event, row) : undefined}
                 tabIndex={onRowClick ? 0 : undefined}

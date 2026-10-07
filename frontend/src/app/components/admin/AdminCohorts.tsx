@@ -240,7 +240,7 @@ function MembersSection<T extends Member>({ role, heading, members, emptyMessage
           </button>
         )}
       </div>
-      <DataTable columns={columns} rows={members} rowKey={(member) => member.id} emptyMessage={emptyMessage} />
+      <DataTable columns={columns} rows={members} rowKey={(member) => member.id} emptyMessage={emptyMessage} accent="purple" />
     </section>
   );
 }
@@ -366,6 +366,7 @@ export function AdminCohorts({ navigate, user, onLogout }: PageProps) {
   } else {
     listBody = (
       <DataTable
+        accent="purple"
         columns={cohortColumns}
         rows={cohorts}
         rowKey={(cohort) => cohort.id}
