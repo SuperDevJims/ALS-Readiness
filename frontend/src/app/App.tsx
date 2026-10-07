@@ -22,10 +22,8 @@ import { FacilitatorReports } from "./components/facilitator/FacilitatorReports"
 import { FacilitatorLearnerDetail } from "./components/facilitator/FacilitatorLearnerDetail";
 import { FacilitatorCurriculum } from "./components/facilitator/FacilitatorCurriculum";
 import { FacilitatorMyCohorts } from "./components/facilitator/FacilitatorMyCohorts";
-import {
-  FacilitatorTestDetail,
-  FacilitatorTests,
-} from "./components/facilitator/FacilitatorPlaceholders";
+import { FacilitatorTests } from "./components/facilitator/FacilitatorTests";
+import { FacilitatorTestDetail } from "./components/facilitator/FacilitatorTestDetail";
 // Admin
 import { AdminDashboard } from "./components/admin/AdminDashboard";
 import { AdminUsers } from "./components/admin/AdminUsers";

@@ -224,6 +224,9 @@ export function FacilitatorReports({ navigate, user, onLogout }: PageProps) {
             <p className="text-gray-400 text-xs">
               {generatedText(data.generated_at)}. {thresholdsText(data.thresholds)}
             </p>
+            <p className="text-gray-400 text-xs">
+              This report contains learners' personal information. Share it only with authorized ALS personnel.
+            </p>
           </>
         )}
       </>
