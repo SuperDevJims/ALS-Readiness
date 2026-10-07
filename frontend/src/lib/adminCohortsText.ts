@@ -1,6 +1,8 @@
+import type { ListUsersParams } from "./api/admin";
 import type { ListCohortsParams } from "./api/adminCohorts";
 import type { AdminUserListItem, CohortCreate, CohortMemberStatus, CohortResponse, CohortStatus } from "./api/types";
-import { cohortStatusLabel } from "./labels";
+import { formatDate } from "./dates";
+import { DASH, cohortStatusLabel } from "./labels";
 
 // Wording and decisions for the admin Cohorts page and its member picker.
 // Pure functions only: no React, no API calls.
@@ -224,14 +226,24 @@ export function pickerRowState(
   return { assignable: true, reason: null, note };
 }
 
-/** The people matching a search by name or ID number; everyone when the search is blank. */
-export function filterPeople<T extends Pick<AdminUserListItem, "first_name" | "last_name" | "id_no">>(people: readonly T[], search: string): T[] {
-  const words = search.trim().toLowerCase().split(/\s+/).filter(Boolean);
-  if (words.length === 0) return [...people];
-  return people.filter((person) => {
-    const text = [person.first_name, person.last_name, person.id_no].filter(Boolean).join(" ").toLowerCase();
-    return words.every((word) => text.includes(word));
-  });
+/** How many people the picker shows at a time. */
+export const PICKER_PAGE_SIZE = 8;
+
+/**
+ * The query for GET /api/admin/users behind the picker: the role, a page, and
+ * the search when there is one. The server does the matching (name or ID
+ * number), so a blank search is left out rather than sent empty.
+ */
+export function pickerQuery(role: MemberRole, search: string, page: number): ListUsersParams {
+  const params: ListUsersParams = { page, page_size: PICKER_PAGE_SIZE, role };
+  const text = search.trim();
+  if (text) params.search = text;
+  return params;
+}
+
+/** The "Date ended" cell: the Philippine date an assignment or membership ended; a dash while it is active. */
+export function dateEndedText(endedAt: string | null | undefined): string {
+  return formatDate(endedAt) ?? DASH;
 }
 
 // ── Failures ─────────────────────────────────────────────────────────────────

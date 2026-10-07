@@ -11,6 +11,7 @@ import {
   contentActions,
   contentEditPayload,
   contentErrorMessage,
+  contentRestoreErrorMessage,
   evaluationPillText,
   fileUnavailableText,
   lessonContextText,
@@ -154,7 +155,8 @@ export function ContentViewDialog({ item: listItem, onClose, onChanged, onOpenCu
   const [mode, setMode] = useState<Mode>("view");
   const [saving, setSaving] = useState(false);
 
-  const save = async (payload: ContentUpdate, done: string, fallback: string) => {
+  // `restoring` picks the wording for a refusal: a not-active parent means something different on a restore.
+  const save = async (payload: ContentUpdate, done: string, fallback: string, restoring = false) => {
     setSaving(true);
     try {
       await updateContent(item.id, payload);
@@ -163,7 +165,8 @@ export function ContentViewDialog({ item: listItem, onClose, onChanged, onOpenCu
       onClose();
     } catch (requestError) {
       const code = getErrorCode(requestError);
-      toast.error(contentErrorMessage(code, getErrorStatus(requestError), getErrorMessage(requestError, fallback)));
+      const message = restoring ? contentRestoreErrorMessage : contentErrorMessage;
+      toast.error(message(code, getErrorStatus(requestError), getErrorMessage(requestError, fallback)));
       // The item is gone or no longer the caller's: the list behind is stale.
       if (shouldReloadLibrary(code)) onChanged();
       setSaving(false);
@@ -272,7 +275,7 @@ export function ContentViewDialog({ item: listItem, onClose, onChanged, onOpenCu
           {actions.canRestore && (
             <Button
               variant="primary"
-              onClick={() => void save({ status: "active" }, "Content restored.", "The content could not be restored.")}
+              onClick={() => void save({ status: "active" }, "Content restored.", "The content could not be restored.", true)}
               disabled={saving}
               className="flex-1"
             >

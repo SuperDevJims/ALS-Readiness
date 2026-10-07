@@ -1,4 +1,4 @@
-import type { CohortStatus, StrandItem } from "./api/types";
+import type { CohortStatus, StrandItem, StructureStatus } from "./api/types";
 import { cohortStatusLabel } from "./labels";
 
 // Wording and decisions for the Curriculum page and its assign picker.
@@ -136,8 +136,8 @@ export function archiveLessonText(): string {
   return "This lesson and its content will be hidden from the curriculum for every cohort, and from learners, and will stop counting toward progress. Nothing is deleted: the content and each cohort's content assignments are kept.";
 }
 
-/** There is no list of archived items to restore from, so the only way back is the toast's Undo. */
-export const ARCHIVE_UNDO_HINT = "You can undo this from the message that appears right after archiving. There is no list of archived items yet.";
+/** The two ways back from an archive. */
+export const ARCHIVE_UNDO_HINT = "You can undo this from the message that appears right after archiving, or restore it later by turning on Show archived.";
 
 // ── Failures ─────────────────────────────────────────────────────────────────
 
@@ -174,8 +174,8 @@ export const CurriculumErrorCode = {
 const ERROR_MESSAGE: Record<string, string> = {
   COHORT_NOT_ACTIVE: "This cohort is no longer active, so its content assignments cannot be changed.",
   CONTENT_ALREADY_ASSIGNED: "This content is already assigned to this cohort.",
-  STRAND_NOT_ACTIVE: "This learning strand has been archived, so nothing can be added to it or restored in it.",
-  MODULE_NOT_ACTIVE: "This module has been archived, so nothing under it can be added, restored, or assigned.",
+  STRAND_NOT_ACTIVE: "This learning strand has been archived, so nothing can be added to it, restored in it, or assigned from it. The strand must be restored first: please ask the administrator.",
+  MODULE_NOT_ACTIVE: "This lesson's module is archived, so nothing under it can be added, restored, or assigned. Restore the module first: turn on Show archived and choose Restore on the module.",
   LESSON_NOT_ACTIVE: "This lesson has been archived, so its content cannot be assigned.",
   INVALID_ORDER: "The list changed while you were reordering it. It has been refreshed; please try again.",
   LEARNING_STRAND_NOT_FOUND: "This learning strand is no longer available.",
@@ -254,4 +254,82 @@ export function treeFailureText(httpStatus: number | null, message: string): Loa
     };
   }
   return { title: "The curriculum could not be loaded", message, canRetry: true };
+}
+
+// ── Archived items (shown with "Show archived") ──────────────────────────────
+
+/** The ids of the active items, in the order shown. The order endpoints take exactly these, and Move up / Move down step over anything archived. */
+export function activeIds<T extends { status: StructureStatus }>(items: readonly T[], idOf: (item: T) => number): number[] {
+  return items.filter((item) => item.status === "active").map(idOf);
+}
+
+export interface ModuleActions {
+  /** Shown greyed, with the "Archived" pill. */
+  archived: boolean;
+  canEdit: boolean;
+  canMove: boolean;
+  canArchive: boolean;
+  canRestore: boolean;
+  canAddLesson: boolean;
+}
+
+/** What a module offers: everything while active; once archived, Restore and nothing else. */
+export function moduleActions(module: { status: StructureStatus }, controls: Pick<CurriculumControls, "canAuthor">): ModuleActions {
+  const archived = module.status !== "active";
+  const author = controls.canAuthor;
+  return {
+    archived,
+    canEdit: author && !archived,
+    canMove: author && !archived,
+    canArchive: author && !archived,
+    canRestore: author && archived,
+    canAddLesson: author && !archived,
+  };
+}
+
+export interface LessonActions {
+  /** The lesson itself is archived: greyed, with the "Archived" pill. */
+  archived: boolean;
+  /** Greyed, because it or its module is archived. */
+  muted: boolean;
+  canEdit: boolean;
+  canMove: boolean;
+  canArchive: boolean;
+  canRestore: boolean;
+  canAssign: boolean;
+  canUnassign: boolean;
+  /** A short line saying why nothing can be done here; null when something can. */
+  note: string | null;
+}
+
+/** Shown on a lesson whose module is archived, whatever the lesson's own status. */
+export const MODULE_ARCHIVED_NOTE = "Its module is archived. Restore the module first.";
+
+/**
+ * What a lesson offers. Active under an active module: everything, with
+ * assignment as the cohort allows. Archived under an active module: Restore
+ * only. Under an archived module nothing at all, with a note - an active
+ * lesson there is hidden along with its module, and an archived one cannot be
+ * restored until the module is.
+ */
+export function lessonActions(
+  lesson: { status: StructureStatus },
+  module: { status: StructureStatus },
+  controls: Pick<CurriculumControls, "canAuthor" | "canAssign" | "canUnassign">,
+): LessonActions {
+  const archived = lesson.status !== "active";
+  const moduleArchived = module.status !== "active";
+  const usable = !archived && !moduleArchived;
+  const author = controls.canAuthor;
+  return {
+    archived,
+    muted: archived || moduleArchived,
+    canEdit: author && usable,
+    canMove: author && usable,
+    canArchive: author && usable,
+    canRestore: author && archived && !moduleArchived,
+    canAssign: controls.canAssign && usable,
+    canUnassign: controls.canUnassign && usable,
+    note: moduleArchived ? MODULE_ARCHIVED_NOTE : null,
+  };
 }

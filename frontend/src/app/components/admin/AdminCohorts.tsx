@@ -32,6 +32,7 @@ import {
   cohortDetailFailureText,
   cohortFormErrors,
   cohortsCountText,
+  dateEndedText,
   distinctSchoolYears,
   endConfirmText,
   memberAction,
@@ -49,7 +50,6 @@ import { useFetch } from "../../../lib/hooks/useFetch";
 import { DASH, cohortStatusLabel, memberStatusLabel, orDash, personName } from "../../../lib/labels";
 import { parseIdParam } from "../../../lib/learnersText";
 import { toast } from "../../../lib/toast";
-import { idNumbersByUserId, loadUserDirectory } from "../../../lib/userDirectory";
 import {
   Card,
   ConfirmDialog,
@@ -195,8 +195,6 @@ interface MembersSectionProps<T extends Member> {
   role: MemberRole;
   heading: string;
   members: T[];
-  /** ID numbers by user id, from the admin users list: the roster itself carries none. */
-  idNumbers: ReadonlyMap<number, string | null>;
   emptyMessage: string;
   canAssign: boolean;
   busy: boolean;
@@ -205,17 +203,18 @@ interface MembersSectionProps<T extends Member> {
   onReactivate: (member: T) => void;
 }
 
-function MembersSection<T extends Member>({ role, heading, members, idNumbers, emptyMessage, canAssign, busy, onAssign, onEnd, onReactivate }: MembersSectionProps<T>) {
-  // Of each member's profile, only the name and the user id are read.
+function MembersSection<T extends Member>({ role, heading, members, emptyMessage, canAssign, busy, onAssign, onEnd, onReactivate }: MembersSectionProps<T>) {
+  // Of each member's profile, only the name is read. The ID number is on the row itself.
   const columns: DataTableColumn<T>[] = [
     { key: "name", header: "Name", render: (member) => <span className="text-gray-800 font-medium">{personName(member.profile, "Unnamed account")}</span> },
-    { key: "id-no", header: "ID Number", className: "text-gray-500 text-xs font-mono", render: (member) => orDash(idNumbers.get(member.profile.user_id)) },
+    { key: "id-no", header: "ID Number", className: "text-gray-500 text-xs font-mono", render: (member) => orDash(member.id_no) },
     {
       key: "status",
       header: role === "facilitator" ? "Assignment" : "Membership",
       render: (member) => <Pill tone={member.status === "active" ? "success" : "muted"}>{memberStatusLabel(member.status)}</Pill>,
     },
     { key: "assigned", header: "Date assigned", className: "text-gray-500 text-xs", render: (member) => formatDate(member.assigned_at) ?? DASH },
+    { key: "ended", header: "Date ended", className: "text-gray-500 text-xs", render: (member) => dateEndedText(member.ended_at) },
     {
       key: "action",
       header: "Actions",
@@ -283,13 +282,6 @@ export function AdminCohorts({ navigate, user, onLogout }: PageProps) {
     fallbackError: "Unable to load this cohort.",
   });
   const data: CohortWithMembersResponse | null = detail.data;
-
-  // Everyone who can be assigned, read once through the admin users list. It
-  // feeds the pickers, and supplies the ID numbers the roster does not carry.
-  const facilitators = useFetch(() => loadUserDirectory("facilitator"), [], { fallbackError: "Unable to load the facilitators." });
-  const learners = useFetch(() => loadUserDirectory("learner"), [], { fallbackError: "Unable to load the learners." });
-  const facilitatorIdNumbers = idNumbersByUserId(facilitators.data?.users ?? []);
-  const learnerIdNumbers = idNumbersByUserId(learners.data?.users ?? []);
 
   const [dialog, setDialog] = useState<DialogState | null>(null);
   const [busy, setBusy] = useState(false);
@@ -429,27 +421,11 @@ export function AdminCohorts({ navigate, user, onLogout }: PageProps) {
 
           <Notice>{YEAR_END_HINT}</Notice>
           {rule.note && <Notice>{rule.note}</Notice>}
-          {(facilitators.error || learners.error) && (
-            <Notice tone="warning" title="ID numbers could not be loaded.">
-              They come from the user accounts list.{" "}
-              <button
-                type="button"
-                className={ADMIN_LINK_BUTTON}
-                onClick={() => {
-                  if (facilitators.error) facilitators.reload();
-                  if (learners.error) learners.reload();
-                }}
-              >
-                Try again
-              </button>
-            </Notice>
-          )}
 
           <MembersSection
             role="facilitator"
             heading="Facilitators"
             members={data.facilitators}
-            idNumbers={facilitatorIdNumbers}
             emptyMessage="No facilitators have been assigned to this cohort."
             canAssign={rule.canAssign}
             busy={busy}
@@ -462,7 +438,6 @@ export function AdminCohorts({ navigate, user, onLogout }: PageProps) {
             role="learner"
             heading="Learners"
             members={data.learners}
-            idNumbers={learnerIdNumbers}
             emptyMessage="No learners have been assigned to this cohort."
             canAssign={rule.canAssign}
             busy={busy}
@@ -526,7 +501,6 @@ export function AdminCohorts({ navigate, user, onLogout }: PageProps) {
                 : data.learners.map((member) => [member.learner_id, member.status] as const),
             )
           }
-          directory={dialog.role === "facilitator" ? facilitators : learners}
           onClose={(changed) => {
             setDialog(null);
             if (changed) detail.reload();

@@ -271,8 +271,12 @@ export const ContentErrorCode = {
   INVALID_CONTENT_FILE: "INVALID_CONTENT_FILE",
   /** 503 - file storage is not configured, or cannot be reached. */
   STORAGE_UNAVAILABLE: "STORAGE_UNAVAILABLE",
-  /** 404 - no file exists in storage at the file key. */
+  /** 404 - no file exists in storage at the file key, or the key is outside the upload folder. */
   CONTENT_FILE_NOT_FOUND: "CONTENT_FILE_NOT_FOUND",
+  /** 409 - another content item already uses this file key. */
+  CONTENT_FILE_KEY_ALREADY_USED: "CONTENT_FILE_KEY_ALREADY_USED",
+  /** 409 - the lesson's strand is archived. */
+  STRAND_NOT_ACTIVE: "STRAND_NOT_ACTIVE",
   /** 409 - the lesson is archived. */
   LESSON_NOT_ACTIVE: "LESSON_NOT_ACTIVE",
   /** 409 - the lesson's module is archived. */
@@ -293,13 +297,35 @@ const ERROR_MESSAGE: Record<string, string> = {
   INVALID_CONTENT_FILE: `This file type is not supported. Allowed types: ${ALLOWED_EXTENSIONS_TEXT}.`,
   STORAGE_UNAVAILABLE: "File storage is not set up on this server, or cannot be reached. Please contact the administrator.",
   CONTENT_FILE_NOT_FOUND: "The uploaded file was not found in storage. Please upload the file again.",
+  CONTENT_FILE_KEY_ALREADY_USED: "The uploaded file is already attached to another content item. Please upload the file again.",
   LESSON_NOT_ACTIVE: "This lesson has been archived, so content cannot be placed in it. Choose another lesson.",
   MODULE_NOT_ACTIVE: "This lesson's module has been archived, so content cannot be placed in it. Choose another lesson.",
+  STRAND_NOT_ACTIVE: "This lesson's learning strand has been archived, so content cannot be placed in it. Choose a lesson in another strand.",
   LESSON_NOT_FOUND: "This lesson no longer exists. Choose another lesson.",
   CONTENT_NOT_FOUND: "This content is no longer available. It may have been archived, or made private by its owner.",
   CONTENT_EDIT_DENIED: "Only the uploader can change this item.",
   FACILITATOR_NOT_FOUND: "Your account has no facilitator profile, so it cannot upload content. Please contact the administrator.",
 };
+
+/** Where an archived module or lesson is brought back. */
+const RESTORE_WHERE = "This is done on the Curriculum page, with Show archived turned on.";
+
+const RESTORE_ERROR_MESSAGE: Record<string, string> = {
+  LESSON_NOT_ACTIVE: `This item's lesson is archived, so it cannot be restored yet. Restore the lesson first. ${RESTORE_WHERE}`,
+  MODULE_NOT_ACTIVE: `This item's module is archived, so it cannot be restored yet. Restore the module first. ${RESTORE_WHERE}`,
+  STRAND_NOT_ACTIVE:
+    "This item's learning strand is archived, so it cannot be restored yet. The strand must be restored first: please ask the administrator.",
+};
+
+/**
+ * The toast for a refused restore of an archived item. The three not-active
+ * codes mean something different here than on an upload or a move: a parent
+ * has to be restored before the item can be, and the message says which.
+ */
+export function contentRestoreErrorMessage(code: string | undefined, httpStatus: number | null, serverMessage: string): string {
+  if (code !== undefined && Object.prototype.hasOwnProperty.call(RESTORE_ERROR_MESSAGE, code)) return RESTORE_ERROR_MESSAGE[code];
+  return contentErrorMessage(code, httpStatus, serverMessage);
+}
 
 /**
  * The toast for a refused request to our API: our wording for the codes above,
@@ -331,12 +357,21 @@ export function storageUploadFailureMessage(httpStatus: number | null): string {
  * an unsupported type - then it has to be chosen and uploaded again.
  */
 export function keepsUploadedFile(code: string | undefined): boolean {
-  return code !== ContentErrorCode.CONTENT_FILE_NOT_FOUND && code !== ContentErrorCode.INVALID_CONTENT_FILE;
+  return (
+    code !== ContentErrorCode.CONTENT_FILE_NOT_FOUND &&
+    code !== ContentErrorCode.INVALID_CONTENT_FILE &&
+    code !== ContentErrorCode.CONTENT_FILE_KEY_ALREADY_USED
+  );
 }
 
 /** Whether the lesson pickers hold a lesson that can no longer be used, and should be reloaded. */
 export function isLessonUnusable(code: string | undefined): boolean {
-  return code === ContentErrorCode.LESSON_NOT_ACTIVE || code === ContentErrorCode.MODULE_NOT_ACTIVE || code === ContentErrorCode.LESSON_NOT_FOUND;
+  return (
+    code === ContentErrorCode.LESSON_NOT_ACTIVE ||
+    code === ContentErrorCode.MODULE_NOT_ACTIVE ||
+    code === ContentErrorCode.STRAND_NOT_ACTIVE ||
+    code === ContentErrorCode.LESSON_NOT_FOUND
+  );
 }
 
 /** Whether the list behind a dialog is stale after a refused edit, archive, or restore: the item is gone or no longer the caller's. */

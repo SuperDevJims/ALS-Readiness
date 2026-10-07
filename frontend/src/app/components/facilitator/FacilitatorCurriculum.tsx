@@ -1,5 +1,5 @@
 import { useRef, useState, type FormEvent } from "react";
-import { BookOpen, ChevronDown, ChevronRight, Plus } from "lucide-react";
+import { Archive, BookOpen, ChevronDown, ChevronRight, Plus } from "lucide-react";
 import { AppLayout } from "../shared/AppLayout";
 import type { PageProps } from "../../routes/ProtectedPage";
 import { getErrorCode, getErrorMessage, getErrorStatus } from "../../../lib/api/errors";
@@ -25,13 +25,16 @@ import {
   ARCHIVE_UNDO_HINT,
   STRUCTURE_SHARED_TEXT,
   TITLE_MAX_LENGTH,
+  activeIds,
   archiveLessonText,
   archiveModuleText,
   canMove,
   curriculumControls,
   curriculumErrorMessage,
   curriculumSubtitle,
+  lessonActions,
   lessonPillText,
+  moduleActions,
   moveId,
   pickStrandId,
   shouldReloadTree,
@@ -51,6 +54,7 @@ import {
   ActionMenu,
   Button,
   Card,
+  Chip,
   ConfirmDialog,
   EmptyState,
   ErrorState,
@@ -85,6 +89,25 @@ function rememberStrand(strandId: number) {
     window.sessionStorage.setItem(STRAND_STORAGE_KEY, String(strandId));
   } catch {
     // Storage is a convenience; the tab still works for this visit.
+  }
+}
+
+// "Show archived" is remembered the same way.
+const SHOW_ARCHIVED_STORAGE_KEY = "alsense.facilitator.curriculum.showArchived";
+
+function readRememberedShowArchived(): boolean {
+  try {
+    return window.sessionStorage.getItem(SHOW_ARCHIVED_STORAGE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function rememberShowArchived(show: boolean) {
+  try {
+    window.sessionStorage.setItem(SHOW_ARCHIVED_STORAGE_KEY, show ? "1" : "0");
+  } catch {
+    // Storage is a convenience; the toggle still works for this visit.
   }
 }
 
@@ -169,15 +192,21 @@ interface TreeActions {
   editModule: (module: FacilitatorModuleNode) => void;
   moveModule: (module: FacilitatorModuleNode, direction: MoveDirection) => void;
   archiveModule: (module: FacilitatorModuleNode) => void;
+  restoreModule: (module: FacilitatorModuleNode) => void;
   addLesson: (module: FacilitatorModuleNode) => void;
   editLesson: (module: FacilitatorModuleNode, lesson: FacilitatorLessonNode) => void;
   moveLesson: (module: FacilitatorModuleNode, lesson: FacilitatorLessonNode, direction: MoveDirection) => void;
   archiveLesson: (lesson: FacilitatorLessonNode) => void;
+  restoreLesson: (lesson: FacilitatorLessonNode) => void;
   assign: (lesson: FacilitatorLessonNode) => void;
   unassign: (content: FacilitatorContentNode) => void;
 }
 
-/** Edit, Move up, Move down, Archive - the same four for a module and a lesson. */
+/**
+ * Edit, Move up, Move down, Archive - the same four for a module and a lesson.
+ * `ids` are the ACTIVE siblings only, so the first and last active item have
+ * the matching Move disabled even with archived items shown around them.
+ */
 function structureMenu(
   ids: readonly number[],
   id: number,
@@ -227,7 +256,9 @@ interface LessonRowProps {
 
 function LessonRow({ module, lesson, collapsed, onToggle, controls, busy, actions }: LessonRowProps) {
   const count = lesson.contents.length;
-  const lessonIds = module.lessons.map((item) => item.lesson_id);
+  // What this lesson offers: everything, Restore only, or nothing (see lessonActions).
+  const offers = lessonActions(lesson, module, controls);
+  const activeLessonIds = activeIds(module.lessons, (item) => item.lesson_id);
   const Chevron = collapsed ? ChevronRight : ChevronDown;
 
   return (
@@ -246,21 +277,28 @@ function LessonRow({ module, lesson, collapsed, onToggle, controls, busy, action
         ) : (
           <span className="w-5 flex-shrink-0" aria-hidden="true" />
         )}
-        <div className="min-w-0 flex-1">
+        <div className={`min-w-0 flex-1 ${offers.muted ? "opacity-60" : ""}`}>
           <div className="text-gray-800 text-sm truncate">{lesson.title}</div>
           {lesson.description && <div className="text-gray-400 text-xs truncate">{lesson.description}</div>}
+          {offers.note && <div className="text-gray-500 text-xs">{offers.note}</div>}
         </div>
-        <Pill tone={count > 0 ? "success" : "muted"}>{lessonPillText(count, controls.hasCohort)}</Pill>
-        {controls.canAssign && (
+        {offers.archived && <Pill tone="muted">Archived</Pill>}
+        <Pill tone={count > 0 && !offers.muted ? "success" : "muted"}>{lessonPillText(count, controls.hasCohort)}</Pill>
+        {offers.canAssign && (
           <Button variant="outline" size="sm" onClick={() => actions.assign(lesson)} disabled={busy} className="flex-shrink-0">
             <Plus className="w-3 h-3" /> Assign
           </Button>
         )}
-        {controls.canAuthor && (
+        {offers.canRestore && (
+          <Button variant="outline" size="sm" onClick={() => actions.restoreLesson(lesson)} disabled={busy} className="flex-shrink-0">
+            Restore
+          </Button>
+        )}
+        {offers.canEdit && (
           <ActionMenu
             label={`Actions for lesson ${lesson.title}`}
             disabled={busy}
-            items={structureMenu(lessonIds, lesson.lesson_id, {
+            items={structureMenu(activeLessonIds, lesson.lesson_id, {
               edit: () => actions.editLesson(module, lesson),
               move: (direction) => actions.moveLesson(module, lesson, direction),
               archive: () => actions.archiveLesson(lesson),
@@ -270,12 +308,12 @@ function LessonRow({ module, lesson, collapsed, onToggle, controls, busy, action
       </div>
 
       {count > 0 && !collapsed && (
-        <ul>
+        <ul className={offers.muted ? "opacity-60" : undefined}>
           {lesson.contents.map((content) => (
             <ContentRow
               key={content.content_id}
               content={content}
-              canUnassign={controls.canUnassign}
+              canUnassign={offers.canUnassign}
               busy={busy}
               onUnassign={() => actions.unassign(content)}
             />
@@ -288,7 +326,8 @@ function LessonRow({ module, lesson, collapsed, onToggle, controls, busy, action
 
 interface ModuleCardProps {
   module: FacilitatorModuleNode;
-  moduleIds: readonly number[];
+  /** The active modules of the strand, in order: what Move up and Move down work within. */
+  activeModuleIds: readonly number[];
   collapsed: boolean;
   onToggle: () => void;
   collapsedLessons: ReadonlySet<number>;
@@ -298,24 +337,31 @@ interface ModuleCardProps {
   actions: TreeActions;
 }
 
-function ModuleCard({ module, moduleIds, collapsed, onToggle, collapsedLessons, onToggleLesson, controls, busy, actions }: ModuleCardProps) {
+function ModuleCard({ module, activeModuleIds, collapsed, onToggle, collapsedLessons, onToggleLesson, controls, busy, actions }: ModuleCardProps) {
   const Chevron = collapsed ? ChevronRight : ChevronDown;
+  const offers = moduleActions(module, controls);
 
   return (
     <Card padding="none">
       <div className="flex items-center gap-2 px-4 py-3">
         <button type="button" onClick={onToggle} aria-expanded={!collapsed} className="flex items-center gap-2 min-w-0 flex-1 text-left">
           <Chevron className="w-4 h-4 text-gray-400 flex-shrink-0" />
-          <span className="min-w-0">
+          <span className={`min-w-0 ${offers.archived ? "opacity-60" : ""}`}>
             <span className="block text-gray-800 text-sm font-semibold truncate">{module.title}</span>
             {module.description && <span className="block text-gray-400 text-xs truncate">{module.description}</span>}
           </span>
         </button>
-        {controls.canAuthor && (
+        {offers.archived && <Pill tone="muted">Archived</Pill>}
+        {offers.canRestore && (
+          <Button variant="outline" size="sm" onClick={() => actions.restoreModule(module)} disabled={busy} className="flex-shrink-0">
+            Restore
+          </Button>
+        )}
+        {offers.canEdit && (
           <ActionMenu
             label={`Actions for module ${module.title}`}
             disabled={busy}
-            items={structureMenu(moduleIds, module.module_id, {
+            items={structureMenu(activeModuleIds, module.module_id, {
               edit: () => actions.editModule(module),
               move: (direction) => actions.moveModule(module, direction),
               archive: () => actions.archiveModule(module),
@@ -344,7 +390,7 @@ function ModuleCard({ module, moduleIds, collapsed, onToggle, collapsedLessons, 
               ))}
             </ul>
           )}
-          {controls.canAuthor && (
+          {offers.canAddLesson && (
             <div className="border-t border-gray-100 pl-10 pr-4 py-2.5">
               <Button variant="link" onClick={() => actions.addLesson(module)} disabled={busy}>
                 <Plus className="w-3 h-3" /> Add Lesson
@@ -378,13 +424,21 @@ export function FacilitatorCurriculum({ navigate, user, onLogout }: PageProps) {
   const [chosenStrandId, setChosenStrandId] = useState<number | null>(readRememberedStrand);
   const strandId = pickStrandId(strandItems, chosenStrandId);
 
-  // Keyed on the strand and the cohort: a slow response for an earlier tab or
-  // cohort is dropped by the hook. A facilitator with no cohort gets the
-  // structure alone (no cohort_id). A reload keeps the tree on screen, so the
-  // scroll position and what is expanded survive every action.
+  // Off by default: archived modules and lessons are asked for only when wanted.
+  const [showArchived, setShowArchived] = useState<boolean>(readRememberedShowArchived);
+  const toggleShowArchived = () => {
+    const next = !showArchived;
+    setShowArchived(next);
+    rememberShowArchived(next);
+  };
+
+  // Keyed on the strand, the cohort, and the toggle: a slow response for an
+  // earlier tab, cohort, or toggle state is dropped by the hook. A facilitator
+  // with no cohort gets the structure alone (no cohort_id). A reload keeps the
+  // tree on screen, so the scroll position and what is expanded survive every action.
   const tree = useFetch(
-    () => getCurriculum(strandId as number, cohortId ?? undefined),
-    [strandId, cohortId],
+    () => getCurriculum(strandId as number, cohortId ?? undefined, showArchived),
+    [strandId, cohortId, showArchived],
     { enabled: strandId !== null && cohortsSettled, fallbackError: "Unable to load the curriculum." },
   );
   const data: FacilitatorCurriculumResponse | null = tree.data;
@@ -443,34 +497,32 @@ export function FacilitatorCurriculum({ navigate, user, onLogout }: PageProps) {
     );
   };
 
-  // The tree lists active items only and no route lists archived ones, so the
-  // way back from an archive is the Undo on its toast. A restored item is
-  // placed last by the backend.
+  // Restoring: from the Undo on an archive's toast, or from the Restore
+  // button on an archived item when "Show archived" is on. A restored item is
+  // placed last by the backend. A refusal says which parent must come back first.
+  const restoreModule = (module: FacilitatorModuleNode) =>
+    void run(
+      () => updateModule(module.module_id, { status: "active" }),
+      "Module restored. It is now last in the list.",
+      "The module could not be restored.",
+    );
+
+  const restoreLesson = (lesson: FacilitatorLessonNode) =>
+    void run(
+      () => updateLesson(lesson.lesson_id, { status: "active" }),
+      "Lesson restored. It is now last in its module.",
+      "The lesson could not be restored.",
+    );
+
   const archiveModule = (module: FacilitatorModuleNode) => {
-    const undo: ToastAction = {
-      label: "Undo",
-      onClick: () =>
-        void run(
-          () => updateModule(module.module_id, { status: "active" }),
-          "Module restored. It is now last in the list.",
-          "The module could not be restored.",
-        ),
-    };
+    const undo: ToastAction = { label: "Undo", onClick: () => restoreModule(module) };
     void closeIfDone(
       run(() => updateModule(module.module_id, { status: "archived" }), "Module archived.", "The module could not be archived.", undo),
     );
   };
 
   const archiveLesson = (lesson: FacilitatorLessonNode) => {
-    const undo: ToastAction = {
-      label: "Undo",
-      onClick: () =>
-        void run(
-          () => updateLesson(lesson.lesson_id, { status: "active" }),
-          "Lesson restored. It is now last in its module.",
-          "The lesson could not be restored.",
-        ),
-    };
+    const undo: ToastAction = { label: "Undo", onClick: () => restoreLesson(lesson) };
     void closeIfDone(
       run(() => updateLesson(lesson.lesson_id, { status: "archived" }), "Lesson archived.", "The lesson could not be archived.", undo),
     );
@@ -478,12 +530,14 @@ export function FacilitatorCurriculum({ navigate, user, onLogout }: PageProps) {
 
   const moveModule = (module: FacilitatorModuleNode, direction: MoveDirection) => {
     if (!data) return;
-    const ids = moveId(data.modules.map((item) => item.module_id), module.module_id, direction);
+    // The order endpoint takes exactly the active modules, so archived ones shown on screen are left out.
+    const ids = moveId(activeIds(data.modules, (item) => item.module_id), module.module_id, direction);
     if (ids) void run(() => reorderModules(data.strand_id, ids), "Module moved.", "The module could not be moved.");
   };
 
   const moveLesson = (module: FacilitatorModuleNode, lesson: FacilitatorLessonNode, direction: MoveDirection) => {
-    const ids = moveId(module.lessons.map((item) => item.lesson_id), lesson.lesson_id, direction);
+    // Likewise: exactly the module's active lessons.
+    const ids = moveId(activeIds(module.lessons, (item) => item.lesson_id), lesson.lesson_id, direction);
     if (ids) void run(() => reorderLessons(module.module_id, ids), "Lesson moved.", "The lesson could not be moved.");
   };
 
@@ -502,10 +556,12 @@ export function FacilitatorCurriculum({ navigate, user, onLogout }: PageProps) {
     editModule: (module) => setDialog({ kind: "module-form", module }),
     moveModule,
     archiveModule: (module) => setDialog({ kind: "archive-module", module }),
+    restoreModule,
     addLesson: (module) => setDialog({ kind: "lesson-form", module, lesson: null }),
     editLesson: (module, lesson) => setDialog({ kind: "lesson-form", module, lesson }),
     moveLesson,
     archiveLesson: (lesson) => setDialog({ kind: "archive-lesson", lesson }),
+    restoreLesson,
     assign: (lesson) => setDialog({ kind: "assign", lesson }),
     unassign: (content) => setDialog({ kind: "unassign", content }),
   };
@@ -534,20 +590,20 @@ export function FacilitatorCurriculum({ navigate, user, onLogout }: PageProps) {
         <EmptyState
           icon={BookOpen}
           title="No modules yet"
-          description="Add the first module of this learning strand."
+          description={showArchived ? "Add the first module of this learning strand." : "Add a module, or turn on Show archived to look for archived ones."}
           action={<Button variant="accent" onClick={openAddModule} disabled={busy}><Plus className="w-3.5 h-3.5" /> Add Module</Button>}
         />
       </Card>
     );
   } else {
-    const moduleIds = data.modules.map((module) => module.module_id);
+    const activeModuleIds = activeIds(data.modules, (module) => module.module_id);
     treeBody = (
       <div className="space-y-3">
         {data.modules.map((module) => (
           <ModuleCard
             key={module.module_id}
             module={module}
-            moduleIds={moduleIds}
+            activeModuleIds={activeModuleIds}
             collapsed={collapsedModules.has(module.module_id)}
             onToggle={() => setCollapsedModules((current) => toggled(current, module.module_id))}
             collapsedLessons={collapsedLessons}
@@ -577,6 +633,12 @@ export function FacilitatorCurriculum({ navigate, user, onLogout }: PageProps) {
           value={strandId}
           onChange={selectStrand}
         />
+        <div className="flex items-center gap-3 flex-wrap">
+          <Chip selected={showArchived} onClick={toggleShowArchived}>
+            <Archive className="w-3 h-3" aria-hidden="true" /> Show archived
+          </Chip>
+          {showArchived && <span className="text-gray-400 text-xs">Archived modules and lessons are shown greyed, with Restore.</span>}
+        </div>
         {cohortsSettled && controls.note && <Notice>{controls.note}</Notice>}
         {treeBody}
       </>

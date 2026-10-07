@@ -831,6 +831,8 @@ export interface FacilitatorLessonNode {
   title: string;
   description: string | null;
   order_index: number;
+  /** The lesson's own status. "active" unless the tree was asked for with include_archived; an active lesson can sit under an archived module. */
+  status: StructureStatus;
   contents: FacilitatorContentNode[];
   available_contents: FacilitatorContentNode[];
 }
@@ -841,6 +843,8 @@ export interface FacilitatorModuleNode {
   title: string;
   description: string | null;
   order_index: number;
+  /** "active" unless the tree was asked for with include_archived. */
+  status: StructureStatus;
   lessons: FacilitatorLessonNode[];
 }
 
@@ -1150,11 +1154,19 @@ export interface UserProfileResponse extends UserProfile {
 /** CohortFacilitatorMemberResponse */
 export interface CohortFacilitatorMemberResponse extends CohortFacilitatorResponse {
   profile: UserProfileResponse;
+  /** The facilitator's ID number. */
+  id_no: string | null;
+  /** When the assignment ended. Null while it is active. */
+  ended_at: string | null;
 }
 
 /** CohortLearnerMemberResponse */
 export interface CohortLearnerMemberResponse extends CohortLearnerResponse {
   profile: UserProfileResponse;
+  /** The learner's ID number. */
+  id_no: string | null;
+  /** When the membership ended. Null while it is active. */
+  ended_at: string | null;
 }
 
 /** CohortWithMembersResponse - GET /api/cohorts/{cohort_id}/members */

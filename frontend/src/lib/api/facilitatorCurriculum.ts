@@ -33,10 +33,19 @@ export async function getStrands(): Promise<StrandListResponse> {
  * GET /api/curriculum/{strand_id}?cohort_id= - the tree for one strand. With a
  * cohort, each lesson lists the contents assigned to it and the ones still
  * available to assign; without one, the tree is structure only.
+ *
+ * With `includeArchived`, archived modules and lessons are returned too, each
+ * with its `status`, so they can be found and restored. Contents are
+ * active-only either way.
  */
-export async function getCurriculum(strandId: number, cohortId?: number): Promise<FacilitatorCurriculumResponse> {
+export async function getCurriculum(
+  strandId: number,
+  cohortId?: number,
+  includeArchived?: boolean,
+): Promise<FacilitatorCurriculumResponse> {
   const res = await apiClient.get<FacilitatorCurriculumResponse>(`/api/curriculum/${strandId}`, {
-    params: { cohort_id: cohortId },
+    // Sent only when asked for, so the default request is what it always was.
+    params: { cohort_id: cohortId, include_archived: includeArchived ? true : undefined },
   });
   return res.data;
 }
