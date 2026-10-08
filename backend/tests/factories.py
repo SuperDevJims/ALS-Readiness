@@ -512,6 +512,15 @@ class Factory:
             statement = select(model).filter_by(**filters).limit(1)
             return (await session.execute(statement)).first() is not None
 
+    async def count(self, model: Any, **filters: Any) -> int:
+        """How many rows of a model match, read straight from the test database.
+        For facts the API does not expose, such as progress rows surviving an unassign."""
+        from sqlalchemy import func, select
+
+        async with AsyncSessionLocal() as session:
+            statement = select(func.count()).select_from(model).filter_by(**filters)
+            return (await session.execute(statement)).scalar_one()
+
     async def ready_for_pretest(self, learner: UserRecord) -> None:
         """What the app requires before a pretest: an intake and an attempt at every LRI test."""
         from sqlalchemy import select

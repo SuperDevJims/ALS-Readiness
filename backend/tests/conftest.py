@@ -187,18 +187,30 @@ async def _isolation(_database: None) -> AsyncIterator[None]:
 
 
 class FakeStorage:
-    """Stands in for file storage. `keys` are the files that "exist"; set
-    `failing = True` to make every storage call fail as an unreachable service does."""
+    """Stands in for file storage. `keys` are the files that "exist".
+
+    To make every storage call fail, set `failing = True` (an unreachable
+    service) or set `error` to the exact exception to raise, e.g. a botocore
+    ClientError. `calls` records every (operation, key) the app asked for.
+    """
 
     def __init__(self) -> None:
         self.keys: set[str] = set()
-        self.failing = False
+        self.error: Exception | None = None
         self.calls: list[tuple[str, str]] = []
+
+    @property
+    def failing(self) -> bool:
+        return self.error is not None
+
+    @failing.setter
+    def failing(self, value: bool) -> None:
+        self.error = EndpointConnectionError(endpoint_url="http://storage.invalid") if value else None
 
     def _use(self, operation: str, key: str) -> None:
         self.calls.append((operation, key))
-        if self.failing:
-            raise EndpointConnectionError(endpoint_url="http://storage.invalid")
+        if self.error is not None:
+            raise self.error
 
     def file_exists(self, key: str) -> bool:
         self._use("file_exists", key)
