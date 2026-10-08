@@ -224,6 +224,15 @@ class Factory:
                 record.facilitator_id = facilitator.id
         return record
 
+    async def profile_details(self, user: UserRecord, **fields: Any) -> None:
+        """Fills in personal fields of a user's profile (birthdate, gender, civil_status,
+        address, contact_number, contact_email), e.g. to check they are never exposed."""
+        async with AsyncSessionLocal() as session, session.begin():
+            profile = await session.get(UserProfile, user.id)
+            for name, value in fields.items():
+                assert hasattr(profile, name), name
+                setattr(profile, name, value)
+
     async def admin(self, first_name: str | None = None, **kwargs: Any) -> UserRecord:
         return await self.user(UserRole.ADMIN, first_name, **kwargs)
 
@@ -474,6 +483,20 @@ class Factory:
                 record.items.append(ItemRecord(item_id=item.id, correct_option_id=right.id, wrong_option_id=wrong.id))
         return record
 
+    async def strand_test_item(self, test: StrandTestRecord, *, correct: list[bool], question: str | None = None) -> tuple[int, list[int]]:
+        """One more item on a test, with an option per entry of `correct`. Unlike
+        strand_test() it can make a broken item: no correct option, or several.
+        Returns (item id, option ids). The item is not added to test.items."""
+        async with AsyncSessionLocal() as session, session.begin():
+            item = StrandTestItem(test_id=test.id, question_text=question or f"Extra question {next(self._serial)}")
+            session.add(item)
+            await session.flush()
+            options = [StrandTestItemOption(item_id=item.id, option_text=f"option {number}", is_correct=flag) for number, flag in enumerate(correct, 1)]
+            session.add_all(options)
+            await session.flush()
+            result = (item.id, [option.id for option in options])
+        return result
+
     async def lri_test(self, *, items: int = 3, title: str = "Learner Readiness Inventory") -> LriTestRecord:
         async with AsyncSessionLocal() as session, session.begin():
             test = LRITest(title=title, description="Readiness inventory")
@@ -521,6 +544,15 @@ class Factory:
             statement = select(func.count()).select_from(model).filter_by(**filters)
             return (await session.execute(statement)).scalar_one()
 
+    async def fetch(self, model: Any, **filters: Any) -> list[dict[str, Any]]:
+        """Rows of a model as plain dicts, ordered by id, read straight from the test
+        database. For comparing stored state exactly, e.g. before and after a refresh."""
+        from sqlalchemy import select
+
+        async with AsyncSessionLocal() as session:
+            rows = (await session.execute(select(model).filter_by(**filters).order_by(model.id))).scalars().all()
+            return [{column.name: getattr(row, column.name) for column in model.__table__.columns} for row in rows]
+
     async def ready_for_pretest(self, learner: UserRecord) -> None:
         """What the app requires before a pretest: an intake and an attempt at every LRI test."""
         from sqlalchemy import select
@@ -541,6 +573,7 @@ class Factory:
         correct: int,
         through_api: bool = True,
         taken_at: datetime | None = None,
+        item_count: int | None = None,
     ) -> int:
         """A strand test attempt with `correct` right answers out of the test's items.
 
@@ -548,9 +581,12 @@ class Factory:
         raising or resolving at-risk flags; the learner is given an intake and
         LRI attempts first when the test is a pretest. With through_api=False
         the rows are written directly, e.g. to date an attempt in the past.
+        With through_api=False an `item_count` may also be given, to record a
+        score out of any number of items (2999 of 4000); no answer rows are
+        written then, since the test has no such items.
         """
         if through_api:
-            assert taken_at is None, "taken_at needs through_api=False"
+            assert taken_at is None and item_count is None, "taken_at and item_count need through_api=False"
             if test.type == StrandTestType.PRETEST.value:
                 await self.ready_for_pretest(learner)
             response = await self._client.post(f"/api/learner/strand-tests/{test.id}/attempts", json=test.answers(correct), headers=bearer(learner))
@@ -562,12 +598,12 @@ class Factory:
                 test_id=test.id,
                 learner_id=learner.learner_id,
                 total_score=correct,
-                item_count=len(test.items),
+                item_count=item_count if item_count is not None else len(test.items),
                 taken_at=naive_utc(taken_at or utc_now()),
             )
             session.add(attempt)
             await session.flush()
-            for index, item in enumerate(test.items):
+            for index, item in enumerate(test.items if item_count is None else []):
                 right = index < correct
                 session.add(
                     StrandTestAttemptAnswer(
