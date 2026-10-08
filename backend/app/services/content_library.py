@@ -1,6 +1,10 @@
 from sqlalchemy import Row, and_
 
-from app.core.exceptions import ContentEditDeniedError, ContentNotFoundError
+from app.core.exceptions import (
+    ContentEditDeniedError,
+    ContentNotFoundError,
+    StorageUnavailableError,
+)
 from app.enums.content import ContentStatus, ContentType
 from app.models.content import Content
 from app.models.user import User
@@ -86,11 +90,11 @@ class ContentLibraryService:
         access = await self._facilitator_scope_service.get_content_access(user)
         row = await self._get_visible_row(access, content_id)
 
-        # A storage failure costs the link, not the whole view: the same
-        # null read_url as when storage is not configured.
+        # A storage failure costs the link, not the whole view. Storage that
+        # is not configured counts as one.
         try:
             read_url = get_read_url(row[0].file_key)
-        except STORAGE_ERRORS:
+        except (*STORAGE_ERRORS, StorageUnavailableError):
             read_url = None
 
         item = self._to_item(row, access)

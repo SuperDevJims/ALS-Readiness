@@ -8,7 +8,6 @@ from app.enums.cohort import CohortStatus
 
 from .cohort_facilitator import CohortFacilitatorResponse
 from .cohort_learner import CohortLearnerResponse
-from .user_profile import UserProfileResponse
 
 # Two consecutive years, e.g. "2026-2027". The generated cohort code embeds the
 # school year, so a fixed nine-character value also keeps the code within its
@@ -67,8 +66,18 @@ class CohortListResponse(BaseModel):
     cohorts: list[CohortResponse]
 
 
+class CohortMemberProfile(BaseModel):
+    """What the roster shows of a member's profile: the name. The birthdate,
+    address, contact number, and email are not part of a roster."""
+
+    first_name: str
+    last_name: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class CohortFacilitatorMemberResponse(CohortFacilitatorResponse):
-    profile: UserProfileResponse
+    profile: CohortMemberProfile
     # The facilitator's ID number, so a roster row can be read without a second lookup.
     id_no: str | None = None
     # When the assignment ended. Null while it is active.
@@ -76,7 +85,7 @@ class CohortFacilitatorMemberResponse(CohortFacilitatorResponse):
 
 
 class CohortLearnerMemberResponse(CohortLearnerResponse):
-    profile: UserProfileResponse
+    profile: CohortMemberProfile
     # The learner's ID number, so a roster row can be read without a second lookup.
     id_no: str | None = None
     # When the membership ended. Null while it is active.

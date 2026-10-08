@@ -41,13 +41,17 @@ class StrandTestRepository(BaseRepository[StrandTest]):
             .join(StrandTestItemOption, StrandTestItemOption.item_id == StrandTestItem.id)
             .outerjoin(TestItemAsset, TestItemAsset.item_id == StrandTestItem.id)
             .where(StrandTest.id == test_id)
+            # Without an ORDER BY the database may return rows in any order, and
+            # it can change after rows are updated. Items by id, options by id
+            # within each item: the order the facilitator's viewer shows.
+            .order_by(StrandTestItem.id, StrandTestItemOption.id, TestItemAsset.id)
         )
 
         result = await self._session.execute(statement)
         return result.all()
 
     # ================ Viewer (facilitator and admin) ================
-    # Read-only. The learner-facing queries above are left as they are.
+    # Read-only.
 
     async def get_overview_rows(
         self,

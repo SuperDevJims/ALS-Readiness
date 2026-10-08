@@ -1,12 +1,12 @@
 from app.core.exceptions import CohortNotFoundError, InvalidCohortStatusError
 from app.enums.cohort import CohortStatus
 from app.models.cohort import Cohort, CohortFacilitator, CohortLearner
-from app.models.user_profile import UserProfile
 from app.repositories.cohort import CohortRepository
 from app.schemas.cohort import (
     CohortCreate,
     CohortFacilitatorMemberResponse,
     CohortLearnerMemberResponse,
+    CohortMemberProfile,
     CohortWithMembersResponse,
 )
 from app.services.cohort_facilitator import CohortFacilitatorService
@@ -151,7 +151,7 @@ class CohortService:
                 status=cohort_facilitator.status,
                 assigned_by=cohort_facilitator.assigned_by,
                 assigned_at=cohort_facilitator.assigned_at,
-                profile=UserProfile.model_validate(profile),
+                profile=CohortMemberProfile.model_validate(profile),
                 id_no=id_no,
                 ended_at=cohort_facilitator.ended_at,
             )
@@ -166,7 +166,7 @@ class CohortService:
                 status=cohort_learner.status,
                 assigned_by=cohort_learner.assigned_by,
                 assigned_at=cohort_learner.assigned_at,
-                profile=UserProfile.model_validate(profile),
+                profile=CohortMemberProfile.model_validate(profile),
                 id_no=id_no,
                 # A membership's end is stored as completed_at.
                 ended_at=cohort_learner.completed_at,

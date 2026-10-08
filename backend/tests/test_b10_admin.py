@@ -223,3 +223,48 @@ async def test_api_adm_11_status_change_effects(client, cast, login):
     assert cohort_names(await client.get("/api/facilitator/cohorts", headers=fa)) == ["A1", "A2", "S1", "U1"]
     detail = await client.get(f"/api/facilitator/cohorts/{cast.s1.id}", headers=fa)
     assert (detail.status_code, detail.json()["learner_count"]) == (200, 4)
+
+
+PRIVATE_PROFILE = {
+    "address": "PRIVATE-ADDRESS 42 Mabini St",
+    "contact_number": "PRIV-0917-5550142",
+    "contact_email": "private.member@example.com",
+    "civil_status": "PRIVATE-Widowed",
+}
+PRIVATE_KEYS = {"birthdate", "birth_date", "address", "contact_number", "contact_email", "email", "gender", "sex", "civil_status"}
+
+
+def all_keys(value) -> set[str]:
+    if isinstance(value, dict):
+        return set(value) | {key for item in value.values() for key in all_keys(item)}
+    if isinstance(value, list):
+        return {key for item in value for key in all_keys(item)}
+    return set()
+
+
+async def test_api_adm_12_roster_privacy(client, cast, make, login):
+    """API-ADM-12: the admin roster carries no birthdate, address, contact number, email, gender or civil status,
+    as a field or as a value; a member's profile is the name only."""
+    from datetime import date
+
+    for person in (cast.l1, cast.l5, cast.fa):
+        await make.profile_details(person, birthdate=date(1999, 4, 17), gender="female", **PRIVATE_PROFILE)
+
+    response = await client.get(f"/api/cohorts/{cast.s1.id}/members", headers=await login(cast.adm))
+
+    assert response.status_code == 200
+    body = response.json()
+    assert all_keys(body) & PRIVATE_KEYS == set()
+    for value in (*PRIVATE_PROFILE.values(), "1999-04-17"):
+        assert value not in response.text
+    members = body["learners"] + body["facilitators"]
+    assert len(members) == 7
+    for member in members:
+        assert set(member["profile"]) == {"first_name", "last_name"}
+    # What the admin Cohorts page reads is still there.
+    first = next(row for row in body["learners"] if row["learner_id"] == cast.l1.learner_id)
+    assert first["profile"] == {"first_name": "L1", "last_name": "Tester"}
+    assert (first["id_no"], first["status"], first["ended_at"]) == (cast.l1.id_no, "active", None)
+    assert first["assigned_at"]
+    facilitator = next(row for row in body["facilitators"] if row["facilitator_id"] == cast.fa.facilitator_id)
+    assert facilitator["profile"] == {"first_name": "FA", "last_name": "Tester"}

@@ -87,7 +87,11 @@ from app.core.config import settings  # noqa: E402
 from app.db.session import engine  # noqa: E402
 from app.main import app  # noqa: E402
 
+import app.storage as _real_storage_module  # noqa: E402
 from tests.factories import Cast, Factory, UserRecord, build_cast  # noqa: E402
+
+# The app's own storage functions, kept before any test replaces them with the fake.
+REAL_STORAGE_FUNCTIONS = {name: getattr(_real_storage_module, name) for name in ("file_exists", "get_upload_url", "get_read_url", "upload_file")}
 
 if settings.db_name != TEST_DB_NAME or not settings.db_name.endswith(REQUIRED_SUFFIX) or engine.url.database != TEST_DB_NAME:
     raise pytest.UsageError("Refusing to run: the app is not configured for the test database.")
@@ -254,6 +258,25 @@ def storage(monkeypatch: pytest.MonkeyPatch) -> FakeStorage:
     monkeypatch.setattr(library_service, "get_read_url", fake.get_read_url)
     monkeypatch.setattr(strand_test_service, "get_read_url", fake.get_read_url)
     return fake
+
+
+@pytest.fixture
+def own_storage_code(monkeypatch: pytest.MonkeyPatch, storage: FakeStorage) -> None:
+    """Puts the app's own storage functions back in place of the fake's, for a test
+    about what they do before they reach storage (the "not configured" check).
+    The boto3 client stays replaced, so a call that got as far as real storage
+    would fail the test rather than touch the network."""
+    import app.services.content as content_service
+    import app.services.content_library as library_service
+    import app.services.strand_test as strand_test_service
+    import app.storage as real_storage
+
+    for name, function in REAL_STORAGE_FUNCTIONS.items():
+        monkeypatch.setattr(real_storage, name, function)
+    monkeypatch.setattr(content_service, "file_exists", REAL_STORAGE_FUNCTIONS["file_exists"])
+    monkeypatch.setattr(content_service, "get_upload_url", REAL_STORAGE_FUNCTIONS["get_upload_url"])
+    monkeypatch.setattr(library_service, "get_read_url", REAL_STORAGE_FUNCTIONS["get_read_url"])
+    monkeypatch.setattr(strand_test_service, "get_read_url", REAL_STORAGE_FUNCTIONS["get_read_url"])
 
 
 # ── Clock ────────────────────────────────────────────────────────────────────

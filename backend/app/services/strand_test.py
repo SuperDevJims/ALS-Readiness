@@ -1,4 +1,4 @@
-from app.core.exceptions import StrandTestNotFoundError
+from app.core.exceptions import StorageUnavailableError, StrandTestNotFoundError
 from app.enums.attempt import AttemptStatus
 from app.enums.strand_test import StrandTestType
 from app.repositories.strand_test import StrandTestRepository
@@ -22,7 +22,10 @@ def get_item_asset_url(asset: TestItemAsset) -> str | None:
     The only place it is built. The learner's test and the facilitator's
     viewer both call it, so they cannot differ.
     """
-    return get_read_url(asset.file_key, 3600)
+    try:
+        return get_read_url(asset.file_key, 3600)
+    except StorageUnavailableError:
+        return None
 
 
 class StrandTestService:

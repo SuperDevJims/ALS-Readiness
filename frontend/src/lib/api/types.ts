@@ -1151,9 +1151,15 @@ export interface UserProfileResponse extends UserProfile {
   user_id: number;
 }
 
+/** CohortMemberProfile - what a roster shows of a member's profile: the name only. */
+export interface CohortMemberProfile {
+  first_name: string;
+  last_name: string;
+}
+
 /** CohortFacilitatorMemberResponse */
 export interface CohortFacilitatorMemberResponse extends CohortFacilitatorResponse {
-  profile: UserProfileResponse;
+  profile: CohortMemberProfile;
   /** The facilitator's ID number. */
   id_no: string | null;
   /** When the assignment ended. Null while it is active. */
@@ -1162,7 +1168,7 @@ export interface CohortFacilitatorMemberResponse extends CohortFacilitatorRespon
 
 /** CohortLearnerMemberResponse */
 export interface CohortLearnerMemberResponse extends CohortLearnerResponse {
-  profile: UserProfileResponse;
+  profile: CohortMemberProfile;
   /** The learner's ID number. */
   id_no: string | null;
   /** When the membership ended. Null while it is active. */

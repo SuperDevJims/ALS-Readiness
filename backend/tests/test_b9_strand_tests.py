@@ -5,6 +5,10 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import pytest
+from sqlalchemy import update
+
+from app.db.session import AsyncSessionLocal
+from app.models.strand_test import StrandTestItem, StrandTestItemOption
 
 VIEWER = "/api/facilitator/strand-tests"
 
@@ -227,3 +231,52 @@ async def test_api_tst_07_missing_test(client, make, login):
     assert response.status_code == 404
     body = response.json()
     assert (body["success"], body["code"]) == (False, "STRAND_TEST_NOT_FOUND")
+
+
+async def test_api_tst_08_learner_order_is_id_order(client, make, login):
+    """API-TST-08: the learner's test detail returns items by id and options by id within each item, the same
+    order as the facilitator viewer, even when the rows' physical order differs; and it shows no correctness field."""
+    strand = await make.strand("LS1-EN")
+    test = await make.strand_test(strand, "pretest", items=6)
+    # More options on some items, so option order within an item is worth checking.
+    extra_item, extra_options = await make.strand_test_item(test, correct=[False, True, False, False])
+    # Update early rows after later ones were inserted. Postgres writes an updated row as a new
+    # physical row, so the table's physical order no longer follows the ids.
+    async with AsyncSessionLocal() as session, session.begin():
+        for item in test.items[:3]:
+            await session.execute(update(StrandTestItem).where(StrandTestItem.id == item.item_id).values(question_text=f"Edited question {item.item_id}"))
+            await session.execute(update(StrandTestItemOption).where(StrandTestItemOption.id == item.correct_option_id).values(option_text="right (edited)"))
+        await session.execute(update(StrandTestItemOption).where(StrandTestItemOption.id == extra_options[0]).values(option_text="first option, edited last"))
+    facilitator = await make.facilitator("FA")
+    learner = await make.learner("L1")
+
+    as_learner = await client.get(f"/api/learner/strand-tests/{test.id}", headers=await login(learner), params={"include_items": "true"})
+    as_facilitator = await client.get(f"{VIEWER}/{test.id}", headers=await login(facilitator))
+
+    assert as_learner.status_code == 200
+    assert as_facilitator.status_code == 200
+    learner_items = as_learner.json()["items"]
+    viewer_items = as_facilitator.json()["items"]
+    expected_item_ids = sorted([item.item_id for item in test.items] + [extra_item])
+    assert len(learner_items) == 7
+
+    # Items by id, and the same order as the viewer.
+    assert [item["item_id"] for item in learner_items] == expected_item_ids
+    assert [item["item_id"] for item in learner_items] == [item["id"] for item in viewer_items]
+    # Options by id within each item, and the same order as the viewer.
+    for seen, in_viewer in zip(learner_items, viewer_items):
+        option_ids = [option["option_id"] for option in seen["options"]]
+        assert option_ids == sorted(option_ids), seen["item_id"]
+        assert option_ids == [option["id"] for option in in_viewer["options"]]
+        assert seen["question_text"] == in_viewer["question_text"]
+        assert [option["option_text"] for option in seen["options"]] == [option["option_text"] for option in in_viewer["options"]]
+    assert [option["option_id"] for option in learner_items[-1]["options"]] == extra_options
+    # Same rows as before: nothing dropped or doubled, and the edits are there.
+    assert [len(item["options"]) for item in learner_items] == [2, 2, 2, 2, 2, 2, 4]
+    assert learner_items[0]["question_text"] == f"Edited question {expected_item_ids[0]}"
+    # Still no answer key for the learner.
+    keys, _ = keys_and_texts(as_learner.json())
+    assert not [key for key in keys if "correct" in key.lower()]
+    for item in learner_items:
+        for option in item["options"]:
+            assert set(option) == {"option_id", "option_text"}

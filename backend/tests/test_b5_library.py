@@ -485,3 +485,32 @@ async def test_api_lib_22_save_evaluation_twice(client, lib, login):
     detail = (await client.get(f"{LIBRARY}/{lib.c_fa_priv.id}", headers=headers)).json()
     assert detail["evaluation"] is not None
     assert (await listing(client, headers))["counts"] == {"total": 3, "evaluated": 1, "not_evaluated": 2}
+
+
+# ── Storage not configured ───────────────────────────────────────────────────
+
+
+@pytest.mark.parametrize("setting", ["b2_key_id", "b2_application_key", "b2_endpoint_url", "b2_bucket_name"])
+@pytest.mark.parametrize("missing_value", [None, ""], ids=["unset", "empty"])
+async def test_api_lib_23_storage_not_configured(client, lib, login, monkeypatch, own_storage_code, storage, setting, missing_value):
+    """API-LIB-23: with any one of the four storage settings missing, the upload URL and the create answer
+    503 STORAGE_UNAVAILABLE, and the content detail still answers 200 with read_url null."""
+    from app.core.config import settings
+
+    headers = await login(lib.fa)
+    monkeypatch.setattr(settings, setting, missing_value)
+    # A key in the upload folder that no content uses, so the create gets as far as asking storage.
+    key = f"{UPLOAD_FOLDER}/11111111-1111-1111-1111-111111111111_a.pdf"
+
+    upload_url = await client.post("/api/contents/upload-url", headers=headers, json={"filename": "a.pdf"})
+    create = await client.post("/api/contents", headers=headers, json={"file_key": key, "title": "Not configured", "lesson_id": lib.ls_1.id})
+    detail = await client.get(f"{LIBRARY}/{lib.c_fa_priv.id}", headers=headers)
+
+    for response in (upload_url, create):
+        assert response.status_code == 503, response.text[:200]
+        assert response.json() == {"success": False, "code": "STORAGE_UNAVAILABLE", "message": response.json()["message"], "details": None}
+    assert detail.status_code == 200
+    assert detail.json()["read_url"] is None
+    assert detail.json()["title"] == "C-FA-PRIV"
+    # Nothing was created, and the listing still works.
+    assert (await listing(client, headers))["total"] == 3

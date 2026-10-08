@@ -10,6 +10,7 @@ from pydantic import ValidationError as PydanticValidationError
 
 from .api.router import router as api_router
 from .core.config import settings
+from .core.error_middleware import UnhandledErrorMiddleware
 from .core.exceptions import (
     AlreadyExistsError,
     ConflictError,
@@ -22,6 +23,11 @@ from .core.exceptions import (
 from .schemas.error import ErrorResponse
 
 app = FastAPI()
+
+# The middleware added last is the outermost. This one is added first so that
+# it sits inside the CORS middleware: the 500 it sends for an unexpected error
+# then carries CORS headers like every other response.
+app.add_middleware(UnhandledErrorMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
@@ -60,7 +66,8 @@ def error_response(
     )
 
 
-# For handling unexcpected errors
+# For handling unexcpected errors. UnhandledErrorMiddleware answers them first,
+# inside the CORS middleware; this remains for anything raised outside it.
 @app.exception_handler(Exception)
 async def handle_unexpected_error(_: Request, exc: Exception):
     logger.exception("Unhandled error")
