@@ -280,7 +280,7 @@ export function FacilitatorLearnerDetail({ navigate, user, onLogout }: PageProps
   }
 
   return (
-    <AppLayout navigate={navigate} user={user} onLogout={onLogout} currentPage={LEARNERS_PAGE}>
+    <AppLayout navigate={navigate} user={user} onLogout={onLogout} currentPage={LEARNERS_PAGE} hideCohortControls>
       {reviewing && data && (
         <AtRiskReviewDialog
           learner={data.learner}

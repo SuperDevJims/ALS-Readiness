@@ -45,6 +45,7 @@ import {
   type MoveDirection,
   type StructureFormValues,
 } from "../../../lib/curriculumText";
+import { requiredError } from "../../../lib/formText";
 import { useFetch } from "../../../lib/hooks/useFetch";
 import { cohortStatusLabel, contentTypeLabel } from "../../../lib/labels";
 import { useCohortSelection } from "../../../lib/store/cohortStore";
@@ -139,17 +140,22 @@ interface StructureFormDialogProps {
 function StructureFormDialog({ heading, subtitle, initialTitle, initialDescription, saving, onSubmit, onClose }: StructureFormDialogProps) {
   const [title, setTitle] = useState(initialTitle);
   const [description, setDescription] = useState(initialDescription);
+  // A blank title is pointed out once the field was left or Save was tried, not while the dialog is first open.
+  const [titleTouched, setTitleTouched] = useState(false);
+  const [attempted, setAttempted] = useState(false);
   const titleRef = useRef<HTMLInputElement>(null);
   const values = structureFormValues(title, description);
+  const titleError = requiredError("Title", title, titleTouched || attempted);
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
+    setAttempted(true);
     if (values && !saving) onSubmit(values);
   };
 
   return (
     <Modal title={heading} subtitle={subtitle} onClose={onClose} busy={saving} initialFocusRef={titleRef}>
-      <form onSubmit={submit} className="space-y-4">
+      <form onSubmit={submit} className="space-y-4" noValidate>
         <div>
           <label htmlFor="structure-title" className="text-gray-600 text-xs font-medium mb-1.5 block">Title</label>
           <input
@@ -158,11 +164,14 @@ function StructureFormDialog({ heading, subtitle, initialTitle, initialDescripti
             type="text"
             value={title}
             onChange={(event) => setTitle(event.target.value)}
+            onBlur={() => setTitleTouched(true)}
             maxLength={TITLE_MAX_LENGTH}
-            required
+            aria-required="true"
+            aria-invalid={titleError !== null}
             disabled={saving}
             className={FIELD_CLASS}
           />
+          {titleError && <p className="text-red-600 text-xs mt-1.5" role="alert">{titleError}</p>}
         </div>
         <div>
           <label htmlFor="structure-description" className="text-gray-600 text-xs font-medium mb-1.5 block">Description (optional)</label>
@@ -177,7 +186,7 @@ function StructureFormDialog({ heading, subtitle, initialTitle, initialDescripti
         </div>
         <div className="flex gap-3">
           <Button onClick={onClose} disabled={saving} className="flex-1">Cancel</Button>
-          <Button type="submit" variant="primary" disabled={saving || values === null} className="flex-1">
+          <Button type="submit" variant="primary" disabled={saving} className="flex-1">
             {saving ? "Saving…" : "Save"}
           </Button>
         </div>

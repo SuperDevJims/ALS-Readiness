@@ -14,6 +14,7 @@ import {
   COHORTS_ASSIGNED_TEXT,
   cohortDatesText,
   cohortsSubtitle,
+  defaultCohortId,
   rosterCounts,
   rosterCountsText,
   rosterFailureText,
@@ -88,7 +89,7 @@ function CohortCard({ cohort, selected, onSelect }: CohortCardProps) {
 }
 
 export function FacilitatorMyCohorts({ navigate, user, onLogout }: PageProps) {
-  // Only the school year drives this page: it lists every cohort of that year,
+  // The school year drives the list: every cohort of that year is shown,
   // whichever cohort the top bar has selected.
   const selection = useCohortSelection({ allowAll: true });
   const cohorts = selection.cohorts;
@@ -98,8 +99,8 @@ export function FacilitatorMyCohorts({ navigate, user, onLogout }: PageProps) {
   // is not a positive whole number is ignored.
   const [searchParams, setSearchParams] = useSearchParams();
   const urlCohortId = parseIdParam(searchParams.get(COHORT_PARAM));
-  // With nothing in the URL the first cohort listed is shown.
-  const cohortId = urlCohortId ?? (cohortsReady && cohorts.length > 0 ? cohorts[0].id : null);
+  // With nothing in the URL the top bar's cohort is shown, or the first one listed.
+  const cohortId = urlCohortId ?? (cohortsReady ? defaultCohortId(cohorts, selection.cohortId) : null);
   const listedCohort = cohorts.find((cohort) => cohort.id === cohortId) ?? null;
 
   // Keyed on the cohort: a slow roster for an earlier one is dropped by the hook.

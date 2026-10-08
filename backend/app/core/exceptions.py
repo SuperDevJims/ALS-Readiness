@@ -162,6 +162,20 @@ class PretestRequiredError(DomainValidationError):
     code = "PRETEST_REQUIRED"
 
 
+class IntakeRequiredError(ConflictError):
+    """Raised when a pretest is submitted by a learner with no participant intake."""
+
+    message = "Complete your Participant Intake before taking a pretest."
+    code = "INTAKE_REQUIRED"
+
+
+class LRIRequiredError(ConflictError):
+    """Raised when a pretest is submitted before the Learner Readiness Inventory."""
+
+    message = "Complete the Learner Readiness Inventory before taking a pretest."
+    code = "LRI_REQUIRED"
+
+
 class InvalidTestAttemptError(DomainValidationError):
     """Raised when an attempt's answers don't fit the test: a duplicate or
     foreign item (both tests), or a missing one (LRI only - a strand attempt may

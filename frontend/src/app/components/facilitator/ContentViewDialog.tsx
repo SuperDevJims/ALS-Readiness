@@ -18,6 +18,7 @@ import {
   shouldReloadLibrary,
   visibilityLabel,
 } from "../../../lib/contentText";
+import { isMissing, requiredError } from "../../../lib/formText";
 import { formatDateTime } from "../../../lib/dates";
 import { useFetch } from "../../../lib/hooks/useFetch";
 import { contentTypeLabel, orDash } from "../../../lib/labels";
@@ -58,26 +59,33 @@ function EditForm({ item, saving, onSave, onCancel, onOpenCurriculum }: EditForm
   const [description, setDescription] = useState(item.description ?? "");
   const [visibility, setVisibility] = useState<ContentVisibility>(item.visibility);
   const [lessonId, setLessonId] = useState<number | null>(null);
+  // A blank title is pointed out once the field was left or Save was tried.
+  const [titleTouched, setTitleTouched] = useState(false);
+  const [attempted, setAttempted] = useState(false);
 
   const payload = contentEditPayload(item, { title, description, visibility, lessonId });
   const hasChanges = Object.keys(payload).length > 0;
-  const canSave = hasChanges && title.trim() !== "" && !saving;
+  const titleError = requiredError("Title", title, titleTouched || attempted);
+  const canSave = hasChanges && !isMissing(title) && !saving;
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
+    setAttempted(true);
     if (canSave) onSave(payload);
   };
 
   return (
-    <form onSubmit={submit} className="space-y-4">
-      <Field label="Title" htmlFor="content-edit-title">
+    <form onSubmit={submit} className="space-y-4" noValidate>
+      <Field label="Title" htmlFor="content-edit-title" error={titleError}>
         <input
           id="content-edit-title"
           type="text"
           value={title}
           onChange={(event) => setTitle(event.target.value)}
+          onBlur={() => setTitleTouched(true)}
           maxLength={CONTENT_TITLE_MAX_LENGTH}
-          required
+          aria-required="true"
+          aria-invalid={titleError !== null}
           disabled={saving}
           className={FIELD_CLASS}
         />
@@ -133,7 +141,7 @@ function EditForm({ item, saving, onSave, onCancel, onOpenCurriculum }: EditForm
 
       <div className="flex gap-3">
         <Button onClick={onCancel} disabled={saving} className="flex-1">Back</Button>
-        <Button type="submit" variant="primary" disabled={!canSave} className="flex-1">
+        <Button type="submit" variant="primary" disabled={!hasChanges || saving} className="flex-1">
           {saving ? "Saving…" : hasChanges ? "Save changes" : "No changes"}
         </Button>
       </div>

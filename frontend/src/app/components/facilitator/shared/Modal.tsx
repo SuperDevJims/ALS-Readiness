@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, type KeyboardEvent, type ReactNode, type RefObject } from "react";
 import { X } from "lucide-react";
+import { canReturnFocus, dialogOpener } from "../../../../lib/focusReturn";
 
 interface ModalProps {
   title: string;
@@ -21,6 +22,19 @@ const SIZE = { md: "max-w-lg", lg: "max-w-2xl" } as const;
 
 const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
+// The control last pressed with a pointer. Some browsers do not focus a button
+// when it is clicked, and then document.activeElement cannot say what opened a dialog.
+let lastPressed: HTMLElement | null = null;
+if (typeof document !== "undefined") {
+  document.addEventListener(
+    "pointerdown",
+    (event) => {
+      lastPressed = event.target instanceof Element ? event.target.closest<HTMLElement>(FOCUSABLE) : null;
+    },
+    true,
+  );
+}
+
 /**
  * The dialog the mockups hand-write (dimmed backdrop, white rounded panel,
  * title row with an X), with the keyboard behaviour they lack: the title
@@ -32,9 +46,13 @@ export function Modal({ title, subtitle, onClose, children, footer, busy = false
   const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const active = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const opener = dialogOpener(active, document.body, lastPressed);
     (initialFocusRef?.current ?? panelRef.current)?.focus();
-    return () => previouslyFocused?.focus();
+    return () => {
+      // The opener may be gone by now, e.g. a table row the dialog's action removed.
+      if (opener && canReturnFocus(opener)) opener.focus();
+    };
     // Focus moves once, when the dialog opens.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

@@ -8,6 +8,11 @@ import type { FacilitatorCohortItem } from "../../../../lib/api/types";
 interface CohortControlsProps {
   /** Whether the current page can show "All cohorts". Default: false. */
   allowAll?: boolean;
+  /**
+   * Shows nothing, for a page that takes its cohort from its URL (Learner
+   * Detail) or has none (a strand test). The cohort store is still loaded.
+   */
+  hidden?: boolean;
 }
 
 /** "Cohort A", with the status spelled out for anything that isn't active (FD12: those are read-only). */
@@ -54,7 +59,7 @@ function TopBarSelect({
  * signed-in facilitator - on login and on every app load, since the shell is
  * the one thing every facilitator page mounts.
  */
-export function CohortControls({ allowAll = false }: CohortControlsProps) {
+export function CohortControls({ allowAll = false, hidden = false }: CohortControlsProps) {
   const user = useAuthStore((state) => state.user);
   const userKey = cohortUserKey(user);
   const init = useCohortStore((state) => state.init);
@@ -66,7 +71,7 @@ export function CohortControls({ allowAll = false }: CohortControlsProps) {
     if (userKey) void init(userKey);
   }, [userKey, init]);
 
-  if (!userKey) return null;
+  if (!userKey || hidden) return null;
 
   if (selection.error) {
     return (

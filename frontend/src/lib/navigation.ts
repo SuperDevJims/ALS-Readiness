@@ -64,6 +64,13 @@ export function strandTestDetailPage(testId: number): string {
 /** The forced-password-change page. Deliberately outside ProtectedPage - see App.tsx. */
 export const CHANGE_PASSWORD_PATH = "/change-password";
 
+/** Where the "Page not found" page sends someone: their role's dashboard, or the sign-in page when signed out. */
+export function homeLink(role: Role | null): { page: string; label: string } {
+  if (role === null) return { page: "login", label: "Go to sign in" };
+  const name = role === "admin" ? "Admin" : role === "facilitator" ? "Facilitator" : "Learner";
+  return { page: homeForRole(role), label: `Back to ${name} Dashboard` };
+}
+
 /** The page key for a role's home dashboard, post-login. */
 export function homeForRole(role: Role): string {
   return role === "facilitator" ? "facilitator-dashboard"

@@ -69,7 +69,13 @@ from app.services.strand_test_viewer import StrandTestViewerService
 from app.services.user import UserService
 from app.services.user_profile import UserProfileService
 
-SessionDep = Annotated[AsyncSession, Depends(get_session)]
+# scope="function": the session's transaction is committed when the endpoint
+# function returns, before the response is sent. With the default scope
+# ("request") FastAPI runs the commit after the response has gone out, so a
+# client could act on a 2xx - list or fetch what it just wrote - before the
+# write was visible. This covers every endpoint, since they all share this
+# dependency. A failed commit now reaches the client as an error, too.
+SessionDep = Annotated[AsyncSession, Depends(get_session, scope="function")]
 
 
 # ================ Repositories ================
@@ -376,12 +382,22 @@ StrandAttemptRepositoryDep = Annotated[
 ]
 
 
+# Defined here, ahead of its own section, because the strand attempt service needs it.
+def get_lri_test_repository(session: SessionDep) -> LRITestRepository:
+    return LRITestRepository(session)
+
+
+LRITestRepositoryDep = Annotated[LRITestRepository, Depends(get_lri_test_repository)]
+
+
 def get_strand_attempt_service(
     attempt_repository: StrandAttemptRepositoryDep,
     attempt_answer_repository: StrandAttemptAnswerRepositoryDep,
     learner_service: LearnerServiceDep,
     test_option_repository: StrandTestItemOptionRepositoryDep,
     test_repository: StrandTestRepositoryDep,
+    participant_intake_repository: ParticipantIntakeRepositoryDep,
+    lri_test_repository: LRITestRepositoryDep,
 ) -> StrandTestAttemptService:
     return StrandTestAttemptService(
         attempt_repository=attempt_repository,
@@ -389,6 +405,8 @@ def get_strand_attempt_service(
         learner_service=learner_service,
         test_option_repository=test_option_repository,
         test_repository=test_repository,
+        participant_intake_repository=participant_intake_repository,
+        lri_test_repository=lri_test_repository,
     )
 
 
@@ -398,13 +416,6 @@ StrandAttemptServiceDep = Annotated[
 
 
 # ================ LRI Test ==============
-
-
-def get_lri_test_repository(session: SessionDep) -> LRITestRepository:
-    return LRITestRepository(session)
-
-
-LRITestRepositoryDep = Annotated[LRITestRepository, Depends(get_lri_test_repository)]
 
 
 def get_lri_test_service(

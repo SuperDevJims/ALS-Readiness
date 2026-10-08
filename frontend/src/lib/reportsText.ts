@@ -166,6 +166,15 @@ export function cohortsSubtitle(count: number, schoolYear: string | null): strin
   return schoolYear ? `${cohorts} · ${schoolYear}` : cohorts;
 }
 
+/**
+ * The cohort My Cohorts opens on when the URL names none: the top bar's
+ * selection when it is in the list, otherwise the first one listed. Null for an empty list.
+ */
+export function defaultCohortId(cohorts: readonly Pick<FacilitatorCohortItem, "id">[], selectedId: number | null): number | null {
+  if (cohorts.length === 0) return null;
+  return cohorts.some((cohort) => cohort.id === selectedId) ? selectedId : cohorts[0].id;
+}
+
 /** Shown on both the page and its empty state: facilitators cannot create cohorts or add members. */
 export const COHORTS_ASSIGNED_TEXT = "Cohorts and their members are assigned by an administrator.";
 

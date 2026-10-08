@@ -21,6 +21,7 @@ import {
   visibilityLabel,
   type UploadPhase,
 } from "../../../lib/contentText";
+import { requiredError } from "../../../lib/formText";
 import { contentTypeLabel } from "../../../lib/labels";
 import { toast } from "../../../lib/toast";
 import { Button, FIELD_CLASS, Field, FileDrop, LessonPicker, Modal, Notice, ProgressBar, Steps } from "./shared";
@@ -55,6 +56,9 @@ export function ContentUploadDialog({ onClose, onUploaded, onOpenCurriculum }: C
   // The file already in storage, and the key to register it under.
   const [uploaded, setUploaded] = useState<{ file: File; fileKey: string } | null>(null);
   const [confirmingClose, setConfirmingClose] = useState(false);
+  // What is missing is pointed out once Upload was tried (the title also once its field was left).
+  const [titleTouched, setTitleTouched] = useState(false);
+  const [attempted, setAttempted] = useState(false);
 
   const abortRef = useRef<AbortController | null>(null);
   // False once the dialog is gone, so a late response does nothing.
@@ -72,6 +76,11 @@ export function ContentUploadDialog({ onClose, onUploaded, onOpenCurriculum }: C
   const fileUploaded = uploaded !== null && uploaded.file === file;
   const trimmedTitle = title.trim();
   const canSubmit = file !== null && fileCheck !== null && fileCheck.ok && trimmedTitle !== "" && lessonId !== null && !running;
+  // A file of the wrong type still disables Upload: its reason is already shown under the file.
+  const fileRefused = fileCheck !== null && !fileCheck.ok;
+  const fileError = fileCheck && !fileCheck.ok ? fileCheck.message : requiredError("File", file, attempted);
+  const titleError = requiredError("Title", title, titleTouched || attempted);
+  const lessonError = requiredError("Lesson", lessonId, attempted);
 
   const chooseFile = (next: File | null) => {
     setFile(next);
@@ -87,6 +96,7 @@ export function ContentUploadDialog({ onClose, onUploaded, onOpenCurriculum }: C
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
+    setAttempted(true);
     if (!canSubmit || file === null || lessonId === null) return;
 
     let fileKey = fileUploaded && uploaded ? uploaded.fileKey : null;
@@ -179,10 +189,10 @@ export function ContentUploadDialog({ onClose, onUploaded, onOpenCurriculum }: C
       busy={phase === "requesting" || phase === "saving"}
       size="lg"
     >
-      <form onSubmit={(event) => void submit(event)} className="space-y-4">
+      <form onSubmit={(event) => void submit(event)} className="space-y-4" noValidate>
         <Field
           label="File"
-          error={fileCheck && !fileCheck.ok ? fileCheck.message : undefined}
+          error={fileError}
           hint={fileUploaded ? "This file is already uploaded. Choosing another file uploads again." : undefined}
         >
           <FileDrop
@@ -202,14 +212,16 @@ export function ContentUploadDialog({ onClose, onUploaded, onOpenCurriculum }: C
           />
         </Field>
 
-        <Field label="Title" htmlFor="content-title">
+        <Field label="Title" htmlFor="content-title" error={titleError}>
           <input
             id="content-title"
             type="text"
             value={title}
             onChange={(event) => setTitle(event.target.value)}
+            onBlur={() => setTitleTouched(true)}
             maxLength={CONTENT_TITLE_MAX_LENGTH}
-            required
+            aria-required="true"
+            aria-invalid={titleError !== null}
             disabled={running}
             className={FIELD_CLASS}
           />
@@ -226,7 +238,7 @@ export function ContentUploadDialog({ onClose, onUploaded, onOpenCurriculum }: C
           />
         </Field>
 
-        <Field label="Lesson">
+        <Field label="Lesson" error={lessonError}>
           <LessonPicker key={pickerKey} lessonId={lessonId} onChange={setLessonId} disabled={running} onOpenCurriculum={onOpenCurriculum} />
         </Field>
 
@@ -289,7 +301,7 @@ export function ContentUploadDialog({ onClose, onUploaded, onOpenCurriculum }: C
           ) : (
             <Button onClick={onClose} disabled={running} className="flex-1">Cancel</Button>
           )}
-          <Button type="submit" variant="accent" disabled={!canSubmit} className="flex-1">
+          <Button type="submit" variant="accent" disabled={running || fileRefused} className="flex-1">
             {phase === "requesting" ? "Preparing…" : phase === "uploading" ? "Uploading…" : phase === "saving" ? "Saving…" : fileUploaded ? "Save details" : "Upload"}
           </Button>
         </div>

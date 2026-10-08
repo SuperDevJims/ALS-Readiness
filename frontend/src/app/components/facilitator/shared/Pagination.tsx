@@ -1,4 +1,5 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { countLabel } from "../../../../lib/labels";
 import { showingRange } from "../../../../lib/learnersText";
 
 interface PaginationProps {
@@ -7,8 +8,10 @@ interface PaginationProps {
   pageSize: number;
   total: number;
   onPageChange: (page: number) => void;
-  /** What is being counted, plural: "learners", "items". Default: "items". */
+  /** What is being counted, singular: "learner", "item". Default: "item". */
   noun?: string;
+  /** Its plural, when adding an "s" is not right. */
+  nounPlural?: string;
   /** Disables both buttons while a page is loading. */
   disabled?: boolean;
   /** "pages" (default): "Page 2 of 5 — 93 learners". "range": "Showing 21 to 40 of 93". */
@@ -16,9 +19,10 @@ interface PaginationProps {
 }
 
 /** The footer under a paginated table: "Page 2 of 5 — 93 learners" and previous / next buttons. */
-export function Pagination({ page, pageSize, total, onPageChange, noun = "items", disabled = false, summary = "pages" }: PaginationProps) {
+export function Pagination({ page, pageSize, total, onPageChange, noun = "item", nounPlural, disabled = false, summary = "pages" }: PaginationProps) {
   const totalPages = Math.max(1, Math.ceil(total / Math.max(1, pageSize)));
-  const pagesText = total === 0 ? `0 ${noun}` : `Page ${page} of ${totalPages} — ${total} ${noun}`;
+  const counted = countLabel(total, noun, nounPlural);
+  const pagesText = total === 0 ? counted : `Page ${page} of ${totalPages} — ${counted}`;
 
   return (
     <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">

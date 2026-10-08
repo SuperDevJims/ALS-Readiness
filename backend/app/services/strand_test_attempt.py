@@ -1,5 +1,7 @@
 from app.core.exceptions import (
+    IntakeRequiredError,
     InvalidTestAttemptError,
+    LRIRequiredError,
     PretestRequiredError,
     StrandTestAttemptAlreadyExistsError,
     StrandTestAttemptNotFoundError,
@@ -8,6 +10,8 @@ from app.core.exceptions import (
 )
 from app.enums.strand_test import StrandTestType
 from app.models.strand_test_attempt import StrandTestAttempt, StrandTestAttemptAnswer
+from app.repositories.lri_test import LRITestRepository
+from app.repositories.participant_intake import ParticipantIntakeRepository
 from app.repositories.strand_test import StrandTestRepository
 from app.repositories.strand_test_attempt import StrandTestAttemptRepository
 from app.repositories.strand_test_attempt_answers import (
@@ -32,7 +36,11 @@ class StrandTestAttemptService:
         test_option_repository:  StrandTestItemOptionRepository,
         test_repository: StrandTestRepository,
         learner_service: LearnerService,
+        participant_intake_repository: ParticipantIntakeRepository,
+        lri_test_repository: LRITestRepository,
     ):
+        self._participant_intake_repository = participant_intake_repository
+        self._lri_test_repository = lri_test_repository
         self._attempt_repository = attempt_repository
         self._attempt_answer_repository = attempt_answer_repository
         self._learner_service = learner_service
@@ -65,6 +73,18 @@ class StrandTestAttemptService:
         )
         if existing is not None:
             raise StrandTestAttemptAlreadyExistsError()
+
+        # A pretest requires the learner's participant intake and every
+        # Learner Readiness Inventory test first: the order the learner pages
+        # already enforce. (A posttest needs the pretest, so it inherits this.)
+        if test.type == StrandTestType.PRETEST:
+            intake = await self._participant_intake_repository.get_by_user_id(user_id)
+            if intake is None:
+                raise IntakeRequiredError()
+
+            lri_tests = await self._lri_test_repository.get_with_attempt(learner.id)
+            if any(lri_attempt is None for _, lri_attempt in lri_tests):
+                raise LRIRequiredError()
 
         # A posttest requires the learner's pretest for the same strand.
         if test.type == StrandTestType.POSTTEST:

@@ -76,7 +76,9 @@ function SectionLabel({ label, open }) {
 }
 
 // allowAllCohorts: facilitator pages only - whether the top bar's cohort dropdown offers "All cohorts".
-export function AppLayout({ children, navigate, user, onLogout, currentPage, allowAllCohorts = false }) {
+// hideCohortControls: facilitator pages only - no school year and cohort dropdowns, for a page that
+// takes its context from its URL and would otherwise show a selection it does not follow.
+export function AppLayout({ children, navigate, user, onLogout, currentPage, allowAllCohorts = false, hideCohortControls = false }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showNotif,    setShowNotif]   = useState(false);
   const [showSettings, setShowSettings]= useState(false);
@@ -204,7 +206,7 @@ export function AppLayout({ children, navigate, user, onLogout, currentPage, all
 
           <div className="flex items-center gap-1.5">
             {/* School year + cohort (facilitator only) */}
-            {role === "facilitator" && <CohortControls allowAll={allowAllCohorts} />}
+            {role === "facilitator" && <CohortControls allowAll={allowAllCohorts} hidden={hideCohortControls} />}
 
             {/* Notifications */}
             <div className="relative" ref={notifRef}>

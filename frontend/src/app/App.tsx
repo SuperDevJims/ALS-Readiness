@@ -32,6 +32,7 @@ import { AdminAnalytics } from "./components/admin/AdminAnalytics";
 import { AdminReports } from "./components/admin/AdminReports";
 // Shared
 import { AccessDenied } from "./components/shared/AccessDenied";
+import { NotFound } from "./components/shared/NotFound";
 import { SessionExpired } from "./components/shared/SessionExpired";
 import { ErrorBoundary } from "./components/shared/ErrorBoundary";
 import { ProfilePage } from "./components/shared/ProfilePage";
@@ -81,6 +82,12 @@ function AccessDeniedRoute() {
   const role = useAuthStore((s) => s.role);
   const navigate = useLegacyNavigate();
   return <AccessDenied role={role} navigate={navigate} />;
+}
+
+function NotFoundRoute() {
+  const role = useAuthStore((s) => s.role);
+  const navigate = useLegacyNavigate();
+  return <NotFound role={role} navigate={navigate} />;
 }
 
 function AppRoutes() {
@@ -151,6 +158,9 @@ function AppRoutes() {
             a direct visit still resolves. */}
         <Route path="/session-expired" element={<SessionExpired />} />
         <Route path="/access-denied" element={<AccessDeniedRoute />} />
+
+        {/* Anything else: an address that is not a page, e.g. a mistyped link or a removed page. */}
+        <Route path="*" element={<NotFoundRoute />} />
       </Routes>
       </ForcedPasswordChangeGate>
     </div>

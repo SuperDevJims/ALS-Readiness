@@ -191,7 +191,7 @@ export function FacilitatorTestDetail({ navigate, user, onLogout }: PageProps) {
   }
 
   return (
-    <AppLayout navigate={navigate} user={user} onLogout={onLogout} currentPage={TESTS_PAGE}>
+    <AppLayout navigate={navigate} user={user} onLogout={onLogout} currentPage={TESTS_PAGE} hideCohortControls>
       <div className="p-5 space-y-5">
         <PageHeader
           backLabel="Back to Strand Tests"

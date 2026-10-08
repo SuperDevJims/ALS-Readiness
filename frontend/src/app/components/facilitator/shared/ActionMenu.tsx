@@ -100,6 +100,9 @@ export function ActionMenu({ label, items, disabled = false }: ActionMenuProps) 
               disabled={item.disabled}
               onClick={() => {
                 setOpen(false);
+                // This item is about to disappear. Focus goes to the button first, so a
+                // dialog the action opens can return focus there when it closes.
+                buttonRef.current?.focus();
                 item.onSelect();
               }}
               className={`w-full text-left px-3 py-2 text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${item.tone === "danger" ? "text-red-600 hover:bg-red-50" : "text-gray-700 hover:bg-gray-50"}`}

@@ -160,7 +160,8 @@ export function CohortMemberPicker({ role, cohort, members, onClose }: CohortMem
               pageSize={data.page_size}
               total={data.total}
               onPageChange={(next) => setPaging({ search, page: next })}
-              noun={text.plural}
+              noun={text.noun}
+              nounPlural={text.plural}
               disabled={assigning || list.loading}
             />
           </div>

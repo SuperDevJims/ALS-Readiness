@@ -76,6 +76,11 @@ export function formatMps(value: number | null | undefined): string {
 }
 
 /** Any text or number, or a dash when it is null, undefined, or blank. */
+/** "0 learners", "1 learner", "3 learners". The plural defaults to the singular with an "s". */
+export function countLabel(count: number, singular: string, plural: string = `${singular}s`): string {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
 export function orDash(value: string | number | null | undefined): string {
   if (value === null || value === undefined) return DASH;
   const text = String(value).trim();
