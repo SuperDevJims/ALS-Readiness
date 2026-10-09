@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { getStrandAttemptResult } from "../../../lib/api/diagnostic";
 import { getErrorMessage } from "../../../lib/api/errors";
 import type { StrandAttemptResult } from "../../../lib/api/types";
+import { compareMps, mpsText } from "../../../lib/scoreCompare";
 
 // Shared "Show Score" reveal, used by both the pretest hub and the posttest
 // hub's StrandTestCard. Only ever mounted once both halves are already known
@@ -37,7 +38,11 @@ export function ScoreCompareModal({
     return () => { cancelled = true; };
   }, [pretestTestId, posttestTestId]);
 
-  const improved = state.status === "ready" && state.post.mps >= state.pre.mps;
+  // Null when either MPS is missing (a test with no items): then there is nothing to compare.
+  const comparison = state.status === "ready" ? compareMps(state.pre.mps, state.post.mps) : null;
+  const improved = comparison !== null && comparison.improved;
+  const postTile = comparison === null ? "bg-gray-50" : improved ? "bg-green-50" : "bg-orange-50";
+  const postText = comparison === null ? "text-gray-800" : improved ? "text-green-700" : "text-orange-700";
 
   return (
     <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
@@ -54,19 +59,21 @@ export function ScoreCompareModal({
             <div className="grid grid-cols-2 gap-3">
               <div className="text-center p-4 bg-gray-50 rounded-xl">
                 <p className="text-xs text-gray-500 mb-1">Pre-test</p>
-                <p className="text-2xl font-bold text-gray-800">{state.pre.mps}%</p>
+                <p className="text-2xl font-bold text-gray-800">{mpsText(state.pre.mps)}</p>
                 <p className="text-xs text-gray-400 mt-1">{state.pre.total_score}/{state.pre.item_count} correct</p>
               </div>
-              <div className={`text-center p-4 rounded-xl ${improved ? "bg-green-50" : "bg-orange-50"}`}>
+              <div className={`text-center p-4 rounded-xl ${postTile}`}>
                 <p className="text-xs text-gray-500 mb-1">Post-test</p>
-                <p className={`text-2xl font-bold ${improved ? "text-green-700" : "text-orange-700"}`}>{state.post.mps}%</p>
+                <p className={`text-2xl font-bold ${postText}`}>{mpsText(state.post.mps)}</p>
                 <p className="text-xs text-gray-400 mt-1">{state.post.total_score}/{state.post.item_count} correct</p>
               </div>
             </div>
-            <div className={`flex items-center justify-center gap-1.5 text-sm font-medium ${improved ? "text-green-700" : "text-orange-700"}`}>
-              {improved ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />}
-              {Math.abs(Math.round((state.post.mps - state.pre.mps) * 100) / 100)} point {improved ? "improvement" : "decrease"}
-            </div>
+            {comparison !== null && (
+              <div className={`flex items-center justify-center gap-1.5 text-sm font-medium ${improved ? "text-green-700" : "text-orange-700"}`}>
+                {improved ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />}
+                {comparison.difference} point {improved ? "improvement" : "decrease"}
+              </div>
+            )}
           </div>
         )}
       </DialogContent>

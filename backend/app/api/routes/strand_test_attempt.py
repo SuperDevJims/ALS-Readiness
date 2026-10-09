@@ -5,7 +5,7 @@ from app.schemas.strand_test_attempt import (
 )
 from fastapi import APIRouter, status
 
-from ..deps import CurrentLearnernDep, StrandAttemptServiceDep
+from ..deps import CurrentLearnerDep, StrandAttemptServiceDep
 
 router = APIRouter(
     prefix="/learner/strand-tests/{test_id}/attempts",
@@ -21,7 +21,7 @@ router = APIRouter(
 async def create_strand_test_attempt(
     test_id: int,
     attempt_create: StrandAttemptCreate,
-    current_user: CurrentLearnernDep,
+    current_user: CurrentLearnerDep,
     attempt_service: StrandAttemptServiceDep,
 ):
     return await attempt_service.create(
@@ -34,7 +34,7 @@ async def create_strand_test_attempt(
 @router.get("", response_model=StrandAttemptResultResponse)
 async def get_strand_test_attempt_result(
     test_id: int,
-    current_user: CurrentLearnernDep,
+    current_user: CurrentLearnerDep,
     attempt_service: StrandAttemptServiceDep,
 ):
     return await attempt_service.get_result(

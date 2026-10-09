@@ -6,6 +6,11 @@ from .routes import (
     cohort_facilitators,
     cohort_learners,
     cohorts,
+    contents,
+    curriculum,
+    facilitator,
+    facilitator_strand_tests,
+    learning_strands,
     lri_test,
     lri_test_attempt,
     participant_intake,
@@ -27,3 +32,8 @@ router.include_router(participant_intake.router)
 router.include_router(cohorts.router)
 router.include_router(cohort_facilitators.router)
 router.include_router(cohort_learners.router)
+router.include_router(contents.router)
+router.include_router(curriculum.router)
+router.include_router(learning_strands.router)
+router.include_router(facilitator.router)
+router.include_router(facilitator_strand_tests.router)
